@@ -19,7 +19,7 @@ void rbfTest()
 
 int main() 
 {
-  cout << "test..." << endl;
+  cout << "test... test 22222" << endl;
 
   rbfTest();
   // other tests go here
