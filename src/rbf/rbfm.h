@@ -62,8 +62,8 @@ public:
   RBFM_ScanIterator() {};
   ~RBFM_ScanIterator() {};
 
-  // "data" follows the same format as RecordBasedFileManager::insertTuple()
-  RC getNextTuple(RID &rid, void *data) { return RBFM_EOF; };
+  // "data" follows the same format as RecordBasedFileManager::insertRecord()
+  RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
   RC close() { return -1; };
 };
 
@@ -71,38 +71,46 @@ public:
 class RecordBasedFileManager
 {
 public:
-  static RecordBasedFileManager* Instance();
+  static RecordBasedFileManager* instance();
+
+  RC createFile(const string &fileName);
+  
+  RC destroyFile(const string &fileName);
+  
+  RC openFile(const string &fileName, FileHandle &fileHandle);
+  
+  RC closeFile(FileHandle &fileHandle);
 
   //  Format of the data passed into the function is the following:
   //  1) data is a concatenation of values of the attributes
   //  2) For int and real: use 4 bytes to store the value;
   //     For varchar: use 4 bytes to store the length of characters, then store the actual characters.
-  //  !!!The same format is used for updateTuple(), the returned data of readTuple(), and readAttribute()
-  RC insertTuple(const string &fileName, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
+  //  !!!The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute()
+  RC insertRecord(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
 
-  RC readTuple(const string &fileName, const vector<Attribute> &recordDescriptor, const RID &rid, void *data);
+  RC readRecord(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data);
   
   // This method will be mainly used for debugging/testing
-  RC printTuple(const vector<Attribute> &recordDescriptor, const void *data);
+  RC printRecord(const vector<Attribute> &recordDescriptor, const void *data);
 
 /**************************************************************************************************************************************************************
 ***************************************************************************************************************************************************************
 IMPORTANT, PLEASE READ: All methods below this comment (other than the constructor and destructor) are NOT required to be implemented for part 1 of the project
 ***************************************************************************************************************************************************************
 ***************************************************************************************************************************************************************/
-  RC deleteTuples(const string &fileName);
+  RC deleteRecords(const FileHandle &fileHandle);
 
-  RC deleteTuple(const string &fileName, const vector<Attribute> &recordDescriptor, const RID &rid);
+  RC deleteRecord(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid);
 
   // Assume the rid does not change after update
-  RC updateTuple(const string &fileName, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid);
+  RC updateRecord(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid);
 
-  RC readAttribute(const string &fileName, const vector<Attribute> &recordDescriptor, const RID &rid, const string attributeName, void *data);
+  RC readAttribute(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, const string attributeName, void *data);
 
-  RC reorganizePage(const string &fileName, const vector<Attribute> &recordDescriptor, const unsigned pageNumber);
+  RC reorganizePage(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const unsigned pageNumber);
 
   // scan returns an iterator to allow the caller to go through the results one by one. 
-  RC scan(const string &fileName,
+  RC scan(const FileHandle &fileHandle,
       const vector<Attribute> &recordDescriptor,
       const string &conditionAttribute,
       const CompOp compOp,                  // comparision type such as "<" and "="
@@ -114,7 +122,7 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
 // Extra credit for part 2 of the project, please ignore for part 1 of the project
 public:
 
-  RC reorganizeFile(const string &fileName, const vector<Attribute> &recordDescriptor);
+  RC reorganizeFile(const FileHandle &fileHandle, const vector<Attribute> &recordDescriptor);
 
 
 protected:

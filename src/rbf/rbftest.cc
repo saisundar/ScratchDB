@@ -10,8 +10,8 @@ using namespace std;
 
 void rbfTest()
 {
-  // PagedFileManager *pfm = PagedFileManager::Instance();
-  // RecordBasedFileManager *rbfm = RecordBasedFileManager::Instance();
+  // PagedFileManager *pfm = PagedFileManager::instance();
+  // RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 
   // write your own testing cases here
 }
@@ -19,7 +19,7 @@ void rbfTest()
 
 int main() 
 {
-  cout << "test... test 22222" << endl;
+  cout << "test..." << endl;
 
   rbfTest();
   // other tests go here
