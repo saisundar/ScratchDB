@@ -1,5 +1,16 @@
 #ifndef _pfm_h_
 #define _pfm_h_
+#include <sys/stat.h>
+#include <string>
+using namespace std;
+
+# define debug 1
+
+# ifdef debug
+# define dbgn(i,str)  cout<<str<<"is"<<i<<"\n";
+# else
+# define dbgn(i,str)  (void)0;
+#endif
 
 typedef int RC;
 typedef unsigned PageNum;
@@ -33,7 +44,7 @@ class FileHandle
 public:
     FileHandle();                                                    // Default constructor
     ~FileHandle();                                                   // Destructor
-
+    FILE* stream;
     RC readPage(PageNum pageNum, void *data);                           // Get a specific page
     RC writePage(PageNum pageNum, const void *data);                    // Write a specific page
     RC appendPage(const void *data);                                    // Append a specific page

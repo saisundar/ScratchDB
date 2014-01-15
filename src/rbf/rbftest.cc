@@ -10,9 +10,13 @@ using namespace std;
 
 void rbfTest()
 {
-  // PagedFileManager *pfm = PagedFileManager::instance();
+   PagedFileManager *pfm = PagedFileManager::instance();
   // RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 
+   pfm->createFile("summa");
+   pfm->destroyFile("summa");
+
+   pfm->createFile("summa");
   // write your own testing cases here
 }
 
