@@ -57,10 +57,11 @@ RC PagedFileManager::createFile(const char *fileName)
 // fileName: const char* (c - string)
 RC PagedFileManager::destroyFile(const char *fileName)
 {
-	if(!FileExists(fileName))
+	if(!FileExists(fileName)|| files.find(fileName)==files.end()|| files.find(fileName)->second!=0)
     return -1;
 
 	remove(fileName);
+	files.erase(files.find(fileName));
 	return 0;
 }
 
@@ -71,10 +72,13 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 //	//If entry exists , then open in read mode.
 //	If entry does not exist then returnerror.
 //   we  have steram attributein handle.
+  if(files.find(fileName)==files.end())
+	  return -1;
 
+   fileHandle.stream=fopen(fileName,'rb');
+   files[fileName]++;
 
-
-   return -1;
+   return 0;
 }
 
 
