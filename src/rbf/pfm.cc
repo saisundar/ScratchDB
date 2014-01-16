@@ -47,7 +47,7 @@ RC PagedFileManager::createFile(const char *fileName)
 	file = fopen(fileName,"wb");
 	fclose(file);
 
-	files.insert(fileName);
+	files.insert(std::pair<string ,int>(fileName,0));
 	return 0;
 }
 

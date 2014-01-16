@@ -3,6 +3,8 @@
 
 #include <sys/stat.h>
 #include <string>
+#include <stdio.h>
+#include <map>
 using namespace std;
 
 # define debug 1
@@ -13,9 +15,6 @@ using namespace std;
 # define dbgn(str1,str2) (void)0;
 #endif
 
-#include <string>
-#include <stdio.h>
-#include <set>
 
 typedef int RC;
 typedef unsigned PageNum;
@@ -34,7 +33,7 @@ class PagedFileManager
 public:
     static PagedFileManager* instance();                     		 // Access to the _pf_manager instance
 
-    set<string> files;												 // Maintain record of files created
+    map< string ,int> files;												 // Maintain record of files created
 
     RC createFile    (const char *fileName);                         // Create a new file
     RC destroyFile   (const char *fileName);                         // Destroy a file
