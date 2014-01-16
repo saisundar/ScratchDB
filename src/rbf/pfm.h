@@ -1,5 +1,6 @@
 #ifndef _pfm_h_
 #define _pfm_h_
+
 #include <sys/stat.h>
 #include <string>
 using namespace std;
@@ -7,23 +8,33 @@ using namespace std;
 # define debug 1
 
 # ifdef debug
-# define dbgn(i,str)  cout<<str<<"is"<<i<<"\n";
+# define dbgn(str1,str2) cout<<str1<<": "<<str2<<"\n";
 # else
-# define dbgn(i,str)  (void)0;
+# define dbgn(str1,str2) (void)0;
 #endif
+
+#include <string>
+#include <stdio.h>
+#include <set>
 
 typedef int RC;
 typedef unsigned PageNum;
 
 #define PAGE_SIZE 4096
+#define debug 1
+
+using namespace std;
+
+bool FileExists(string fileName);
 
 class FileHandle;
-
 
 class PagedFileManager
 {
 public:
-    static PagedFileManager* instance();                     // Access to the _pf_manager instance
+    static PagedFileManager* instance();                     		 // Access to the _pf_manager instance
+
+    set<string> files;												 // Maintain record of files created
 
     RC createFile    (const char *fileName);                         // Create a new file
     RC destroyFile   (const char *fileName);                         // Destroy a file
