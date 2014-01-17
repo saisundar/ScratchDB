@@ -62,8 +62,8 @@ RC PagedFileManager::destroyFile(const char *fileName)
 	dbgn("Filename",fileName);
 	if(!FileExists(fileName)|| files.find(fileName)->second!=0)
 		return -1;
-    dbgn("ref count",files.find(fileName)->second);
-    remove(fileName);
+	dbgn("ref count",files.find(fileName)->second);
+	remove(fileName);
 	files.erase(files.find(fileName));
 	return 0;
 }
@@ -78,17 +78,16 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	dbgn("this ","openFile");
 	dbgn("Filename",fileName);
 	if(FileExists(fileName))
-			return -1;
+		return -1;
 	if(fileHandle.stream)
 		return -1;
 	fileHandle.fileName = fileName;
 	fileHandle.stream = fopen( fileName ,"rb");
 	fileHandle.mode = false;
-
 	if(files.find(fileName)==files.end())
-	files.insert(std::pair<string,int>(fileName,0));
+		files.insert(std::pair<string,int>(fileName,0));
 	files[fileName]++;
-    dbgn("ref count_open_file",files[fileName]);
+	dbgn("ref count_open_file",files[fileName]);
 	return 0;
 }
 
@@ -97,7 +96,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
 	//	Ii need to dealloc stream
 	dbgn("this ","closeFile");
-	dbgn("Filename",fileName);
+	dbgn("Filename",fileHandle.fileName);
 	fclose(fileHandle.stream);
 
 	if(fileHandle.mode)
@@ -128,8 +127,13 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 	//  The page should exist. Note the page number starts from 0.
 	//	See if pageunum eceeds the numofpages. If so errro.
 	//	Read pagesize data using fread.
-
-	return -1;
+	if(pageNum>=getNumberOfPages())
+		return -1;
+	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
+//	if(fileHandle.mode)
+//			files[fileHandle.fileName] = -1*files[fileHandle.fileName]; ?????????
+	fread(data, 1, PAGE_SIZE, stream);
+	return 0;
 }
 
 
@@ -139,14 +143,32 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	//	This method writes the data into a page specified by the pageNum. The page should exist. Note the page number starts from 0.
 	//	Similar to fread.
 	//	Refer example for writing.
+	PagedFileManager *pfm = PagedFileManager::instance();
+	if(pfm->files[fileName]<0||pageNum>=getNumberOfPages())
+		return -1;
 
-	return -1;
+	freopen(fileName.c_str(),"wb",stream);
+	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+	mode=true;
+	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
+	fwrite(data, 1, PAGE_SIZE, stream);
+	return 0;
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
-	return -1;
+	PagedFileManager *pfm = PagedFileManager::instance();
+		if(pfm->files[fileName]<0)
+			return -1;
+
+		freopen(fileName.c_str(),"wb",stream);
+		(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+		mode=true;
+		fseek(stream,0,SEEK_END);
+		fwrite(data, 1, PAGE_SIZE, stream);
+		return 0;
+
 }
 
 

@@ -13,8 +13,9 @@ void rbfTest()
 	PagedFileManager *pfm = PagedFileManager::instance();
 	// RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 	// write your own testing cases here
-	if(FileExists("test"))remove("test");
-	pfm->createFile("test");
+	string text="test";
+	if(FileExists(text.c_str()))remove(text);
+	pfm->createFile(text.c_str());
 	FileHandle fileHandle;
 	pfm->openFile("test",fileHandle);
 	FileHandle fileHandle2;
