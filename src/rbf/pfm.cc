@@ -74,6 +74,8 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	//   we  have steram attributein handle.
 	if(files.find(fileName)==files.end())
 		return -1;
+	if(fileHandle.stream)
+		return -1;
 	fileHandle.fileName = fileName;
 	fileHandle.stream = fopen( fileName ,"rb");
 	files[fileName]++;
@@ -91,6 +93,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
 	files[fileHandle.fileName]--;
+	fileHandle.stream = 0;
 	return 0;
 }
 
@@ -98,7 +101,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 FileHandle::FileHandle()
 {
 	stream = 0;
-	mode=false;
+	mode = false;
 }
 
 

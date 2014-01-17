@@ -10,23 +10,26 @@ using namespace std;
 
 void rbfTest()
 {
-   PagedFileManager *pfm = PagedFileManager::instance();
-  // RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
+	PagedFileManager *pfm = PagedFileManager::instance();
+	// RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
+	// write your own testing cases here
+	if(FileExists("test"))remove("test");
+	pfm->createFile("test");
+	FileHandle fileHandle;
+	pfm->openFile("test",fileHandle);
+	FileHandle fileHandle2;
+	pfm->openFile("test",fileHandle2);
+	pfm->destroyFile("test");
 
-   pfm->createFile("summa");
-   pfm->destroyFile("summa");
-
-   pfm->createFile("summa");
-  // write your own testing cases here
 }
 
 
 int main() 
 {
-  cout << "test..." << endl;
+	cout << "test..." << endl;
 
-  rbfTest();
-  // other tests go here
+	rbfTest();
+	// other tests go here
 
-  cout << "OK" << endl;
+	cout << "OK" << endl;
 }
