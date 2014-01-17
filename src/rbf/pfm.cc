@@ -74,9 +74,10 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 //   we  have steram attributein handle.
   if(files.find(fileName)==files.end())
 	  return -1;
-
-   fileHandle.stream=fopen(fileName,'rb');
+   fileHandle.fileName=fileName;
+   fileHandle.stream=fopen( fileName ,"rb");
    files[fileName]++;
+   fileHandle.mode-false;
 
    return 0;
 }
@@ -85,18 +86,26 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
 //	Ii need to dealloc stream
-    return -1;
+    if(!fileHandle)
+    	return -1;
+
+    fclose(fileHandle.stream);
+    if(fileHandle.mode)files[fileName]=-1*files[fileName];
+    fileHandle.files[fileHandle.fileName]--;
+    return 0;
 }
 
 
 FileHandle::FileHandle()
 {
 	stream = 0;
+	mode=false;
 }
 
 
 FileHandle::~FileHandle()
 {
+	//no freeing required
 
 }
 

@@ -55,6 +55,8 @@ public:
     FileHandle();                                                    // Default constructor
     ~FileHandle();                                                   // Destructor
     FILE* stream;
+    string fileName;
+    bool mode;															//0 for read,1 for write
     RC readPage(PageNum pageNum, void *data);                           // Get a specific page
     RC writePage(PageNum pageNum, const void *data);                    // Write a specific page
     RC appendPage(const void *data);                                    // Append a specific page
