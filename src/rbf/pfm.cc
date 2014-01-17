@@ -41,7 +41,7 @@ PagedFileManager::~PagedFileManager()
 RC PagedFileManager::createFile(const char *fileName)
 {
 	if(FileExists(fileName))
-	return -1;
+		return -1;
 
 	FILE *file;
 	file = fopen(fileName,"wb");
@@ -58,7 +58,7 @@ RC PagedFileManager::createFile(const char *fileName)
 RC PagedFileManager::destroyFile(const char *fileName)
 {
 	if(!FileExists(fileName)|| files.find(fileName)==files.end()|| files.find(fileName)->second!=0)
-    return -1;
+		return -1;
 
 	remove(fileName);
 	files.erase(files.find(fileName));
@@ -69,30 +69,29 @@ RC PagedFileManager::destroyFile(const char *fileName)
 RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 {
 
-//	//If entry exists , then open in read mode.
-//	If entry does not exist then returnerror.
-//   we  have steram attributein handle.
-  if(files.find(fileName)==files.end())
-	  return -1;
-   fileHandle.fileName=fileName;
-   fileHandle.stream=fopen( fileName ,"rb");
-   files[fileName]++;
-   fileHandle.mode-false;
+	//	//If entry exists , then open in read mode.
+	//	If entry does not exist then returnerror.
+	//   we  have steram attributein handle.
+	if(files.find(fileName)==files.end())
+		return -1;
+	fileHandle.fileName = fileName;
+	fileHandle.stream = fopen( fileName ,"rb");
+	files[fileName]++;
+	fileHandle.mode = false;
 
-   return 0;
+	return 0;
 }
 
 
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-//	Ii need to dealloc stream
-    if(!fileHandle)
-    	return -1;
+	//	Ii need to dealloc stream
+	fclose(fileHandle.stream);
 
-    fclose(fileHandle.stream);
-    if(fileHandle.mode)files[fileName]=-1*files[fileName];
-    fileHandle.files[fileHandle.fileName]--;
-    return 0;
+	if(fileHandle.mode)
+		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
+	files[fileHandle.fileName]--;
+	return 0;
 }
 
 
@@ -112,23 +111,23 @@ FileHandle::~FileHandle()
 
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-//	This method reads the page into the memory block pointed by data.
-//  The page should exist. Note the page number starts from 0.
-//	See if pageunum eceeds the numofpages. If so errro.
-//	Read pagesize data using fread.
+	//	This method reads the page into the memory block pointed by data.
+	//  The page should exist. Note the page number starts from 0.
+	//	See if pageunum eceeds the numofpages. If so errro.
+	//	Read pagesize data using fread.
 
-    return -1;
+	return -1;
 }
 
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
 
-//	This method writes the data into a page specified by the pageNum. The page should exist. Note the page number starts from 0.
-//	Similar to fread.
-//	Refer example for writing.
+	//	This method writes the data into a page specified by the pageNum. The page should exist. Note the page number starts from 0.
+	//	Similar to fread.
+	//	Refer example for writing.
 
-    return -1;
+	return -1;
 }
 
 
