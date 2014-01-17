@@ -40,6 +40,8 @@ PagedFileManager::~PagedFileManager()
 // fileName: const char* (c - string)
 RC PagedFileManager::createFile(const char *fileName)
 {
+	dbgn("this ","createFile");
+	dbgn("Filename",fileName);
 	if(FileExists(fileName))
 		return -1;
 
@@ -56,10 +58,12 @@ RC PagedFileManager::createFile(const char *fileName)
 // fileName: const char* (c - string)
 RC PagedFileManager::destroyFile(const char *fileName)
 {
+	dbgn("this ","destroyFile");
+	dbgn("Filename",fileName);
 	if(!FileExists(fileName)|| files.find(fileName)->second!=0)
 		return -1;
-
-	remove(fileName);
+    dbgn("ref count",files.find(fileName)->second);
+    remove(fileName);
 	files.erase(files.find(fileName));
 	return 0;
 }
@@ -71,7 +75,8 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	//	//If entry exists , then open in read mode.
 	//	If entry does not exist then returnerror.
 	//   we  have steram attributein handle.
-
+	dbgn("this ","openFile");
+	dbgn("Filename",fileName);
 	if(FileExists(fileName))
 			return -1;
 	if(fileHandle.stream)
@@ -83,7 +88,7 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	if(files.find(fileName)==files.end())
 	files.insert(std::pair<string,int>(fileName,0));
 	files[fileName]++;
-
+    dbgn("ref count_open_file",files[fileName]);
 	return 0;
 }
 
@@ -91,6 +96,8 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
 	//	Ii need to dealloc stream
+	dbgn("this ","closeFile");
+	dbgn("Filename",fileName);
 	fclose(fileHandle.stream);
 
 	if(fileHandle.mode)
