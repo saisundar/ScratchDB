@@ -47,7 +47,6 @@ RC PagedFileManager::createFile(const char *fileName)
 	file = fopen(fileName,"wb");
 	fclose(file);
 
-	files.insert(std::pair<string ,int>(fileName,0));
 	return 0;
 }
 
@@ -57,7 +56,7 @@ RC PagedFileManager::createFile(const char *fileName)
 // fileName: const char* (c - string)
 RC PagedFileManager::destroyFile(const char *fileName)
 {
-	if(!FileExists(fileName)|| files.find(fileName)==files.end()|| files.find(fileName)->second!=0)
+	if(!FileExists(fileName)|| files.find(fileName)->second!=0)
 		return -1;
 
 	remove(fileName);
@@ -72,14 +71,18 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	//	//If entry exists , then open in read mode.
 	//	If entry does not exist then returnerror.
 	//   we  have steram attributein handle.
-	if(files.find(fileName)==files.end())
-		return -1;
+
+	if(FileExists(fileName))
+			return -1;
 	if(fileHandle.stream)
 		return -1;
 	fileHandle.fileName = fileName;
 	fileHandle.stream = fopen( fileName ,"rb");
-	files[fileName]++;
 	fileHandle.mode = false;
+
+	if(files.find(fileName)==files.end())
+	files.insert(std::pair<string,int>(fileName,0));
+	files[fileName]++;
 
 	return 0;
 }
