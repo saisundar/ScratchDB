@@ -60,7 +60,7 @@ RC PagedFileManager::destroyFile(const char *fileName)
 {
 	dbgn("this ","destroyFile");
 	dbgn("Filename",fileName);
-	if(!FileExists(fileName)|| files.find(fileName)->second!=0)
+	if(!FileExists(fileName)|| (files.find(fileName)!=files.end() && files.find(fileName)->second!=0))
 		return -1;
 	dbgn("ref count",files.find(fileName)->second);
 	remove(fileName);
@@ -77,7 +77,7 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	//   we  have steram attributein handle.
 	dbgn("this ","openFile");
 	dbgn("Filename",fileName);
-	if(FileExists(fileName))
+	if(!FileExists(fileName))
 		return -1;
 	if(fileHandle.stream)
 		return -1;
@@ -144,14 +144,19 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	//	Similar to fread.
 	//	Refer example for writing.
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if(pfm->files[fileName]<0||pageNum>=getNumberOfPages())
+	if((pfm->files[fileName]<0 && !mode)||pageNum>=getNumberOfPages())
 		return -1;
-
-	freopen(fileName.c_str(),"wb",stream);
-	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
-	mode=true;
+	dbgn("this ","writePage");
+	dbgn("page num",pageNum);
+	if(!mode)
+	{
+    	freopen(fileName.c_str(),"r+b",stream);
+       	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+       	mode=true;
+	}
 	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
 	fwrite(data, 1, PAGE_SIZE, stream);
+	fflush(stream);
 	return 0;
 }
 
@@ -159,14 +164,18 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 RC FileHandle::appendPage(const void *data)
 {
 	PagedFileManager *pfm = PagedFileManager::instance();
-		if(pfm->files[fileName]<0)
+		if(pfm->files[fileName]<0 && !mode)
 			return -1;
+        if(!mode)
+		{
+        	freopen(fileName.c_str(),"r+b",stream);
+        	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+        	mode=true;
+		}
 
-		freopen(fileName.c_str(),"wb",stream);
-		(pfm->files[fileName]) = -1*(pfm->files[fileName]);
-		mode=true;
 		fseek(stream,0,SEEK_END);
 		fwrite(data, 1, PAGE_SIZE, stream);
+		fflush(stream);
 		return 0;
 
 }
@@ -174,7 +183,7 @@ RC FileHandle::appendPage(const void *data)
 
 unsigned FileHandle::getNumberOfPages()
 {
-	return -1;
+	return 100;
 }
 
 
