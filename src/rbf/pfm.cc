@@ -34,8 +34,7 @@ PagedFileManager::~PagedFileManager()
 }
 
 // <createFile> tells the OS to CREATE a file.
-// if the fileName exists the function returns an error code '1' else it CREATES the file.
-// The function also maintains a set to keep record of all files created by the function
+// if the fileName exists the function returns an error code '-1' else it CREATES the file.
 // ARGS:
 // fileName: const char* (c - string)
 RC PagedFileManager::createFile(const char *fileName)
@@ -95,8 +94,12 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
 	//	Ii need to dealloc stream
+	//  ????? Check if file is open
 	dbgn("this ","closeFile");
 	dbgn("Filename",fileHandle.fileName);
+	if(fileHandle.stream==0)
+		return -1;
+
 	fclose(fileHandle.stream);
 
 	if(fileHandle.mode)
@@ -117,7 +120,6 @@ FileHandle::FileHandle()
 FileHandle::~FileHandle()
 {
 	//no freeing required
-
 }
 
 
