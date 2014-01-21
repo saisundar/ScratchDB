@@ -21,15 +21,32 @@ RecordBasedFileManager::~RecordBasedFileManager()
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
     PagedFileManager *pfm = PagedFileManager::instance();
-    pfm->createFile(fileName.c_str());
+    void *data = malloc(4096); void *data1=malloc(4096);
+    INT32 i;
     FileHandle fileHandle;
-    pfm->openFile(fileName.c_str(),fileHandle);
+   if( pfm->createFile(fileName.c_str())!=0)goto error_rbfcreate;
+
+    if(pfm->openFile(fileName.c_str(),fileHandle)!=0)goto error_rbfcreate;
 //    void *data = calloc(4096,1);
-    void *data = malloc(4096);
-    *data = 0;
-    *(data+1) = 0;
+
+    for(i=0;i<6;i++)
+    *((BYTE *)data+i) = 1; 							// for the overall no of pages
+
+    for(i=4092;i<4096;i++)(*((BYTE *)data+i)) = 0; // for the next_page information
     fileHandle.appendPage(data);
+
+    dbgn("pagenumber is",fileHandle.getNumberOfPages());
+
+    fileHandle.readPage(0,data1);
+    dbgn("netx page number",getNextHeaderPage((BYTE *)data1));
+
+    if(pfm->closeFile(fileHandle)!=0)goto error_rbfcreate;
+
+    free(data);free(data1);
     return 0;
+
+    error_rbfcreate:
+    return -1;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {

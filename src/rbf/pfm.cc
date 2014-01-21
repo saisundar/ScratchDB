@@ -1,5 +1,5 @@
 #include "pfm.h"
-#include<iostream>
+#include<cstdlib>
 using namespace std;
 
 // Check if a file exists
@@ -10,7 +10,14 @@ bool FileExists(string fileName)
 	if(stat(fileName.c_str(), &stFileInfo) == 0) return true;
 	else return false;
 }
+INT32 getNextHeaderPage(BYTE *headerStart)
+{
 
+	 INT32 nxt=*(INT32 *)(headerStart+4092);
+
+	 return nxt;
+
+}
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
 PagedFileManager* PagedFileManager::instance()
@@ -84,7 +91,7 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	fileHandle.stream = fopen( fileName ,"rb");
 	fileHandle.mode = false;
 	if(files.find(fileName)==files.end())
-		files.insert(std::pair<string,int>(fileName,0));
+		files.insert(std::pair<string,INT32>(fileName,0));
 	files[fileName]++;
 	dbgn("ref count_open_file",files[fileName]);
 	return 0;
@@ -120,6 +127,8 @@ FileHandle::FileHandle()
 FileHandle::~FileHandle()
 {
 	//no freeing required
+	if(stream!=0)
+		fclose(stream);
 }
 
 
@@ -185,7 +194,18 @@ RC FileHandle::appendPage(const void *data)
 
 unsigned FileHandle::getNumberOfPages()
 {
-	return 100;
+	if(stream==0)
+	{ cout<<" NO STREAM PRESENT!!!";
+	return 0;
+	}
+	void *data=malloc(PAGE_SIZE);
+
+	readPage(0,data);
+    INT32 pgn=*(INT32 *)data;
+    free(data);
+	return(pgn);
+
+
 }
 
 

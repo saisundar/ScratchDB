@@ -1,14 +1,17 @@
 #ifndef _pfm_h_
 #define _pfm_h_
-
+#include <inttypes.h>
 #include <sys/stat.h>
 #include <string>
 #include <stdio.h>
 #include <map>
+#include<iostream>
 using namespace std;
 
 # define debug 1
-
+typedef int32_t INT32;
+typedef int8_t BYTE;
+#define PES 6
 # ifdef debug
 # define dbgn(str1,str2) cout<<str1<<": "<<str2<<"\n";
 # else
@@ -16,15 +19,14 @@ using namespace std;
 #endif
 
 
-typedef int RC;
+typedef INT32 RC;
 typedef unsigned PageNum;
 
 #define PAGE_SIZE 4096
-#define debug 1
-
 using namespace std;
 
 bool FileExists(string fileName);
+INT32 getNextHeaderPage(BYTE *headerStart);
 
 class FileHandle;
 
@@ -33,7 +35,7 @@ class PagedFileManager
 public:
     static PagedFileManager* instance();                     		 // Access to the _pf_manager instance
 
-    map< string ,int> files;												 // Maintain record of files created
+    map< string ,INT32> files;												 // Maintain record of files created
 
     RC createFile    (const char *fileName);                         // Create a new file
     RC destroyFile   (const char *fileName);                         // Destroy a file
