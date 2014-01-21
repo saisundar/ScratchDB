@@ -10,14 +10,7 @@ bool FileExists(string fileName)
 	if(stat(fileName.c_str(), &stFileInfo) == 0) return true;
 	else return false;
 }
-INT32 getNextHeaderPage(BYTE *headerStart)
-{
 
-	 INT32 nxt=*(INT32 *)(headerStart+4092);
-
-	 return nxt;
-
-}
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
 PagedFileManager* PagedFileManager::instance()
@@ -26,6 +19,11 @@ PagedFileManager* PagedFileManager::instance()
 		_pf_manager = new PagedFileManager();
 
 	return _pf_manager;
+}
+
+INT32 getNextHeaderPage(BYTE *headerStart)
+{
+	 return *((INT32 *)(headerStart+4092));
 }
 
 // The PagedFileManager does nothing.
@@ -198,14 +196,12 @@ unsigned FileHandle::getNumberOfPages()
 	{ cout<<" NO STREAM PRESENT!!!";
 	return 0;
 	}
-	void *data=malloc(PAGE_SIZE);
-
-	readPage(0,data);
-    INT32 pgn=*(INT32 *)data;
+	void *data=malloc(4);
+	fseek(stream,0,SEEK_SET);
+	fread(data, 4, 1, stream);
+    INT32 pgn=*((INT32 *)data);
     free(data);
 	return(pgn);
-
-
 }
 
 

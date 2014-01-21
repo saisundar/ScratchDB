@@ -15,7 +15,7 @@ INT32 RBFTest_3(PagedFileManager *pfm)
 INT32 RBFTest(RecordBasedFileManager *rfm)
 {
 
-	rfm->createFile("summa1234");
+	rfm->createFile("summa");
 	return 0;
 }
 void rbfTest()
