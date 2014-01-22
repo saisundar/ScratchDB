@@ -1,5 +1,5 @@
 #include "pfm.h"
-#include<cstdlib>
+#include <cstdlib>
 using namespace std;
 
 // Check if a file exists
@@ -51,6 +51,14 @@ RC PagedFileManager::createFile(const char *fileName)
 
 	FILE *file;
 	file = fopen(fileName,"wb");
+
+	void *data = malloc(PAGE_SIZE);
+	for(int i=0;i<PAGE_SIZE;i++)
+		*((BYTE *)data+i) = 0;
+	fseek(file,0,SEEK_SET);
+	fwrite(data,1,PAGE_SIZE,file);
+	free(data);
+
 	fclose(file);
 
 	return 0;
@@ -95,11 +103,12 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	return 0;
 }
 
-
+// <closeFile> Closes the stream associated with the FileHandle object passed as an argument
+// It checks for a stream associated with the fileHandle, if none exist it returns an error
+// if it exists, it closes that stream
+// This function also updates the count of open streams of a file(read/write)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-	//	Ii need to dealloc stream
-	//  ????? Check if file is open
 	dbgn("this ","closeFile");
 	dbgn("Filename",fileHandle.fileName);
 	if(fileHandle.stream==0)
@@ -114,14 +123,14 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 	return 0;
 }
 
-
+//Initializes the stream and mode
 FileHandle::FileHandle()
 {
 	stream = 0;
 	mode = false;
 }
 
-
+//Make sure stream is deallocated
 FileHandle::~FileHandle()
 {
 	//no freeing required
@@ -196,6 +205,7 @@ unsigned FileHandle::getNumberOfPages()
 	{ cout<<" NO STREAM PRESENT!!!";
 	return 0;
 	}
+
 	void *data=malloc(4);
 	fseek(stream,0,SEEK_SET);
 	fread(data, 4, 1, stream);
