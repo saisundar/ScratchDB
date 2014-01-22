@@ -21,11 +21,6 @@ PagedFileManager* PagedFileManager::instance()
 	return _pf_manager;
 }
 
-INT32 getNextHeaderPage(BYTE *headerStart)
-{
-	 return *((INT32 *)(headerStart+4092));
-}
-
 // The PagedFileManager does nothing.
 PagedFileManager::PagedFileManager()
 {
@@ -143,6 +138,38 @@ FileHandle::~FileHandle()
 		fclose(stream);
 }
 
+INT32 FileHandle::getNextHeaderPage(int pageNum)
+{
+	void *data=malloc(4);
+	fseek(stream,(pageNum*PAGE_SIZE)+4092,SEEK_SET);
+	fread(data, 4, 1, stream);
+	INT32 pgn=*((INT32 *)data);
+	free(data);
+	return (pgn);
+}
+
+INT32 FileHandle::translatePageNum(INT32 pageNum)
+{
+
+	if(pageNum>=getNumberOfPages()) return -1;
+
+	int headPageNum=(pageNum)/681;int tempPgNum=0;
+
+	for(i=0;i<headPageNum;i++)
+		{
+
+		headPageNum=getNextHeaderPage(tempPgNum);
+		tempPgNum=headPageNum;
+		}
+
+
+
+
+
+
+
+
+}
 
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
@@ -150,6 +177,7 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 	//  The page should exist. Note the page number starts from 0.
 	//	See if pageunum eceeds the numofpages. If so errro.
 	//	Read pagesize data using fread.
+
 	if(pageNum>=getNumberOfPages())
 		return -1;
 	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
