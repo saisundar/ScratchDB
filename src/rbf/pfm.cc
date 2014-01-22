@@ -42,7 +42,7 @@ INT32 PagedFileManager::insertHeader(FILE* fileStream)
 	INT32 end = ftell(fileStream);
 	fwrite(data,1,PAGE_SIZE,fileStream);
 	free(data);
-	return end;
+	return end/PAGE_SIZE;
 }
 
 // <createFile> tells the OS to CREATE a file.
@@ -151,7 +151,7 @@ INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 	if(pageNum>=getNumberOfPages()) return -1;
 
 	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0;
-	for(i=0;i<headPageNum;i++)
+	for(int i=0;i<headPageNum;i++)
 		tempPgNum=getNextHeaderPage(tempPgNum);
 	return tempPgNum;
 }
@@ -217,30 +217,53 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 RC FileHandle::appendPage(const void *data)
 {
 	PagedFileManager *pfm = PagedFileManager::instance();
-		if(pfm->files[fileName]<0 && !mode)
-			return -1;
-        if(!mode)
-		{
-        	freopen(fileName.c_str(),"r+b",stream);
-        	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
-        	mode=true;
-		}
+	if(pfm->files[fileName]<0 && !mode)
+		return -1;
+	if(!mode)
+	{
+		freopen(fileName.c_str(),"r+b",stream);
+		(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+		mode=true;
+	}
 
-		fseek(stream,0,SEEK_END);
-		fwrite(data, 1, PAGE_SIZE, stream);
-		fflush(stream);
+	fseek(stream,0,SEEK_END);
 
-		//Increase Page count in Header File
-		void* pgCntStream = malloc(4);
-		fseek(stream,0,SEEK_SET);
-		fread(pgCntStream, 1, 4, stream);
-	    INT32 pageCount = *((INT32 *)pgCntStream);
-	    pageCount++;
-	    free(pgCntStream);
-	    pgCntStream = (void*)&pageCount;
-		fseek(stream,0,SEEK_SET);
-	    fwrite(pgCntStream, 1, 4, stream);
-	    return 0;
+	INT32 entry = ftell(stream);
+	entry = entry/PAGE_SIZE;
+
+	fwrite(data, 1, PAGE_SIZE, stream);
+	fflush(stream);
+
+	// Increase Page count in Header File
+	void* pgCntStream = malloc(4);
+	fseek(stream,0,SEEK_SET);
+	fread(pgCntStream, 1, 4, stream);
+	INT32 pageCount = *((INT32 *)pgCntStream);
+	pageCount++;
+	free(pgCntStream);
+	pgCntStream = (void*)&pageCount;
+	fseek(stream,0,SEEK_SET);
+	fwrite(pgCntStream, 1, 4, stream);
+
+	// Make an entry for the page which was appended
+	// Check if current header has sufficient space
+	int inHeaderPosition = pageCount%681;
+	INT32  currentHeaderPage = getHeaderPageNum(pageCount-1);
+	// Sufficient space is not available, So insert new header page
+	if(inHeaderPosition==0){
+
+		PagedFileManager *pfm = PagedFileManager::instance();
+		INT32 newHeaderPage = pfm->insertHeader(stream);
+
+		// Link the new header page
+		fseek(stream,(currentHeaderPage*PAGE_SIZE)+4092,SEEK_SET);
+		fwrite((void*)&newHeaderPage,1,4,stream);
+		currentHeaderPage = newHeaderPage;
+	}
+
+	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1),SEEK_SET);
+	fwrite((void*)&entry,1,4,stream);
+	return 0;
 }
 
 
