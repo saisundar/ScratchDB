@@ -151,19 +151,27 @@ INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 	if(pageNum>=getNumberOfPages()) return -1;
 
 	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0;
+	dbgn("this ","get header pagnum");
+		dbgn("vrtl pg num ",pageNum);
+
 	for(int i=0;i<headPageNum;i++)
 		tempPgNum=getNextHeaderPage(tempPgNum);
+	dbgn("headr pg num ",tempPgNum);
 	return tempPgNum;
 }
 INT32 FileHandle::translatePageNum(INT32 pageNum)
 {
 	if(pageNum>=getNumberOfPages()) return -1;
 	INT32 headPageNum=getHeaderPageNum(pageNum);
+	dbgn("this ","tranlsate pagnum");
+	dbgn("vrtl pg num ",pageNum);
+	dbgn("headr pg num ",headPageNum);
 	INT32 offset=pageNum%681;
 	if(headPageNum==-1)return -1;
 	INT32 actualPgNum;
 	fseek(stream,(headPageNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
-	fread(&actualPgNum, 4, 1, stream);
+	fread(&actualPgNum, 1, 4, stream);
+	dbgn("actual pg num ",actualPgNum);
 	return actualPgNum;
 }
 
@@ -228,9 +236,9 @@ RC FileHandle::appendPage(const void *data)
 
 	fseek(stream,0,SEEK_END);
 
-	INT32 entry = ftell(stream);
-	entry = entry/PAGE_SIZE;
-
+	INT32 actualPageNo = ftell(stream);
+	actualPageNo = actualPageNo/PAGE_SIZE;
+	dbgn("page no of New page added:",actualPageNo);
 	fwrite(data, 1, PAGE_SIZE, stream);
 	fflush(stream);
 
@@ -247,14 +255,15 @@ RC FileHandle::appendPage(const void *data)
 
 	// Make an entry for the page which was appended
 	// Check if current header has sufficient space
-	int inHeaderPosition = pageCount%681;
-	INT32  currentHeaderPage = getHeaderPageNum(pageCount-1);
+	INT32 virtualPageNo = pageCount-1;
+	int inHeaderPosition = (virtualPageNo)%681;
+	INT32  currentHeaderPage = getHeaderPageNum(virtualPageNo);
 	// Sufficient space is not available, So insert new header page
-	if(inHeaderPosition==0){
+	if(virtualPageNo >680 && inHeaderPosition==0){
 
 		PagedFileManager *pfm = PagedFileManager::instance();
 		INT32 newHeaderPage = pfm->insertHeader(stream);
-
+		currentHeaderPage = getHeaderPageNum(virtualPageNo-1);
 		// Link the new header page
 		fseek(stream,(currentHeaderPage*PAGE_SIZE)+4092,SEEK_SET);
 		fwrite((void*)&newHeaderPage,1,4,stream);
@@ -262,7 +271,9 @@ RC FileHandle::appendPage(const void *data)
 	}
 
 	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1),SEEK_SET);
-	fwrite((void*)&entry,1,4,stream);
+	fwrite((void*)&actualPageNo,1,4,stream);
+    dbgn("Appendpage: actual page no of newly appended page",translatePageNum(virtualPageNo));
+    dbgn("number of pages after insertion",getNumberOfPages());
 	return 0;
 }
 
