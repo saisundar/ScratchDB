@@ -140,11 +140,9 @@ FileHandle::~FileHandle()
 
 INT32 FileHandle::getNextHeaderPage(int pageNum)
 {
-	void *data=malloc(4);
+	INT32 pgn;
 	fseek(stream,(pageNum*PAGE_SIZE)+4092,SEEK_SET);
-	fread(data, 4, 1, stream);
-	INT32 pgn=*((INT32 *)data);
-	free(data);
+	fread(&pgn, 4, 1, stream);
 	return (pgn);
 }
 
@@ -153,24 +151,16 @@ INT32 FileHandle::translatePageNum(INT32 pageNum)
 
 	if(pageNum>=getNumberOfPages()) return -1;
 
-	int headPageNum=(pageNum)/681;int tempPgNum=0,offset=pageNum%681;
+	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0,offset=pageNum%681;
+	INT32 actualPgNum;
 
 	for(i=0;i<headPageNum;i++)
-		{
+		tempPgNum=getNextHeaderPage(tempPgNum);
 
-		headPageNum=getNextHeaderPage(tempPgNum);
-		tempPgNum=headPageNum;
-		}
-	fseek(stream,(headPageNum*PAGE_SIZE)+4092,SEEK_SET);
-	fread(data, 4, 1, stream);
+	fseek(stream,(tempPgNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
+	fread(&actualPgNum, 4, 1, stream);
 
-
-
-
-
-
-
-
+	return actualPgNum;
 }
 
 RC FileHandle::readPage(PageNum pageNum, void *data)
@@ -179,16 +169,18 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 	//  The page should exist. Note the page number starts from 0.
 	//	See if pageunum eceeds the numofpages. If so errro.
 	//	Read pagesize data using fread.
-
 	if(pageNum>=getNumberOfPages())
 		return -1;
-	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
+	INT32 actualPgNum=translatePageNum(pageNum);
+	dbgn("this ","readPage");
+	dbgn("virtual page num",pageNum);
+	dbgn("actual page num",actualPgNum);
+	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 //	if(fileHandle.mode)
 //			files[fileHandle.fileName] = -1*files[fileHandle.fileName]; ?????????
 	fread(data, 1, PAGE_SIZE, stream);
 	return 0;
 }
-
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
@@ -199,15 +191,17 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	PagedFileManager *pfm = PagedFileManager::instance();
 	if((pfm->files[fileName]<0 && !mode)||pageNum>=getNumberOfPages())
 		return -1;
-	dbgn("this ","writePage");
-	dbgn("page num",pageNum);
+	INT32 actualPgNum=translatePageNum(pageNum);
+	dbgn("this ","readPage");
+	dbgn("virtual page num",pageNum);
+	dbgn("actual page num",actualPgNum);
 	if(!mode)
 	{
     	freopen(fileName.c_str(),"r+b",stream);
        	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
        	mode=true;
 	}
-	fseek(stream,pageNum*PAGE_SIZE,SEEK_SET);
+	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 	fwrite(data, 1, PAGE_SIZE, stream);
 	fflush(stream);
 	return 0;
@@ -250,12 +244,9 @@ unsigned FileHandle::getNumberOfPages()
 	{ cout<<" NO STREAM PRESENT!!!";
 	return 0;
 	}
-
-	void *data=malloc(4);
+	INT32 pgn;
 	fseek(stream,0,SEEK_SET);
-	fread(data, 4, 1, stream);
-    INT32 pgn=*((INT32 *)data);
-    free(data);
+	fread(&pgn, 4, 1, stream);
 	return(pgn);
 }
 
