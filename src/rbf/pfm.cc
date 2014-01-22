@@ -78,8 +78,9 @@ RC PagedFileManager::destroyFile(const char *fileName)
 	dbgn("Filename",fileName);
 	if(!FileExists(fileName)|| (files.find(fileName)!=files.end() && files.find(fileName)->second!=0))
 		return -1;
-	dbgn("ref count",files.find(fileName)->second);
+	if(files.find(fileName)!=files.end())dbgn("ref count",files.find(fileName)->second);
 	remove(fileName);
+	if(files.find(fileName)!=files.end())
 	files.erase(files.find(fileName));
 	return 0;
 }
@@ -198,8 +199,18 @@ RC FileHandle::appendPage(const void *data)
 		fseek(stream,0,SEEK_END);
 		fwrite(data, 1, PAGE_SIZE, stream);
 		fflush(stream);
-		return 0;
 
+		//Increase Page count in Header File
+		void* pgCntStream = malloc(4);
+		fseek(stream,0,SEEK_SET);
+		fread(pgCntStream, 1, 4, stream);
+	    INT32 pageCount = *((INT32 *)pgCntStream);
+	    pageCount++;
+	    free(pgCntStream);
+	    pgCntStream = (void*)&pageCount;
+		fseek(stream,0,SEEK_SET);
+	    fwrite(pgCntStream, 1, 4, stream);
+	    return 0;
 }
 
 

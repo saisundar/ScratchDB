@@ -13,7 +13,7 @@ typedef int32_t INT32;
 typedef int8_t BYTE;
 #define PES 6
 # ifdef debug
-# define dbgn(str1,str2) cout<<str1<<": "<<str2<<"\n";
+# define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
 # else
 # define dbgn(str1,str2) (void)0;
 #endif
