@@ -179,7 +179,7 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 	dbgn("this ","readPage");
 	dbgn("virtual page num",pageNum);
 	dbgn("actual page num",actualPgNum);
-	if(actualPgNum=-1)return -1;
+	if(actualPgNum==-1)return -1;
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 //	if(fileHandle.mode)
 //			files[fileHandle.fileName] = -1*files[fileHandle.fileName]; ?????????
@@ -200,7 +200,7 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	dbgn("this ","readPage");
 	dbgn("virtual page num",pageNum);
 	dbgn("actual page num",actualPgNum);
-	if(actualPgNum=-1)return -1;
+	if(actualPgNum==-1)return -1;
 	if(!mode)
 	{
     	freopen(fileName.c_str(),"r+b",stream);

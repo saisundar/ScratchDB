@@ -170,7 +170,7 @@ int RBFTest_5(PagedFileManager *pfm)
     // Open the file "test_1"
     FileHandle fileHandle;
     rc = pfm->openFile(fileName.c_str(), fileHandle);
-    assert(rc == success);
+    dbgn("rc == success1",rc == success);
 
     // Read the first page
     void *buffer = malloc(PAGE_SIZE);
@@ -184,11 +184,11 @@ int RBFTest_5(PagedFileManager *pfm)
         *((char *)data+i) = i % 94 + 32;
     }
     rc = memcmp(data, buffer, PAGE_SIZE);
-    assert(rc == success);
+    dbgn("rc == success2",rc == success);
 
     // Close the file "test_1"
     rc = pfm->closeFile(fileHandle);
-    assert(rc == success);
+    dbgn("rc == success3",rc == success);
 
     free(data);
     free(buffer);
