@@ -61,6 +61,7 @@ public:
     string fileName;
     bool mode;															//0 for read,1 for write
     INT32 translatePageNum(INT32 pagenum);
+    INT32 getNextHeaderPage(int pageNum);
     RC readPage(PageNum pageNum, void *data);                           // Get a specific page
     RC writePage(PageNum pageNum, const void *data);                    // Write a specific page
     RC appendPage(const void *data);                                    // Append a specific page

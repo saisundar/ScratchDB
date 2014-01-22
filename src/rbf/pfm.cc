@@ -153,7 +153,7 @@ INT32 FileHandle::translatePageNum(INT32 pageNum)
 
 	if(pageNum>=getNumberOfPages()) return -1;
 
-	int headPageNum=(pageNum)/681;int tempPgNum=0;
+	int headPageNum=(pageNum)/681;int tempPgNum=0,offset=pageNum%681;
 
 	for(i=0;i<headPageNum;i++)
 		{
@@ -161,6 +161,8 @@ INT32 FileHandle::translatePageNum(INT32 pageNum)
 		headPageNum=getNextHeaderPage(tempPgNum);
 		tempPgNum=headPageNum;
 		}
+	fseek(stream,(headPageNum*PAGE_SIZE)+4092,SEEK_SET);
+	fread(data, 4, 1, stream);
 
 
 
