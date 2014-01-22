@@ -41,6 +41,7 @@ public:
     RC destroyFile   (const char *fileName);                         // Destroy a file
     RC openFile      (const char *fileName, FileHandle &fileHandle); // Open a file
     RC closeFile     (FileHandle &fileHandle);                       // Close a file
+    INT32 insertHeader  (FILE* fileStream);											 // Inserts Header Page
 
 protected:
     PagedFileManager();                                   // Constructor

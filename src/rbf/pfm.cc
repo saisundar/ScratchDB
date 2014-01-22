@@ -38,6 +38,18 @@ PagedFileManager::~PagedFileManager()
 
 }
 
+INT32 PagedFileManager::insertHeader(FILE* fileStream)
+{
+	void *data = malloc(PAGE_SIZE);
+	for(int i=0;i<PAGE_SIZE;i++)
+		*((BYTE *)data+i) = 0;
+	fseek(fileStream,0,SEEK_END);
+	INT32 end = ftell(fileStream);
+	fwrite(data,1,PAGE_SIZE,fileStream);
+	free(data);
+	return end;
+}
+
 // <createFile> tells the OS to CREATE a file.
 // if the fileName exists the function returns an error code '-1' else it CREATES the file.
 // ARGS:
@@ -51,16 +63,8 @@ RC PagedFileManager::createFile(const char *fileName)
 
 	FILE *file;
 	file = fopen(fileName,"wb");
-
-	void *data = malloc(PAGE_SIZE);
-	for(int i=0;i<PAGE_SIZE;i++)
-		*((BYTE *)data+i) = 0;
-	fseek(file,0,SEEK_SET);
-	fwrite(data,1,PAGE_SIZE,file);
-	free(data);
-
+	insertHeader(file);
 	fclose(file);
-
 	return 0;
 }
 
