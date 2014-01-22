@@ -146,20 +146,23 @@ INT32 FileHandle::getNextHeaderPage(int pageNum)
 	return (pgn);
 }
 
-INT32 FileHandle::translatePageNum(INT32 pageNum)
+INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 {
-
 	if(pageNum>=getNumberOfPages()) return -1;
 
 	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0,offset=pageNum%681;
-	INT32 actualPgNum;
-
 	for(i=0;i<headPageNum;i++)
 		tempPgNum=getNextHeaderPage(tempPgNum);
-
-	fseek(stream,(tempPgNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
+	return tempPgNum;
+}
+INT32 FileHandle::translatePageNum(INT32 pageNum)
+{
+	if(pageNum>=getNumberOfPages()) return -1;
+	INT32 headPageNum=getHeaderPageNum(pageNum);
+	if(headPageNum==-1)return -1;
+	INT32 actualPgNum;
+	fseek(stream,(headPageNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
 	fread(&actualPgNum, 4, 1, stream);
-
 	return actualPgNum;
 }
 
@@ -175,6 +178,7 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 	dbgn("this ","readPage");
 	dbgn("virtual page num",pageNum);
 	dbgn("actual page num",actualPgNum);
+	if(actualPgNum=-1)return -1;
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 //	if(fileHandle.mode)
 //			files[fileHandle.fileName] = -1*files[fileHandle.fileName]; ?????????
@@ -195,6 +199,7 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	dbgn("this ","readPage");
 	dbgn("virtual page num",pageNum);
 	dbgn("actual page num",actualPgNum);
+	if(actualPgNum=-1)return -1;
 	if(!mode)
 	{
     	freopen(fileName.c_str(),"r+b",stream);
