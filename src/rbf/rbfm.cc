@@ -49,25 +49,78 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
-//	steps to follow
-//	1)convert record to disk record format
-//	2)identify page number (virtual and actual) where the record can be inserted.
-//	3)if no such page, or if virtual page number exceeds number of pages, cereate a page , write te record, update the
-//	slot info, and update the free space pointer, and update the free space in the header page.stroe the slot no.
-//	return the rid as combination of pagenumber and slotno
+	void *modRecord,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
+	INT32 length = modifyRecordForInsert(recordDescriptor,data,modRecord),headerPageActualNumber;
+	INT32 totalLength=length;
+	INT32 virtualPageNum=getFreePageInfo(fileHandle,length,headerPageActualNumber);
+	INT16 freeOffset,slotNo,freeSpace;
+	INT32 offset=virtualPageNum%681,i;
+	headerPage=malloc(PAGE_SIZE);
+	bool slotReused=false;
+	fileHandle.readPage(virtualPageNum,page);
+	freeOffset=*(INT16 *)((BYTE *)page+4094);slotNo=*(INT16 *)((BYTE *)page+4092);
+	freeSpace=4092-(slotNo*4)-freeOffset;
 
+	if(freeSpace<length)
+	{
+		///reorganize the damn thing....
+	}
 
+	for(i=0;i<slotNo;i++)
+	{
+		if(*(INT16 *)((BYTE *)page+4088-(i*4))==-1)
+			{
+			slotReused=true;
+			break;
+			}
+	}
 
+	if(!slotReused){slotNo++;totalLength=length+4;}
+	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("RID pgno slotno",rid.pageNum+" "+rid.slotNum);	//update RID
+	memcpy((BYTE *)page+4088-(i*4),&freeOffset,2);  //update offset for slot
+	memcpy((BYTE *)page+4090-(i*4),&length,2);		//update length for slot
+	dbgn("freeOffset",freeOffset);
+	dbgn("length",length);
+	memcpy(page+freeOffset,modRecord,length);		//write the record
+	freeOffset=freeOffset+length;
+	memcpy((BYTE *)page+4094,&freeOffset,2);
+	memcpy((BYTE *)page+4092,&slotNo,2);
 
+	fileHandle.writePage(virtualPageNum,page);//written data page
 
-	return -1;
+	//write the header page free space now
+
+	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
+	fread(headerPage, 1, PAGE_SIZE, stream);
+	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES));
+	freeSpace=freeSpace-totalLength;
+	memcpy((BYTE *)headerPage+4+((offset+1)*PES),&freeSpace,2);
+	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
+	fwrite(headerPage, 1, PAGE_SIZE, fileHandle.stream);
+
+	return 0;
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
 
 //	fetch the actual page. read the record. convert into application format.return record.
+	INT32 virtualPageNum=rid.pageNum,slotNo=rid.slotNum,i;
+	RC rc;
+	void *page=malloc(PAGE_SIZE),*modRecord;
+	rc=fileHandle.readPage(virtualPageNum,page);
+	if(rc)return -1;
+	INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
-	return -1;
+	if(slotNo>totalSlotNo)return -1;
+
+	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
+	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
+    modRecord=malloc(length);
+	memcpy(modRecord,page+offset,length);
+
+	modRecordForRead(recordDescriptor,data,modRecord);
+
+	return 0;
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {

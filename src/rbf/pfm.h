@@ -6,10 +6,12 @@
 #include <stdio.h>
 #include <map>
 #include<iostream>
+#include<stdio.h>
 using namespace std;
 
 # define debug 1
 typedef int32_t INT32;
+typedef int16_t INT16;
 typedef int8_t BYTE;
 #define PES 6
 # ifdef debug
