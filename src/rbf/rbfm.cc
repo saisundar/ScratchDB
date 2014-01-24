@@ -54,7 +54,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 //	2)identify page number (virtual and actual) where the record can be inserted.
 //	3)if no such page, or if virtual page number exceeds number of pages, cereate a page , write te record, update the
 //	slot info, and update the free space pointer, and update the free space in the header page.stroe the slot no.
-//	return the rid as combonation of pagenumber and slotno
+//	return the rid as combination of pagenumber and slotno
+
 
 
 

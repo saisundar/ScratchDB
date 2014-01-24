@@ -105,6 +105,8 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
   // Assume the rid does not change after update
   RC updateRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid);
 
+  RC getFreePageInfo(FileHandle &fileHandle,INT32 length,void *headerPage);
+
   RC readAttribute(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, const string attributeName, void *data);
 
   RC reorganizePage(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const unsigned pageNumber);
