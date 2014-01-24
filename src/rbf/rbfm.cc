@@ -48,13 +48,28 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 }
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
+
+//	steps to follow
+//	1) convert record to disk record format
+//	2)identify page number (virtual and actual) where the record can be inserted.
+//	3) if no such page, or if virtual page number exceeds number of pages, cereate a page , write te record, update the
+//		slot info, and update the free space pointer, and update the free space in the header page.stroe the slot no.
+//		return the rid as combonation of pagenumber and slotno
+
+
+
+
 	return -1;
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
+
+//	fetch the actual page. read the record. convert into application format.return record.
+
 	return -1;
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
+//	with record descriptor decode the given record and print it.this has to decode application format of record.
 	return -1;
 }
