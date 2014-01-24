@@ -3,14 +3,6 @@
 using namespace std;
 
 // Check if a file exists
-bool FileExists(string fileName)
-{
-	struct stat stFileInfo;
-
-	if(stat(fileName.c_str(), &stFileInfo) == 0) return true;
-	else return false;
-}
-
 PagedFileManager* PagedFileManager::_pf_manager = 0;
 
 PagedFileManager* PagedFileManager::instance()

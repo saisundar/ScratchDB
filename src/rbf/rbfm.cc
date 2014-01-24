@@ -50,6 +50,8 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
 	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
+	dbgn("this ","insertRecord");
+	dbgn("Filename",fileHandle.fileName);
 	INT32 headerPageActualNumber;
 	INT32 length = modifyRecordForInsert(recordDescriptor,					//
 													  data,					//
@@ -111,6 +113,8 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	//	fetch the actual page. read the record. convert into application format.return record.
 	INT32 virtualPageNum=rid.pageNum,slotNo=rid.slotNum;
 	RC rc;
+	dbgn("this ","readRecord");
+	dbgn("Filename",fileHandle.fileName);
 	void *page=malloc(PAGE_SIZE),*modRecord;
 	rc=fileHandle.readPage(virtualPageNum,page);
 	if(rc)return -1;
@@ -133,7 +137,10 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 
 	BYTE * printData = (BYTE*)data;
 	INT32 num = 0;
+	dbgn("this ","printRecord");
+
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	dbgn("num of attributes",recordDescriptor.size());
 	while(it != recordDescriptor.end())
 	{
 		switch(it->type){
