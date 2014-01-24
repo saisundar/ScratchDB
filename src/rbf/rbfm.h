@@ -39,8 +39,6 @@ typedef enum { EQ_OP = 0,  // =
            NO_OP       // no condition
 } CompOp;
 
-
-
 /****************************************************************************
 The scan iterator is NOT required to be implemented for part 1 of the project 
 *****************************************************************************/
@@ -86,6 +84,12 @@ public:
   //  2) For int and real: use 4 bytes to store the value;
   //     For varchar: use 4 bytes to store the length of characters, then store the actual characters.
   //  !!!The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute()
+  INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber);
+
+  INT32 modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,void *modRecord);
+
+  RC modifyRecordForRead(const vector<Attribute> &recordDescriptor,const void *data,const void *modRecord);
+
   RC insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
 
   RC readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data);
@@ -93,7 +97,7 @@ public:
   // This method will be mainly used for debugging/testing
   RC printRecord(const vector<Attribute> &recordDescriptor, const void *data);
 
-/**************************************************************************************************************************************************************
+ /**************************************************************************************************************************************************************
 ***************************************************************************************************************************************************************
 IMPORTANT, PLEASE READ: All methods below this comment (other than the constructor and destructor) are NOT required to be implemented for part 1 of the project
 ***************************************************************************************************************************************************************
@@ -104,8 +108,6 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
 
   // Assume the rid does not change after update
   RC updateRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid);
-
-  INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber);
 
   RC readAttribute(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, const string attributeName, void *data);
 

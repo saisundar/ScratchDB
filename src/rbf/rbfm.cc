@@ -49,8 +49,11 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
-	void *modRecord,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
-	INT32 length = modifyRecordForInsert(recordDescriptor,data,modRecord);INT32 headerPageActualNumber;
+	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
+	INT32 headerPageActualNumber;
+	INT32 length = modifyRecordForInsert(recordDescriptor,					//
+													  data,					//
+													  modRecord);
 	INT32 totalLength=length;
 	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
 	INT16 freeOffset,slotNo,freeSpace;
@@ -120,7 +123,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	modRecord=malloc(length);
 	memcpy(modRecord,(BYTE *)page+offset,length);
 
-	modRecordForRead(recordDescriptor,data,modRecord);
+	modifyRecordForRead(recordDescriptor,data,modRecord);
 
 	return 0;
 }
@@ -166,10 +169,10 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		++it;
 	}
 
-	return -1;
+	return 0;
 }
 
-INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber){
+INT32 RecordBasedFileManager::findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber){
 	bool isPageFound = false;
 	int noOfPages = fileHandle.getNumberOfPages();
 	int curr = 10;									//Current Seek Position
@@ -209,31 +212,55 @@ INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &head
 	return (header*681)+pagesTraversedInCurrentHeader-1;
 }
 
-void modRecordForRead(const vector<Attribute> &recordDescriptor,void* storedData, BYTE* modRecord){
-	BYTE* dataPointer = (BYTE*)storedData;
-	int noOfFields = *((INT16*)dataPointer);
-	dataPointer = dataPointer+(noOfFields*2);		//Pointing to start of data stream.
-	BYTE* offsetPointer = (BYTE*)storedData;
+RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDescriptor,const void* data, const void* modRecord){
+	BYTE* storedDataPointer = (BYTE*)modRecord;
+	BYTE* dataPointer = (BYTE*)data;
+	INT32 noOfFields = *((INT16*)storedDataPointer),len;
+	storedDataPointer = storedDataPointer+(noOfFields*2)+2;		//Pointing to start of data stream.
+	INT16 offsetPointer = 0;
 	offsetPointer+=2;
+	INT16 prevOffset=(noOfFields*2)+2,presOffset=0;
+
+	if(noOfFields!=recordDescriptor.size())
+	{
+		dbgn("ERROR due to mismatch in no of attributes of record descriptor and disk record"," ");
+		dbgn("disk attri",noOfFields);
+		dbgn("Record descriptor",recordDescriptor.size());
+		getchar();
+	}
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	while(noOfFields--)
 	{
 		switch(it->type){
 		case 0:
-			memcpy((void*)modRecord,(void*)dataPointer,4);
-			modRecord+=4;
+			presOffset=*(INT16*)((BYTE *)modRecord+offsetPointer);
+			memcpy((void*)dataPointer,(void*)storedDataPointer,4);
 			dataPointer+=4;
+			storedDataPointer+=4;
+			offsetPointer+=2;
+			prevOffset=presOffset;
 			break;
 
 		case 1:
-			memcpy((void*)modRecord,(void*)dataPointer,4);
-			modRecord+=4;
+			presOffset=*(INT16*)((BYTE *)modRecord+offsetPointer);
+			memcpy((void*)dataPointer,(void*)storedDataPointer,4);
 			dataPointer+=4;
+			storedDataPointer+=4;
+			offsetPointer+=2;
+			prevOffset=presOffset;
 			break;
 
 		case 2:
-
+			presOffset=*(INT16*)((BYTE *)modRecord+offsetPointer);
+			len=presOffset-prevOffset;
+			memcpy((void*)dataPointer,&len,4);
+			dataPointer+=4;
+			memcpy((void*)dataPointer,(void*)storedDataPointer,len);
+			dataPointer+=len;
+			storedDataPointer+=len;
+			offsetPointer+=2;
+			prevOffset=presOffset;
 			break;
 
 		default:
@@ -243,4 +270,83 @@ void modRecordForRead(const vector<Attribute> &recordDescriptor,void* storedData
 		++it;
 	}
 
+	return 0;
 }
+
+INT32 RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,void *modRecord)
+{
+	    BYTE * iterData = (BYTE*)data;
+		INT16 numberAttr=recordDescriptor.size();
+		INT16 dataOffset=0,offOffset=0;
+		INT32 length=(numberAttr*2)+2,num=0;
+		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+		for(;it != recordDescriptor.end();it++)
+		{
+			switch(it->type){
+			case 0:
+				length=length+4;
+				iterData=iterData+4;
+				break;
+
+			case 1:
+				length=length+4;
+				iterData=iterData+4;
+				break;
+
+			case 2:
+				num = *((INT32 *)iterData);
+				length=length+num;
+				iterData=iterData+4+num;
+				break;
+
+			default:
+				break;
+
+			}
+		}
+        modRecord=malloc(length);
+
+        memcpy(modRecord,&numberAttr,2);
+        dataOffset=(numberAttr*2)+2;
+        offOffset=2;
+        iterData = (BYTE*)data;
+        for(it = recordDescriptor.begin();it != recordDescriptor.end();it++)
+        {
+        	switch(it->type){
+
+        	case 0:
+                memcpy((BYTE *)modRecord+dataOffset,(INT32 *)iterData,4);
+                iterData+=4;
+        		dataOffset=dataOffset+4;
+        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+        		offOffset+=2;
+           		break;
+
+        	case 1:
+        		memcpy((BYTE *)modRecord+dataOffset,(INT32 *)iterData,4);
+        		iterData+=4;
+        		dataOffset=dataOffset+4;
+        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+        		offOffset+=2;
+        		break;
+        	case 2:
+        		num = *((INT32 *)iterData);
+           		iterData=iterData+4;
+        		memcpy((BYTE *)modRecord+dataOffset,(BYTE *)iterData,num);
+        		dataOffset=dataOffset+num;
+        		iterData+=num;
+        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+        		offOffset+=2;
+        		break;
+
+        	default:
+        		break;
+
+        	}
+
+        }
+
+		return length;
+
+}
+

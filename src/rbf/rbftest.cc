@@ -383,7 +383,7 @@ void rbfTest()
 	RBFTest_4(pfm);
     RBFTest_5(pfm);
     RBFTest_6(pfm);
-  //  RBFTest_7(pfm);
+    RBFTest_7(pfm);
 	// write your own testing cases here
 
 }
