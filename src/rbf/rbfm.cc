@@ -50,11 +50,11 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
 //	steps to follow
-//	1) convert record to disk record format
+//	1)convert record to disk record format
 //	2)identify page number (virtual and actual) where the record can be inserted.
-//	3) if no such page, or if virtual page number exceeds number of pages, cereate a page , write te record, update the
-//		slot info, and update the free space pointer, and update the free space in the header page.stroe the slot no.
-//		return the rid as combonation of pagenumber and slotno
+//	3)if no such page, or if virtual page number exceeds number of pages, cereate a page , write te record, update the
+//	slot info, and update the free space pointer, and update the free space in the header page.stroe the slot no.
+//	return the rid as combonation of pagenumber and slotno
 
 
 
@@ -71,5 +71,24 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
 //	with record descriptor decode the given record and print it.this has to decode application format of record.
+
+	INT32 pos=0;
+	for(Attribute a:recordDescriptor)
+	{
+		switch(a.type){
+		case 0:
+			cout<<a.name<<"\t";
+			INT32 num=*(INT32 *)pos;pos=pos+4;
+			cout<<num<<"\n";
+		case 1:
+			cout<<a.name<<"\t";
+			INT32 num=*(INT32 *)pos;pos=pos+4;
+			cout<<num<<"\n";
+		case 3:
+			INT32 len=*(INT32 *)pos;
+
+		}
+	}
+
 	return -1;
 }
