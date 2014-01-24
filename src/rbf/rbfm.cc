@@ -57,6 +57,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	INT32 offset=virtualPageNum%681,i;
 	headerPage=malloc(PAGE_SIZE);
 	bool slotReused=false;
+
+	//reading of the data page..
 	fileHandle.readPage(virtualPageNum,page);
 	freeOffset=*(INT16 *)((BYTE *)page+4094);slotNo=*(INT16 *)((BYTE *)page+4092);
 	freeSpace=4092-(slotNo*4)-freeOffset;
@@ -111,7 +113,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	if(rc)return -1;
 	INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
-	if(slotNo>totalSlotNo)return -1;
+	if(slotNo>totalSlotNo||slotNo<0)return -1;
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
 	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
@@ -154,7 +156,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 				cout<<*((char*)printData);
 				printData = printData+1;
 			}
-			cout<<"\t";
+			cout<<"\n";
 			break;
 
 		default:
@@ -173,8 +175,9 @@ INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &head
 	int curr = 10;									//Current Seek Position
 	int pagesTraversedInCurrentHeader = 0;			//Variable to maintain count of virtual pages traversed in a header file
 	INT16 freeSpace = 0;
-	int header = 1;									//Keep track of header file
-	INT32 nextHeaderPageNo = 0;						//Chain to next header page
+	int header = 0;									//Keep track of header file
+	INT32 nextHeaderPageNo = 0;
+	INT32 finalHeader;//Chain to next header page
 
 	while(noOfPages--){
 		pagesTraversedInCurrentHeader++;
@@ -185,7 +188,7 @@ INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &head
 			break;
 		}
 		curr+=6;									//if not, go to next entry
-		if(pagesTraversedInCurrentHeader==681 && noOfPages!=1){		//If all pages traversed in the current header, move to next header
+		if(pagesTraversedInCurrentHeader==681 && noOfPages!=0){		//If all pages traversed in the current header, move to next header
 			header++;
 			pagesTraversedInCurrentHeader=0;
 			nextHeaderPageNo = fileHandle.getNextHeaderPage(nextHeaderPageNo);
@@ -198,7 +201,8 @@ INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &head
 		*((INT32*)data+1023)=0;
 		fileHandle.appendPage(data);
 		free(data);
-		nextHeaderPageNo = fileHandle.getNextHeaderPage(nextHeaderPageNo);
+		finalHeader=fileHandle.getNextHeaderPage(nextHeaderPageNo));
+		nextHeaderPageNo = (finalHeader==0)?nextHeaderPageNo:finalHeader;
 	}
 
 	headerPageNumber = nextHeaderPageNo;
