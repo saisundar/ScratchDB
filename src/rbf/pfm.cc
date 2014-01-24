@@ -138,7 +138,7 @@ FileHandle::~FileHandle()
 		fclose(stream);
 }
 
-INT32 FileHandle::getNextHeaderPage(int pageNum)
+INT32 FileHandle::getNextHeaderPage(INT32 pageNum)
 {
 	INT32 pgn;
 	fseek(stream,(pageNum*PAGE_SIZE)+4092,SEEK_SET);
@@ -269,12 +269,18 @@ RC FileHandle::appendPage(const void *data)
 		fwrite((void*)&newHeaderPage,1,4,stream);
 		currentHeaderPage = newHeaderPage;
 	}
-
+	//Write the new entry for the page in the directory.
 	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1),SEEK_SET);
 	fwrite((void*)&actualPageNo,1,4,stream);
-    dbgn("Appendpage: actual page no of newly appended page",translatePageNum(virtualPageNo));
-    dbgn("number of pages after insertion",getNumberOfPages());
+
+	//Update the free space in the directory for that page to 4092 Bytes
+	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1) + 4,SEEK_SET);
+	INT16 freeSpace = 4092;
+	fwrite((void*)&freeSpace,1,4,stream);
+	dbgn("Appendpage: actual page no of newly appended page",translatePageNum(virtualPageNo));
+	dbgn("number of pages after insertion",getNumberOfPages());
 	return 0;
+
 }
 
 
