@@ -86,7 +86,7 @@ public:
   //  !!!The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute()
   INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber);
 
-  INT32 modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,void *modRecord);
+  void* modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT32 &length);
 
   RC modifyRecordForRead(const vector<Attribute> &recordDescriptor,const void *data,const void *modRecord);
 

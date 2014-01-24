@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <string>
+#include <cstring>
 #include <stdio.h>
 #include <map>
 #include<iostream>

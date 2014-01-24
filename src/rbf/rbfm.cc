@@ -52,10 +52,10 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
 	dbgn("this ","insertRecord");
 	dbgn("Filename",fileHandle.fileName);
-	INT32 headerPageActualNumber;
-	INT32 length = modifyRecordForInsert(recordDescriptor,					//
+	INT32 headerPageActualNumber,length;
+	modRecord = modifyRecordForInsert(recordDescriptor,					//
 													  data,					//
-													  modRecord);
+													  length);
 	INT32 totalLength=length;
 	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
 	INT16 freeOffset,slotNo,freeSpace;
@@ -213,6 +213,7 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle fileHandle, INT32 req
 		free(data);
 		finalHeader=fileHandle.getNextHeaderPage(nextHeaderPageNo);
 		nextHeaderPageNo = (finalHeader==0)?nextHeaderPageNo:finalHeader;
+		pagesTraversedInCurrentHeader=1;
 	}
 
 	headerPageNumber = nextHeaderPageNo;
@@ -280,12 +281,13 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	return 0;
 }
 
-INT32 RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,void *modRecord)
+void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT32 &length)
 {
+	    void *modRecord=NULL;
 	    BYTE * iterData = (BYTE*)data;
 		INT16 numberAttr=recordDescriptor.size();
 		INT16 dataOffset=0,offOffset=0;
-		INT32 length=(numberAttr*2)+2,num=0;
+		length=(numberAttr*2)+2;INT32 num=0;
 		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 		for(;it != recordDescriptor.end();it++)
 		{
@@ -353,7 +355,7 @@ INT32 RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 
         }
 
-		return length;
+		return modRecord;
 
 }
 
