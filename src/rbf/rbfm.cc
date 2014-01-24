@@ -71,10 +71,10 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	for(i=0;i<slotNo;i++)
 	{
 		if(*(INT16 *)((BYTE *)page+4088-(i*4))==-1)
-			{
+		{
 			slotReused=true;
 			break;
-			}
+		}
 	}
 
 	if(!slotReused){slotNo++;totalLength=length+4;}
@@ -105,7 +105,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
 
-//	fetch the actual page. read the record. convert into application format.return record.
+	//	fetch the actual page. read the record. convert into application format.return record.
 	INT32 virtualPageNum=rid.pageNum,slotNo=rid.slotNum;
 	RC rc;
 	void *page=malloc(PAGE_SIZE),*modRecord;
@@ -117,7 +117,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
 	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
-    modRecord=malloc(length);
+	modRecord=malloc(length);
 	memcpy(modRecord,(BYTE *)page+offset,length);
 
 	modRecordForRead(recordDescriptor,data,modRecord);
@@ -201,10 +201,46 @@ INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &head
 		*((INT32*)data+1023)=0;
 		fileHandle.appendPage(data);
 		free(data);
-		finalHeader=fileHandle.getNextHeaderPage(nextHeaderPageNo));
+		finalHeader=fileHandle.getNextHeaderPage(nextHeaderPageNo);
 		nextHeaderPageNo = (finalHeader==0)?nextHeaderPageNo:finalHeader;
 	}
 
 	headerPageNumber = nextHeaderPageNo;
 	return (header*681)+pagesTraversedInCurrentHeader-1;
+}
+
+void modRecordForRead(const vector<Attribute> &recordDescriptor,void* storedData, BYTE* modRecord){
+	BYTE* dataPointer = (BYTE*)storedData;
+	int noOfFields = *((INT16*)dataPointer);
+	dataPointer = dataPointer+(noOfFields*2);		//Pointing to start of data stream.
+	BYTE* offsetPointer = (BYTE*)storedData;
+	offsetPointer+=2;
+
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	while(noOfFields--)
+	{
+		switch(it->type){
+		case 0:
+			memcpy((void*)modRecord,(void*)dataPointer,4);
+			modRecord+=4;
+			dataPointer+=4;
+			break;
+
+		case 1:
+			memcpy((void*)modRecord,(void*)dataPointer,4);
+			modRecord+=4;
+			dataPointer+=4;
+			break;
+
+		case 2:
+
+			break;
+
+		default:
+			break;
+
+		}
+		++it;
+	}
+
 }
