@@ -50,14 +50,17 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
 	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
-	dbgn("this ","insertRecord");
+	dbgn("this ","insertRecord================================================================================================");
 	dbgn("Filename",fileHandle.fileName);
-	INT32 headerPageActualNumber,length;
+	INT32 headerPageActualNumber;
+	INT16 length;
 	modRecord = modifyRecordForInsert(recordDescriptor,					//
 													  data,					//
 													  length);
-	INT32 totalLength=length;
+	INT16 totalLength=length;
 	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
+	dbgn("virtualPageNum",virtualPageNum);
+	dbgn("headerPageActualNumber",headerPageActualNumber);
 	INT16 freeOffset,slotNo,freeSpace;
 	INT32 offset=virtualPageNum%681,i;
 	headerPage=malloc(PAGE_SIZE);
@@ -100,11 +103,15 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fread(headerPage, 1, PAGE_SIZE, fileHandle.stream);
 	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES));
+	dbgn("free space in page",freeSpace);
 	freeSpace=freeSpace-totalLength;
+	dbgn("free space in page",freeSpace);
 	memcpy((BYTE *)headerPage+4+((offset+1)*PES),&freeSpace,2);
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fwrite(headerPage, 1, PAGE_SIZE, fileHandle.stream);
-
+	free(headerPage);
+	free(page);
+	free(modRecord);
 	return 0;
 }
 
@@ -128,7 +135,8 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	memcpy(modRecord,(BYTE *)page+offset,length);
 
 	modifyRecordForRead(recordDescriptor,data,modRecord);
-
+	free(page);
+	free(modRecord);
 	return 0;
 }
 
@@ -179,7 +187,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	return 0;
 }
 
-INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT32 requiredSpace, INT32  &headerPageNumber){
+INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16 requiredSpace, INT32  &headerPageNumber){
 	bool isPageFound = false;
 	int noOfPages = fileHandle.getNumberOfPages();
 	int curr = 10;									//Current Seek Position
@@ -193,6 +201,8 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT32 re
 		pagesTraversedInCurrentHeader++;
 		fseek(fileHandle.stream,curr,SEEK_SET);		//Set position to freeSpace field in "Page Entries"
 		fread(&freeSpace, 1, 2, fileHandle.stream);	//Start reading freeSpace field in "Page Entries"
+		dbgn("freeSpace",freeSpace);
+		dbgn("requiredSpace",requiredSpace);
 		if(freeSpace>=requiredSpace){				//If freeSpace is sufficient, end search
 			isPageFound=true;
 			break;
@@ -213,7 +223,7 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT32 re
 		free(data);
 		finalHeader=fileHandle.getNextHeaderPage(nextHeaderPageNo);
 		nextHeaderPageNo = (finalHeader==0)?nextHeaderPageNo:finalHeader;
-		pagesTraversedInCurrentHeader=1;
+		pagesTraversedInCurrentHeader++;
 	}
 
 	headerPageNumber = nextHeaderPageNo;
@@ -280,7 +290,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	return 0;
 }
 
-void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT32 &length)
+void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT16 &length)
 {
 	    void *modRecord=NULL;
 	    BYTE * iterData = (BYTE*)data;
