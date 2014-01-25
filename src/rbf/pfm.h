@@ -6,7 +6,6 @@
 #include <cstring>
 #include <stdio.h>
 #include <map>
-#include <cassert>
 #include<iostream>
 #include<stdio.h>
 using namespace std;
