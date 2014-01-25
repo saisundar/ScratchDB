@@ -179,7 +179,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 	return 0;
 }
 
-INT32 RecordBasedFileManager::findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber){
+INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT32 requiredSpace, INT32  &headerPageNumber){
 	bool isPageFound = false;
 	int noOfPages = fileHandle.getNumberOfPages();
 	int curr = 10;									//Current Seek Position
@@ -338,6 +338,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
         		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
         		offOffset+=2;
         		break;
+
         	case 2:
         		num = *((INT32 *)iterData);
            		iterData=iterData+4;
