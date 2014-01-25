@@ -84,7 +84,7 @@ public:
   //  2) For int and real: use 4 bytes to store the value;
   //     For varchar: use 4 bytes to store the length of characters, then store the actual characters.
   //  !!!The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute()
-  INT32 findFirstFreePage(FileHandle fileHandle, INT32 requiredSpace, INT32  &headerPageNumber);
+  INT32 findFirstFreePage(FileHandle &fileHandle, INT32 requiredSpace, INT32  &headerPageNumber);
 
   void* modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT32 &length);
 

@@ -282,7 +282,7 @@ unsigned FileHandle::getNumberOfPages()
 	{ cout<<" NO STREAM PRESENT!!!";
 	return 0;
 	}
-	INT32 pgn;
+	INT32 pgn=-1;
 	fseek(stream,0,SEEK_SET);
 	fread(&pgn, 4, 1, stream);
 	return(pgn);
