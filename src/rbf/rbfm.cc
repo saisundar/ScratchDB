@@ -83,7 +83,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	}
 
 	if(!slotReused){slotNo++;totalLength=length+4;}
-	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("RID pgno slotno",rid.pageNum+" "+rid.slotNum);	//update RID
+	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum)dbgn("*****************RID slotNo",rid.slotNum);	//update RID
 	memcpy((BYTE *)page+4088-(i*4),&freeOffset,2);  //update offset for slot
 	memcpy((BYTE *)page+4090-(i*4),&length,2);		//update length for slot
 	dbgn("freeOffset",freeOffset);
@@ -234,7 +234,6 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 		dbgn("ERROR due to mismatch in no of attributes of record descriptor and disk record"," ");
 		dbgn("disk attri",noOfFields);
 		dbgn("Record descriptor",recordDescriptor.size());
-		getchar();
 	}
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
