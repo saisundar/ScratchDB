@@ -739,7 +739,7 @@ int main()
     vector<RID> rids;
     vector<int> sizes;
     RBFTest_9(rbfm, rids, sizes);
-    RBFTest_10(rbfm, rids, sizes);
+    //RBFTest_10(rbfm, rids, sizes);
 
     return 0;
 }

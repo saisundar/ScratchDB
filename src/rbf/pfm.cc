@@ -250,6 +250,7 @@ RC FileHandle::appendPage(const void *data)
 	INT32 virtualPageNo = pageCount-1;
 	int inHeaderPosition = (virtualPageNo)%681;
 	INT32  currentHeaderPage = getHeaderPageNum(virtualPageNo);
+
 	// Sufficient space is not available, So insert new header page
 	if(virtualPageNo >680 && inHeaderPosition==0){
 

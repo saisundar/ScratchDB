@@ -14,6 +14,7 @@ using namespace std;
 typedef int32_t INT32;
 typedef int16_t INT16;
 typedef int8_t BYTE;
+typedef float FLOAT;
 #define PES 6
 # ifdef debug
 # define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";

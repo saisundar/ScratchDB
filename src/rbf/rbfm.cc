@@ -153,7 +153,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 
 		case 1:
 			cout<<it->name<<"\t";
-			num = *((INT32 *)printData);
+			num = *((FLOAT *)printData);
 			printData = printData+4;
 			cout<<num<<"\n";
 			break;
@@ -250,7 +250,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 			break;
 
 		case 1:
-			presOffset=*(INT16*)((BYTE *)modRecord+offsetPointer);
+			presOffset=*(FLOAT*)((BYTE *)modRecord+offsetPointer);
 			memcpy((void*)dataPointer,(void*)storedDataPointer,4);
 			dataPointer+=4;
 			storedDataPointer+=4;
@@ -323,7 +323,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
         	switch(it->type){
 
         	case 0:
-                memcpy((BYTE *)modRecord+dataOffset,(INT32 *)iterData,4);
+                memcpy((BYTE *)modRecord+dataOffset,iterData,4);
                 iterData+=4;
         		dataOffset=dataOffset+4;
         		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
@@ -331,7 +331,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
            		break;
 
         	case 1:
-        		memcpy((BYTE *)modRecord+dataOffset,(INT32 *)iterData,4);
+        		memcpy((BYTE *)modRecord+dataOffset,iterData,4);
         		iterData+=4;
         		dataOffset=dataOffset+4;
         		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
@@ -341,7 +341,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
         	case 2:
         		num = *((INT32 *)iterData);
            		iterData=iterData+4;
-        		memcpy((BYTE *)modRecord+dataOffset,(BYTE *)iterData,num);
+        		memcpy((BYTE *)modRecord+dataOffset,iterData,num);
         		dataOffset=dataOffset+num;
         		iterData+=num;
         		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
