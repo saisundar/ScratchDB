@@ -268,7 +268,7 @@ RC FileHandle::appendPage(const void *data)
 	//Update the free space in the directory for that page to 4092 Bytes
 	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1) + 4,SEEK_SET);
 	INT16 freeSpace = 4092;
-	fwrite((void*)&freeSpace,1,4,stream);
+	fwrite((void*)&freeSpace,1,2,stream);
 	dbgn("Appendpage: actual page no of newly appended page",translatePageNum(virtualPageNo));
 	dbgn("number of pages after insertion",getNumberOfPages());
 	return 0;
