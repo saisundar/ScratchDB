@@ -1,5 +1,5 @@
 ## For students: change this path to the root of your code
-CODEROOT = $pwd/..
+CODEROOT = $(pwd)../
 
 #CC = gcc
 CC = g++

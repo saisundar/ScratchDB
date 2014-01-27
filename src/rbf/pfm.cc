@@ -22,7 +22,7 @@ PagedFileManager::PagedFileManager()
 // The PagedFileDestructor does nothing
 PagedFileManager::~PagedFileManager()
 {
-
+	_pf_manager=NULL;
 }
 
 INT32 PagedFileManager::insertHeader(FILE* fileStream)
@@ -107,7 +107,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 		return -1;
 
 	fclose(fileHandle.stream);
-
+    
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
 	files[fileHandle.fileName]--;

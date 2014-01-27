@@ -17,6 +17,7 @@ RecordBasedFileManager::RecordBasedFileManager()
 
 RecordBasedFileManager::~RecordBasedFileManager()
 {
+	_rbf_manager=NULL;
 }
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
@@ -50,7 +51,7 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
 	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
-	dbgn("this ","insertRecord");
+	dbgn("this=================================================================== ","insertRecord");
 	dbgn("Filename",fileHandle.fileName);
 	INT32 headerPageActualNumber;
 	INT16 length;
@@ -58,7 +59,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 													  data,					//
 													  length);
 	INT16 totalLength=length;
-	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
+	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
     dbgn("virtualPageNum",virtualPageNum);
 	dbgn("headerPageActualNumber",headerPageActualNumber);
 
@@ -87,7 +88,13 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	}
 
 	if(!slotReused){slotNo++;totalLength=length+4;}
-	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum)dbgn("*****************RID slotNo",rid.slotNum);	//update RID
+
+	if(freeSpace<totalLength)
+		{
+			///reorganize the damn thing....
+		}
+
+	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
 	memcpy((BYTE *)page+4088-(i*4),&freeOffset,2);  //update offset for slot
 	memcpy((BYTE *)page+4090-(i*4),&length,2);		//update length for slot
 	dbgn("freeOffset",freeOffset);
