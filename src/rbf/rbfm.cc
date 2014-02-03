@@ -204,8 +204,8 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16  r
 	int pagesTraversedInCurrentHeader = 0;			//Variable to maintain count of virtual pages traversed in a header file
 	INT16 freeSpace = 0;
 	int header = 0;									//Keep track of header file
-	INT32 nextHeaderPageNo = 0;
-	INT32 finalHeader;//Chain to next header page
+	INT32 nextHeaderPageNo = 0;						//Chain to next header page
+	INT32 finalHeader;
 
 	while(noOfPages--){
 		pagesTraversedInCurrentHeader++;
