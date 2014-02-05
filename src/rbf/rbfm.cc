@@ -50,6 +50,54 @@ RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
 	return 0;
 }
 
+RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const unsigned pageNumber)
+{
+	void *page=malloc(PAGE_SIZE),*newPage=malloc(PAGE_SIZE); // to be freed when I exit
+	dbgn1("this=================================================================== ","Reorganize called");
+	dbgn1("Filename",fileHandle.fileName);
+	INT16 length;
+
+	INT16 freeOffset,origOffset,origLength=0,slotNo,freeSpace,slot=0;
+	INT32 virtualPageNum=pageNumber,offset=virtualPageNum%681;
+
+	fileHandle.readPage(virtualPageNum,page);
+	fileHandle.readPage(virtualPageNum,newPage);
+	freeOffset=0;
+	slotNo=getSlotNoV(newPage);
+	freeSpace=4092-(slotNo*4)-freeOffset;
+
+	for(slot=0;slot<slotNo;slot++)
+	{
+		origOffset=getSlotOffV(page,slot);origLength=getslotLenV(page,slot);
+		if( origOffset == -1)   //means that the slot is empty.
+			continue;
+
+		if(origLength>=0)
+		{
+			memcpy(newPage+freeOffset,page+origOffset,origLength);   //copy the record
+			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
+			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
+			freeOffset+=origLength;
+		}
+		else
+		{
+			//tombstone case-whee ineed to copy the first six bytes alone from the record
+			memcpy(newPage+freeOffset,page+origOffset,6);   /// copying only 6 bytes as its a tombstone....
+			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);
+			origLength=-6;
+			memcpy(getSlotLenA(newPage,slot),&origLength,2);	//update length of slot to -6 ????? required or not ?
+			freeOffset+=TOMBSIZE;								/// incrementing by 6 bytes..
+		}
+	}
+	memcpy(getFreeOffsetA(newPage),&freeOffset,2);
+	dbgn1("the new free offset after reorganizing is ",freeOffset);
+
+	fileHandle.writePage(virtualPageNum,newPage);
+	free(page);
+	free(newPage);
+	return 0;
+}
+
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
 	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
@@ -72,17 +120,12 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	//reading of the data page..
 	fileHandle.readPage(virtualPageNum,page);
-	freeOffset=*(INT16 *)((BYTE *)page+4094);slotNo=*(INT16 *)((BYTE *)page+4092);
+	freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
 	freeSpace=4092-(slotNo*4)-freeOffset;
-
-	if(freeSpace<length)
-	{
-		///reorganize the damn thing....
-	}
 
 	for(i=0;i<slotNo;i++)
 	{
-		if(*(INT16 *)((BYTE *)page+4088-(i*4))==-1)
+		if(getSlotOffV(page,i)==-1)
 		{
 			slotReused=true;
 			break;
@@ -93,18 +136,21 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	if(freeSpace<totalLength)
 		{
-			///reorganize the damn thing....
+			reorganizePage(fileHandle,recordDescriptor,virtualPageNum);
+			fileHandle.readPage(virtualPageNum,page);
+			freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
+			freeSpace=4092-(slotNo*4)-freeOffset;
 		}
 
 	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
-	memcpy((BYTE *)page+4088-(i*4),&freeOffset,2);  //update offset for slot
-	memcpy((BYTE *)page+4090-(i*4),&length,2);		//update length for slot
+	memcpy(getSlotOffA(page,i),&freeOffset,2);  //update offset for slot
+	memcpy(getslotLenA(page,i),&length,2);		//update length for slot
 	dbgn("freeOffset",freeOffset);
 	dbgn("length",length);
 	memcpy((BYTE *)page+freeOffset,modRecord,length);		//write the record
 	freeOffset=freeOffset+length;
-	memcpy((BYTE *)page+4094,&freeOffset,2);
-	memcpy((BYTE *)page+4092,&slotNo,2);
+	memcpy(getFreeOffsetA(page),&freeOffset,2);
+	memcpy(getSlotNoA(page),&slotNo,2);
 
 	fileHandle.writePage(virtualPageNum,page);//written data page
 
@@ -112,7 +158,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fread(headerPage, 1, PAGE_SIZE, fileHandle.stream);
-	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES));
+	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES)); // here handle the case where tombstone is left--update has to take care.
 	dbgn("free space in page",freeSpace);
 	freeSpace=freeSpace-totalLength;
 	dbgn("free space in page",freeSpace);
@@ -138,7 +184,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	if(rc)return -1;
 	INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
-	if(slotNo>totalSlotNo||slotNo<0)return -1;
+	if(slotNo>=totalSlotNo||slotNo<0)return -1;
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
 	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
@@ -336,6 +382,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 
 			}
 		}
+		length=max(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
         modRecord=malloc(length);
 
         memcpy(modRecord,&numberAttr,2);
