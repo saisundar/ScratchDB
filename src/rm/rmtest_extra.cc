@@ -7,6 +7,16 @@
 
 using namespace std;
 
+RC reorganizePage(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const unsigned pageNumber)
+{
+
+
+
+
+
+
+
+}
 void rmTest()
 {
   // RM *rm = RM::instance();
