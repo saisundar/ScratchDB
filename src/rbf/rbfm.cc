@@ -1,4 +1,6 @@
 #include<cstdlib>
+// #include <unistd.h>
+// #include <sys/types.h>
 #include "rbfm.h"
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
@@ -301,6 +303,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	return 0;
 }
 
+// WARNING: Its the responsibility of the caller to free the memory block assigned in this function
 void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT16  &length)
 {
 	    void *modRecord=NULL;
@@ -373,10 +376,8 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
         		break;
 
         	}
-
         }
-
 		return modRecord;
-
 }
+
 

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <cassert>
 #include <sys/time.h>
-#include <sys/resource.h>
+// #include <sys/resource.h>
 #include <set>
 #include "rm.h"
 
@@ -18,11 +18,15 @@ const int success = 0;
 
 void memProfile()
 {
+	return;
+}
+/*void memProfile()
+{
     int who = RUSAGE_SELF;
     struct rusage usage;
     getrusage(who,&usage);
     cout<<usage.ru_maxrss<<"KB"<<endl;
-}
+}*/
 
 // Function to prepare the data in the correct form to be inserted/read/updated
 void prepareTuple(const int nameLength, const string &name, const int age, const float height, const int salary, void *buffer, int *tupleSize)

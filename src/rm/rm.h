@@ -76,8 +76,6 @@ public:
 
   RC reorganizeTable(const string &tableName);
 
-
-
 protected:
   RelationManager();
   ~RelationManager();
