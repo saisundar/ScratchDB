@@ -19,7 +19,8 @@ typedef int16_t INT16;
 typedef int8_t BYTE;
 typedef float FLOAT;
 #define PES 6
-
+#define TOMBSIZE 6
+#define max(a,b) ((a)>(b)?(a):(b))
 # ifdef debug
 # define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
 # else
@@ -31,6 +32,15 @@ typedef float FLOAT;
 # else
 # define dbgn1(str1,str2) (void)0;
 #endif
+
+# define getSlotOffA(page,i) ((BYTE *)page+4088-(i*4)) 				// gives the address of slot offset
+# define getslotLenA(page,i) ((BYTE *)page+4090-(i*4)) 				// gives the address of slot length
+# define getSlotOffV(page,i) (*(INT16 *)((BYTE *)page+4088-(i*4)))  // gives the address of slot offset Value
+# define getslotLenV(page,i) (*(INT16 *)((BYTE *)page+4090-(i*4)))  // gives the address of slot length Value
+# define getFreeOffsetA(page) ((BYTE *)page+4094)					// gives the address of within the page
+# define getSlotNoA(page) ((BYTE *)page+4092)					    // gives the adress of "num of slots" field within the page
+# define getFreeOffsetV(page) *(INT16 *)((BYTE *)page+4094)			// gives the freeoffset value within the page
+# define getSlotNoV(page) *(INT16 *)((BYTE *)page+4092)				// gives the num of slots value within the page
 
 
 typedef INT32 RC;
