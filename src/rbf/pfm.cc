@@ -313,4 +313,21 @@ unsigned FileHandle::getNumberOfPages()
 	return(pgn);
 }
 
+// <updateFreeSpaceInHeader> updates the free space in the header page by the amount specified in the parameter
 
+INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
+	//Update FreeSpace in Header Page
+	INT32 headerPageNumber = getHeaderPageNum(pageNum);
+	void* headerPageData = 0;
+	fread(headerPageData,1,PAGE_SIZE,stream);
+	int i=0;
+	for(i=10;i<4096;i+=6){
+		if((*((INT32*)((BYTE*)headerPageData + i)))==pageNum){
+			break;
+		}
+	}
+	INT16 oldFreespace = *((INT32*)((BYTE*)headerPageData + i + 4));
+	*((INT32*)((BYTE*)headerPageData + i + 4)) = oldFreespace + increaseBy;
+	free(headerPageData);
+	return oldFreespace + increaseBy;
+}

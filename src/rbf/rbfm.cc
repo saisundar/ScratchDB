@@ -427,4 +427,148 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 		return modRecord;
 }
 
+RC RecordBasedFileManager::deleteRecords(FileHandle &fileHandle)
+{
+	if(fileHandle.stream==0)return -1;
+	if(fileHandle.mode==0)return -1;
+	// truncate(fileHandle.fileName.c_str(),PAGE_SIZE);
+	INT32 zeros = 0;
+	fseek(fileHandle.stream,0,SEEK_SET);
+	fwrite(&zeros,4,1,fileHandle.stream);
+	fseek(fileHandle.stream,4092,SEEK_SET);
+	fwrite(&zeros,4,1,fileHandle.stream);
+return 0;
+}
 
+RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid){
+	if(fileHandle.stream==0)return -1;
+	if(fileHandle.mode==0)return -1;
+
+	void * pageData = malloc(PAGE_SIZE);
+	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
+
+	INT16 slotNo=rid.slotNum;
+	INT16 totalSlotsInPage = *(INT16 *)((BYTE *)pageData+4092);
+
+	if(slotNo>=totalSlotsInPage||slotNo<0)return -1;
+	INT16 slotOffset = 4088-slotNo*4;
+	INT16 recordOffset = *((INT16*)((BYTE*)pageData + slotOffset));
+	//If record is already deleted return error
+	if(recordOffset == -1)return -1;
+	//Delete record by setting offset to -1
+	*((INT16*)((BYTE*)pageData + slotOffset)) = -1;
+	//Variable to store increase in freeSpace to update in header page
+	INT32 increaseFreeSpace = *((INT32*)((BYTE*)pageData + slotOffset + 2));
+
+	// Update FreeSpace Pointer if required
+	if(((BYTE*)pageData + recordOffset + increaseFreeSpace)==((BYTE *)pageData+4094)){
+		*((INT16 *)((BYTE *)pageData+4094)) = recordOffset;
+	}
+
+	// Update Number of slots if required
+	if(slotNo == totalSlotsInPage-1){
+		totalSlotsInPage = totalSlotsInPage-1;
+		*((INT16 *)((BYTE *)pageData+4092)) = totalSlotsInPage;
+		increaseFreeSpace+=4;
+	}
+	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return -1;
+
+	//Update FreeSpace in Header Page
+	fileHandle.updateFreeSpaceInHeader(rid.pageNum, increaseFreeSpace);
+	free(pageData);
+	return 0;
+}
+
+RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid)
+{
+	if(fileHandle.stream==0)return -1;
+	if(fileHandle.mode==0)return -1;
+
+	void * pageData = malloc(PAGE_SIZE);
+	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
+
+	INT16 slotNo = rid.slotNum;
+	INT16 totalSlotsInPage = *((INT16 *)((BYTE *)pageData+4092));
+	INT16 freeSpaceIncrease = 0;
+	if(slotNo>=totalSlotsInPage||slotNo<0)return -1;
+	INT16 slotOffset = 4088-slotNo*4;
+	INT16 recordOffset = *((INT16*)((BYTE*)pageData + slotOffset));
+	if(recordOffset == -1)return -1;
+
+	BYTE* recordLocation = (BYTE*)pageData + recordOffset;
+	INT16 oldLength = *((INT16*)((BYTE*)pageData + slotOffset + 2));
+	INT16 newLength;
+
+	// Read the new record
+	void* newRecord = modifyRecordForInsert(recordDescriptor,data,newLength);
+
+	// if new record length is smaller than old record length
+	if(newLength<=oldLength){
+		memcpy(recordLocation,newRecord,newLength);
+		// set new length in slot
+		*((INT16*)((BYTE*)pageData + slotOffset + 2)) = newLength;
+		freeSpaceIncrease = oldLength - newLength;
+	}
+
+	// if length is not smaller then record may still fit on same page
+	else{
+		INT16 oldFreespace = fileHandle.updateFreeSpaceInHeader(rid.pageNum, 0);
+
+		// if it fits on the same page
+		if(oldFreespace >= newLength){
+			INT16 freeSpaceBlockSize = getFreeSpaceBlockSize(fileHandle, rid.pageNum);
+			if(freeSpaceBlockSize==-1)return -1;
+			// If it can be directly appended in free space block
+			INT16 freeSpaceBlockPointer = 0;
+			if(freeSpaceBlockSize>newLength){
+				freeSpaceBlockPointer = *((INT16 *)((BYTE *)pageData+4094));
+				memcpy(pageData+freeSpaceBlockPointer,newRecord,newLength);
+			}
+			// If it cannot be directly appended in free space block
+			else{
+				deleteRecord(fileHandle,recordDescriptor,rid);
+				reorganizePage(fileHandle,recordDescriptor,rid.pageNum);
+				// Read page again since you modified the data
+				if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
+				freeSpaceBlockPointer = *((INT16 *)((BYTE *)pageData+4094));
+				memcpy(pageData+freeSpaceBlockPointer,newRecord,newLength);
+			}
+			freeSpaceIncrease = oldLength - newLength;
+			// Update slot (record offset and record length)
+			*((INT16*)((BYTE*)pageData + slotOffset)) = freeSpaceBlockPointer;
+			*((INT16*)((BYTE*)pageData + slotOffset + 2)) = newLength;
+
+			// Update free space block pointer
+			*((INT16 *)((BYTE *)pageData+4094)) = freeSpaceBlockPointer + newLength;
+		}
+		// If it does not fit on same Page
+		else{
+			RID newRid;
+			insertRecord(fileHandle,recordDescriptor,data,newRid);
+			INT32 tombstonePageNum = newRid.pageNum;
+			INT16 tombstoneSlotNum = newRid.slotNum;
+			// insert new RID as tomb stone
+			*((INT32*)((BYTE*)pageData + recordOffset)) = tombstonePageNum;
+			*((INT16*)((BYTE*)pageData + recordOffset+4)) = tombstoneSlotNum;
+			// Set length = -1 to indicate tomb stone
+			*((INT16*)((BYTE*)pageData + slotOffset + 2)) = -1;
+			freeSpaceIncrease = oldLength - 6;
+		}
+
+	}
+
+	fileHandle.updateFreeSpaceInHeader(rid.pageNum, increaseFreeSpace);
+	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return-1;
+	free(pageData);
+	free(newRecord);
+return 0;
+}
+
+INT16 RecordBasedFileManager::getFreeSpaceBlockSize(FileHandle &fileHandle, PageNum pageNum)
+{
+	void * pageData = malloc(PAGE_SIZE);
+	if(fileHandle.readPage(pageNum,pageData)==-1)return-1;
+	INT16 totalSlotsInPage = *((INT16 *)((BYTE *)pageData+4092));
+	INT16 freeSpacePointer = *((INT16 *)((BYTE *)pageData+4092));
+	return 4092 - (totalSlotsInPage*4) - freeSpacePointer;
+}
