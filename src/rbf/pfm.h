@@ -20,6 +20,8 @@ typedef int8_t BYTE;
 typedef float FLOAT;
 #define PES 6
 #define TOMBSIZE 6
+#define isNull(num) (num==1346458179)
+#define isNullA(addr) (*(INT32 *)addr==1346458179)
 #define max(a,b) ((a)>(b)?(a):(b))
 # ifdef debug
 # define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";

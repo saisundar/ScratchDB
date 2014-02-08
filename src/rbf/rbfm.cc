@@ -188,6 +188,18 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
 	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
+
+	if(length<0)								//tombstone
+	{
+		RID tempId;
+		memcpy(&tempId.pageNum,((INT32 *)page+offset),4);
+		memcpy(&tempId.slotNum,((INT16 *)page+offset+4),2);
+		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
+		free(page);
+		free(modRecord);
+		return RC;
+
+	}
 	modRecord=malloc(length);
 	memcpy(modRecord,(BYTE *)page+offset,length);
 
@@ -213,26 +225,43 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		case 0:
 			cout<<it->name<<"\t";
 			num = *((INT32 *)printData);
+			if(isNull(num))
+				cout<<"NULL\n";
+			else
+				cout<<num<<"\n";
 			printData = printData+4;
-			cout<<num<<"\n";
+
 			break;
 
 		case 1:
 			cout<<it->name<<"\t";
 			num1 = *((FLOAT *)printData);
+			num = *((INT32 *)printData);
+			if(isNull(num))
+				cout<<"NULL\n";
+			else
+				cout<<num1<<"\n";
 			printData = printData+4;
-			cout<<num1<<"\n";
+
 			break;
 
 		case 2:
 			cout<<it->name<<"\t";
 			num = *((INT32 *)printData);
+			if(isNull(num))
+			{
+				cout<<"NULL\n";
+			printData = printData+4;
+			}
+			else
+			{
 			printData = printData+4;
 			for(int i=0;i<num;i++){
 				cout<<*((char*)printData);
 				printData = printData+1;
 			}
 			cout<<"\n";
+			}
 			break;
 
 		default:
@@ -297,13 +326,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	INT16 offsetPointer = 0;
 	offsetPointer+=2;
 	INT16 prevOffset=(noOfFields*2)+2,presOffset=0;
-
-	if(noOfFields!=recordDescriptor.size())
-	{
-		dbgn("ERROR due to mismatch in no of attributes of record descriptor and disk record"," ");
-		dbgn("disk attri",noOfFields);
-		dbgn("Record descriptor",recordDescriptor.size());
-	}
+	INT32 num=1346458179;
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	while(noOfFields--)
@@ -346,6 +369,14 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 		++it;
 	}
 
+	if(noOfFields!=recordDescriptor.size())
+		{
+			int numOfOffenders=recordDescriptor.size()-noOfFields;
+
+			for(i=0;i<numOfOffenders;i++)
+				memcpy((void*)dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
+
+		}
 	return 0;
 }
 
@@ -572,3 +603,4 @@ INT16 RecordBasedFileManager::getFreeSpaceBlockSize(FileHandle &fileHandle, Page
 	INT16 freeSpacePointer = *((INT16 *)((BYTE *)pageData+4092));
 	return 4092 - (totalSlotsInPage*4) - freeSpacePointer;
 }
+

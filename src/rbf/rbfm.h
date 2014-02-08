@@ -56,13 +56,51 @@ The scan iterator is NOT required to be implemented for part 1 of the project
 
 
 class RBFM_ScanIterator {
-public:
-  RBFM_ScanIterator() {};
-  ~RBFM_ScanIterator() {};
+private:
 
-  // "data" follows the same format as RecordBasedFileManager::insertRecord()
-  RC getNextRecord(RID &rid, void *data) { return RBFM_EOF; };
-  RC close() { return -1; };
+	void *curHeaderPage;				//current header page
+	INT32 headerPageNum;
+	void *curDataPage;					//curent data page
+	RID currRid;
+	vector<Attribute> recDesc;			//record descriptor
+	bool isValid;						//indicate swhther the iterator will produce useful info or not
+	CompOp oper;						//operation performed
+	string condAttr;					//the name of the conditonla attribute
+	void *valueP;						// pointer to the vlaue to be checked
+	AttrType type;						//type pf attribute
+	INT32 attrLength;					//length of the concerned attribute
+	vector<string> attrNames;			//vetor of attributes which are wanted
+	INT32 numOfPages;					//overall number of data pages in file
+	INT32 numOfSlots;					// number of slots in page
+	FileHandle currHandle;
+	bool isValidAttr(string condAttr,const vector<Attribute> &recordDescriptor);
+
+public:
+	RC setValues(FileHandle &fileHandle,							//
+			const vector<Attribute> &recordDescriptor,				//
+			const char *conditionAttribute,							//
+			const CompOp compOp,              						// comparision type such as "<" and "="
+			const void *value,                    					// used in the comparison
+			const vector<string> &attributeNames);
+	RBFM_ScanIterator() {
+		curHeaderPage=NULL;
+		curDataPage=NULL;
+		isValid=false;
+		valueP=NULL;
+		attrLength=0;
+		headerPageNum=0;
+
+	};
+	~RBFM_ScanIterator() {
+		currHandle.stream=0;free(curHeaderPage);free(curDataPage);free(valueP);		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
+
+	};
+
+	// "data" follows the same format as RecordBasedFileManager::insertRecord()
+	RC RBFM_ScanIterator::getNextDataPage();
+	RC RBFM_ScanIterator::incrementRID();
+	RC getNextRecord(RID &rid, void *data);
+	RC close() { return -1; };
 };
 
 
