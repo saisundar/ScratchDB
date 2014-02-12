@@ -239,15 +239,20 @@ RC RelationManager::deleteTable(const string &tableName)
 	void * tempData = malloc(4+length);
 	BYTE* data = (BYTE*)tempData;
 	dbgn2("length of table search string: ", length+4);
+
 	memcpy(data,&length,4);
 	data = data + 4;
-	memcpy(data,tableName.c_str(),4);
+	BYTE* copyPointer = (BYTE *)tableName.c_str();
+	for(int i=0;i<length;i++){
+		*(data+i) = *(copyPointer+i);
+	}
+
 	string conditionAttr = "tableName";
 	vector<string> dummy;
 	RID deleteRid;
 
 	dbgn2("Searching For: ",tableName);
-	if(rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi)==-1)return -1;
+	if(rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, tempData, dummy, rbfmsi)==-1)return -1;
 	free(tempData);
 	if(rbfmsi.getNextRecord(deleteRid, data)==RBFM_EOF){
 		dbgn2("Record not found by scan iterator: ",tableName);
@@ -276,8 +281,9 @@ RC RelationManager::deleteTable(const string &tableName)
 	memcpy(data,tableCatalogName,4);
 	dbgn2("Searching For: ",tableCatalogName);
 	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi);
-	free(tempData);
-	if(rbfmsi.getNextRecord(deleteRid, data)==RBFM_EOF){
+
+
+	if(rbfmsi.getNextRecord(deleteRid, tempData)==RBFM_EOF){
 		dbgn2("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
@@ -293,6 +299,11 @@ RC RelationManager::deleteTable(const string &tableName)
 		return -1;
 	}
 
+	if(rbfm->destroyFile(tableCatalogName)==-1){
+		dbgn2("Could not delete","catalog file for the table");
+		return -1;
+	}
+	free(tempData);
 	return 0;
 }
 
@@ -325,7 +336,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	vector<string> projectedAttributes;
 	RBFM_ScanIterator rbfmsi;
 	RID dummyRid;
-//	Attribute attr;
+	//	Attribute attr;
 	void* data = malloc(42);
 
 	// Create Projected attributes to retrieve relevant attributes for catalog table
@@ -363,8 +374,13 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	}
 	dbgn2("Length of recordDescriptor: ",columnPosition);
 
-
 	descriptors.insert(std::pair< string ,vector<Attribute> >(tableName, attrs));
+	if(rbfm->closeFile(tableCatalogHandle)==-1){
+		dbgn2("could close the Table catalog file","");
+		return -1;
+	}
+
+
 	return 0;
 }
 
@@ -383,6 +399,10 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 	}
 	if(rbfm->insertRecord(tableHandle,recordDescriptor,data,rid)==-1){
 		dbgn2("could not insert the new record","");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -397,7 +417,14 @@ RC RelationManager::deleteTuples(const string &tableName)
 	dbgn2("<----------------------------In Delete Tuple's' (RM)------------------------->","");
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)return -1;
-	if(rbfm->deleteRecords(tableHandle)==-1)return -1;
+	if(rbfm->deleteRecords(tableHandle)==-1)
+	{
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
+		return -1;
+	}
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
 	return 0;
 }
@@ -416,11 +443,15 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 	if(rbfm->deleteRecord(tableHandle,dummy,rid)==-1)
 	{
 		dbgn2("delete record file failed","ooops");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
 	return 0;
-	return -1;
+
 }
 
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
@@ -439,6 +470,10 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 	}
 	if(rbfm->updateRecord(tableHandle,recordDescriptor,data,rid)==-1){
 		dbgn2("could not insert the new record","");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -464,6 +499,10 @@ RC RelationManager::readTuple(const string &tableName, const RID &rid, void *dat
 	}
 	if(rbfm->readRecord(tableHandle, recordDescriptor, rid, data)==-1){
 		dbgn2("could not read the new record","In Read Tuple (RM)");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -489,6 +528,10 @@ RC RelationManager::readAttribute(const string &tableName, const RID &rid, const
 	}
 	if(rbfm->readAttribute(tableHandle, recordDescriptor, rid, attributeName, data)==-1){
 		dbgn2("could not read the attribute","In Read Attribute (RM)");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -508,6 +551,10 @@ RC RelationManager::reorganizePage(const string &tableName, const unsigned pageN
 	}
 	if(rbfm->reorganizePage(tableHandle, dummyDescriptor, pageNumber)==-1){
 		dbgn2("could not insert the new record","In Read Attribute (RM)");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -525,7 +572,7 @@ RC RelationManager::scan(const string &tableName,
 		RM_ScanIterator &rm_ScanIterator)
 {
 	dbgn2("<----------------------------In scan (RM)------------------------->","");
-return 0;
+	return 0;
 }
 
 // Extra credit

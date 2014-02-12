@@ -121,6 +121,8 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
 	files[fileHandle.fileName]--;
+	dbgn("close handle ref count",files[fileHandle.fileName]);
+
 	fileHandle.stream = 0;
 	return 0;
 }
