@@ -74,6 +74,8 @@ RC PagedFileManager::destroyFile(const char *fileName)
 	if(!FileExists(fileName)|| (files.find(fileName)!=files.end() && files.find(fileName)->second!=0))
 		return -1;
 	if(files.find(fileName)!=files.end())dbgn("ref count",files.find(fileName)->second);
+	dbgn("File actually destroyed ","destroyFile");
+
 	remove(fileName);
 	if(files.find(fileName)!=files.end())
 		files.erase(files.find(fileName));
