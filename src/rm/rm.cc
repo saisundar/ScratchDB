@@ -128,7 +128,9 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols){
 	dbgn2("<----------------------------In Insert Entry For System Catalog------------------------->","");
 	INT32 l1 = strlen(tableName.c_str());
+	dbgn2("l1",l1);
 	INT32 l2 = strlen(tableType.c_str());
+	dbgn2("l2",l2);
 	INT32 dataLength = 12 + l1 + l2;
 	void* tempData = malloc(dataLength);
 	BYTE* systemData = (BYTE*)tempData;
@@ -154,7 +156,7 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 	dbgn2("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tempData));
 	rbfm->insertRecord(systemHandle,systemDescriptor,systemData,systemRid);
 
-	free(systemData);
+	free(tempData);
 	return 0;
 }
 

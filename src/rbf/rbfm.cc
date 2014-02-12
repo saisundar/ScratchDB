@@ -919,7 +919,7 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			if(it->name.compare(*st)==0)
 			{
 				memcpy(tempData,printData,4);
-				dbgn1("int attribute found",st);
+				dbgn1("int attribute found",*st);
 			}
 			printData = printData+4;
 			tempData+=4;
