@@ -238,7 +238,7 @@ RC RelationManager::deleteTable(const string &tableName)
 	INT32 length = strlen(tableName.c_str());
 	void * tempData = malloc(4+length);
 	BYTE* data = (BYTE*)tempData;
-	dbgn2("length of table search string: ", length+4);
+	dbgn2("length of table search string", length+4);
 
 	memcpy(data,&length,4);
 	data = data + 4;
@@ -251,10 +251,14 @@ RC RelationManager::deleteTable(const string &tableName)
 	vector<string> dummy;
 	RID deleteRid;
 
-	dbgn2("Searching For: ",tableName);
+	for(int i=0;i<length+4;i++){
+		cout<<*((char*)tempData+i);
+	}
+
+	dbgn2("Searching In System Catalog","");
+	dbgn2("Searching Query Created",string((char*)tempData));
 	if(rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, tempData, dummy, rbfmsi)==-1)return -1;
-	free(tempData);
-	if(rbfmsi.getNextRecord(deleteRid, data)==RBFM_EOF){
+	if(rbfmsi.getNextRecord(deleteRid, tempData)==RBFM_EOF){
 		dbgn2("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
@@ -265,6 +269,7 @@ RC RelationManager::deleteTable(const string &tableName)
 		return -1;
 	}
 	rbfmsi.close();
+	free(tempData);
 
 	// Make Application Layer Entry for tableName's Catalog to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
 	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
@@ -278,9 +283,15 @@ RC RelationManager::deleteTable(const string &tableName)
 	data = (BYTE*)tempData;
 	memcpy(data,&length,4);
 	data = data + 4;
-	memcpy(data,tableCatalogName,4);
-	dbgn2("Searching For: ",tableCatalogName);
-	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi);
+
+	copyPointer = (BYTE *)tableCatalogName;
+	for(int i=0;i<length;i++){
+		*(data+i) = *(copyPointer+i);
+	}
+
+	dbgn2("Searching In: System Catalog","");
+	dbgn2("Searching For: ", tableCatalogName);
+	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, tempData, dummy, rbfmsi);
 
 
 	if(rbfmsi.getNextRecord(deleteRid, tempData)==RBFM_EOF){
@@ -295,12 +306,12 @@ RC RelationManager::deleteTable(const string &tableName)
 	rbfmsi.close();
 
 	if(rbfm->destroyFile(tableName)==-1){
-		dbgn2("Could not delete","file for the table");
+		dbgn2("Could not delete file for the table: ", tableName);
 		return -1;
 	}
 
 	if(rbfm->destroyFile(tableCatalogName)==-1){
-		dbgn2("Could not delete","catalog file for the table");
+		dbgn2("Could not delete catalog file for the table: ", tableCatalogName);
 		return -1;
 	}
 	free(tempData);
