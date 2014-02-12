@@ -154,7 +154,7 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 	// Insert Record;
 	RID systemRid;
 	dbgn2("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tempData));
-	rbfm->insertRecord(systemHandle,systemDescriptor,systemData,systemRid);
+	rbfm->insertRecord(systemHandle,systemDescriptor,tempData,systemRid);
 
 	free(tempData);
 	return 0;
@@ -182,8 +182,9 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 		// Create System Catalog if not created
 		dbgn2("System catalog does not exist",", Creating IT !");
 		rbfm->createFile(systemCatalog.c_str());
-		insertEntryForSystemCatalog(systemCatalog, "System", 3);
 		rbfm->openFile(systemCatalog.c_str(),systemHandle);
+		insertEntryForSystemCatalog(systemCatalog, "System", 3);
+
 	}
 
 	// Insert Record for new table in System_Catalog;

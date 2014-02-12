@@ -388,9 +388,12 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 	INT16 numberAttr=recordDescriptor.size();
 	INT16 dataOffset=0,offOffset=0;
 	length=(numberAttr*2)+2;INT32 num=0;
+	dbgn("<----------------------------In modifyRecordForInsert------------------------->","");
+	getchar();
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	for(;it != recordDescriptor.end();it++)
 	{
+		dbgn("type",it->type);
 		switch(it->type){
 		case 0:
 			length=length+4;
@@ -414,8 +417,8 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 		}
 	}
 	length= maxim(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
+	dbgn("length of modified record","");
 	modRecord=malloc(length);
-
 	memcpy(modRecord,&numberAttr,2);
 	dataOffset=(numberAttr*2)+2;
 	offOffset=2;

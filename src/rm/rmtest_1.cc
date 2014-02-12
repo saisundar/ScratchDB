@@ -503,6 +503,7 @@ int main()
     cout << endl << "Test Basic Functions..." << endl;
 
     // Create Table
+    remove("System_Catalog");
     createTable("tbl_employee");
 
     Tests();
