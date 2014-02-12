@@ -12,12 +12,13 @@ RelationManager* RelationManager::instance()
 
 RelationManager::RelationManager()
 {
+	rbfm = RecordBasedFileManager::instance();
 	systemCatalog = "System_Catalog";
 	tableCatalogConcat = new char[4];
-	tableCatalogConcat = 'c';
-	tableCatalogConcat + 1 = 'a';
-	tableCatalogConcat + 2 =  't';
-	tableCatalogConcat + 3 = '_';
+	*(tableCatalogConcat) = 'c';
+	*(tableCatalogConcat+1) = 'a';
+	*(tableCatalogConcat+2) =  't';
+	*(tableCatalogConcat+3) = '_';
 
 	if(FileExists(systemCatalog))
 		rbfm->openFile(systemCatalog.c_str(),systemHandle);
@@ -38,7 +39,6 @@ RelationManager::RelationManager()
 	attr.length = (AttrLength)4;
 	systemDescriptor.push_back(attr);
 
-	Attribute attr;
 	attr.name = "tableName";
 	attr.type = TypeVarChar;
 	attr.length = (AttrLength)30;
@@ -80,8 +80,8 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 	INT32 l1 = strlen(tableName.c_str());
 	INT32 l2 = strlen(columnName.c_str());
 	INT32 dataLength = 20 + l1 + l2;
-	BYTE* tableData = malloc(dataLength);
-
+	void* Data = malloc(dataLength);
+	BYTE* tableData = (BYTE*)Data;
 	//Copy length of tableName
 	INT32 temp = l1;
 	memcpy(tableData, &temp, 4);
@@ -130,7 +130,8 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 	INT32 l1 = strlen(tableName.c_str());
 	INT32 l2 = strlen(tableType.c_str());
 	INT32 dataLength = 12 + l1 + l2;
-	BYTE* systemData = malloc(dataLength);
+	void* tempData = malloc(dataLength);
+	BYTE* systemData = (BYTE*)tempData;
 	INT32 temp = l1;
 	memcpy(systemData, &temp, 4);
 
@@ -150,7 +151,7 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 
 	// Insert Record;
 	RID systemRid;
-	dbgn2("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tableData));
+	dbgn2("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tempData));
 	rbfm->insertRecord(systemHandle,systemDescriptor,systemData,systemRid);
 
 	free(systemData);
@@ -184,7 +185,6 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	}
 
 	// Insert Record for new table in System_Catalog;
-	RID systemRid;
 	insertEntryForSystemCatalog(tableName.c_str(), "User", attrs.size());
 
 	// Create new file for the table
@@ -195,7 +195,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	// Create new file for the table catalog and associate fileHandle
 	string tableCatalogName = strcat(tableCatalogConcat,tableName.c_str());
-	dbgn2("table Catalog Name: ",tableCatalog);
+	dbgn2("table Catalog Name: ",tableCatalogName);
 	if(rbfm->createFile(tableCatalogName.c_str())==-1){
 		dbgn2("Create Table Catalog Failed","");
 		return -1;
@@ -228,24 +228,26 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	// Make Application Layer Entry for tableName to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
 	INT32 length = strlen(tableName.c_str());
-	BYTE * data = malloc(4+length);
+	void * tempData = malloc(4+length);
+	BYTE* data = (BYTE*)tempData;
 	dbgn2("length of table search string: ", length+4);
 	memcpy(data,&length,4);
 	data = data + 4;
 	memcpy(data,tableName.c_str(),4);
 	string conditionAttr = "tableName";
-	vector<Attribute> dummy;
+	vector<string> dummy;
+	RID deleteRid;
 
 	dbgn2("Searching For: ",tableName);
 	if(rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi)==-1)return -1;
-	free(data);
-	RID deleteRid;
+	free(tempData);
 	if(rbfmsi.getNextRecord(deleteRid, data)==RBFM_EOF){
 		dbgn2("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
 
-	if(rbfm->deleteRecord(systemHandle, dummy, deleteRid)==-1){
+	vector<Attribute> dummy2;
+	if(rbfm->deleteRecord(systemHandle, dummy2, deleteRid)==-1){
 		dbgn2("Could not delete","record for table in system catalog");
 		return -1;
 	}
@@ -253,23 +255,23 @@ RC RelationManager::deleteTable(const string &tableName)
 
 	// Make Application Layer Entry for tableName's Catalog to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
 	string tableCatalogName = strcat(tableCatalogConcat,tableName.c_str());
-	dbgn2("table Catalog Name: ",tableCatalog);
-	INT32 length = strlen(tableCatalogName.c_str());
+	dbgn2("table Catalog Name: ",tableCatalogName);
+	length = strlen(tableCatalogName.c_str());
 	dbgn2("length of table catalog search string: ", length+4);
-	BYTE * data = malloc(4+length);
+	tempData = malloc(4+length);
+	data = (BYTE*)tempData;
 	memcpy(data,&length,4);
 	data = data + 4;
 	memcpy(data,tableCatalogName.c_str(),4);
 	dbgn2("Searching For: ",tableCatalogName);
 	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi);
-	free(data);
-	RID deleteRid;
+	free(tempData);
 	if(rbfmsi.getNextRecord(deleteRid, data)==RBFM_EOF){
 		dbgn2("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
 
-	if(rbfm->deleteRecord(systemHandle, dummy, deleteRid)==-1){
+	if(rbfm->deleteRecord(systemHandle, dummy2, deleteRid)==-1){
 		dbgn2("Could not delete ","record for table CATALOG in system catalog");
 		return -1;
 	}
@@ -288,7 +290,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	dbgn2("<----------------------------In Create Record Descriptor------------------------->","");
 	if(descriptors.find(tableName)!=descriptors.end()){
 		dbgn2("Descriptor is already Created",", returning stored value");
-		attrs = (FileHandle)descriptors[tableName];
+		attrs = (vector<Attribute>)descriptors[tableName];
 		return 0;
 	}
 
@@ -307,28 +309,16 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	// Create attributes necessary for scan iterator
 	string conditionAttr ="columnPosition";
 	INT32 columnPosition = 0;
-	vector<Attribute> projectedAttributes;
+	vector<string> projectedAttributes;
 	RBFM_ScanIterator rbfmsi;
 	RID dummyRid;
+	Attribute attr;
 	void* data = malloc(42);
 
 	// Create Projected attributes to retrieve relevant attributes for catalog table
-	Attribute attr;
-
-	attr.name = "columnName";
-	attr.type = TypeVarChar;
-	attr.length = (AttrLength)30;
-	projectedAttributes.push_back(attr);
-
-	attr.name = "columnType";
-	attr.type = TypeInt;
-	attr.length = (AttrLength)4;
-	projectedAttributes.push_back(attr);
-
-	attr.name = "maxSize";
-	attr.type = TypeInt;
-	attr.length = (AttrLength)4;
-	projectedAttributes.push_back(attr);
+	projectedAttributes.push_back("columnName");
+	projectedAttributes.push_back("columnType");
+	projectedAttributes.push_back("maxSize");
 
 	// Scan through the table catalog file to create the record descriptor
 	while(true){
@@ -352,7 +342,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	dbgn2("Length of recordDescriptor: ",columnPosition);
 
 	rbfmsi.close();
-	descriptors.insert(std::pair< string ,vector<Attribute>>(tableName, attrs));
+	descriptors.insert(std::pair< string ,vector<Attribute> >(tableName, attrs));
 	return 0;
 }
 
@@ -503,7 +493,8 @@ RC RelationManager::scan(const string &tableName,
 		const vector<string> &attributeNames,
 		RM_ScanIterator &rm_ScanIterator)
 {
-	return -1;
+	dbgn2("<----------------------------In scan (RM)------------------------->","");
+return 0;
 }
 
 // Extra credit

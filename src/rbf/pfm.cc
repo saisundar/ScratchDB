@@ -76,7 +76,7 @@ RC PagedFileManager::destroyFile(const char *fileName)
 	if(files.find(fileName)!=files.end())dbgn("ref count",files.find(fileName)->second);
 	remove(fileName);
 	if(files.find(fileName)!=files.end())
-	files.erase(files.find(fileName));
+		files.erase(files.find(fileName));
 	return 0;
 }
 
@@ -115,7 +115,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 		return -1;
 
 	fclose(fileHandle.stream);
-    
+
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
 	files[fileHandle.fileName]--;
@@ -155,7 +155,7 @@ INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 
 	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0;
 	dbgn("this ","get header pagnum");
-		dbgn("vrtl pg num ",pageNum);
+	dbgn("vrtl pg num ",pageNum);
 
 	for(int i=0;i<headPageNum;i++)
 		tempPgNum=getNextHeaderPage(tempPgNum);
@@ -224,9 +224,9 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	if(actualPgNum==-1)return -1;
 	if(!mode)
 	{
-    	freopen(fileName.c_str(),"r+b",stream);
-       	(pfm->files[fileName]) = -1*(pfm->files[fileName]);
-       	mode=true;
+		freopen(fileName.c_str(),"r+b",stream);
+		(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+		mode=true;
 	}
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 	fwrite(data, 1, PAGE_SIZE, stream);
@@ -329,4 +329,12 @@ INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 	fwrite((void*)&prevFreeSpace,1,2,stream);
 	dbgn1("New Free Space: ",prevFreeSpace);
 	return prevFreeSpace;
-	}
+}
+
+bool FileExists(string fileName)
+{
+	struct stat stFileInfo;
+
+	if(stat(fileName.c_str(), &stFileInfo) == 0) return true;
+	else return false;
+}

@@ -102,11 +102,11 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	INT32 headerPageActualNumber;
 	INT16 length;
 	modRecord = modifyRecordForInsert(recordDescriptor,					//
-													  data,					//
-													  length);
+			data,					//
+			length);
 	INT16 totalLength=length;
 	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
-    dbgn("virtualPageNum",virtualPageNum);
+	dbgn("virtualPageNum",virtualPageNum);
 	dbgn("headerPageActualNumber",headerPageActualNumber);
 
 	INT16 freeOffset,slotNo,freeSpace;
@@ -131,12 +131,12 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	if(!slotReused){slotNo++;totalLength=length+4;}
 
 	if(freeSpace<totalLength)
-		{
-			reorganizePage(fileHandle,recordDescriptor,virtualPageNum);
-			fileHandle.readPage(virtualPageNum,page);
-			freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
-			freeSpace=4092-(slotNo*4)-freeOffset;
-		}
+	{
+		reorganizePage(fileHandle,recordDescriptor,virtualPageNum);
+		fileHandle.readPage(virtualPageNum,page);
+		freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
+		freeSpace=4092-(slotNo*4)-freeOffset;
+	}
 
 	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
 	memcpy(getSlotOffA(page,i),&freeOffset,2);  //update offset for slot
@@ -250,16 +250,16 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 			if(isNull(num))
 			{
 				cout<<"NULL\n";
-			printData = printData+4;
+				printData = printData+4;
 			}
 			else
 			{
-			printData = printData+4;
-			for(int i=0;i<num;i++){
-				cout<<*((char*)printData);
-				printData = printData+1;
-			}
-			cout<<"\n";
+				printData = printData+4;
+				for(int i=0;i<num;i++){
+					cout<<*((char*)printData);
+					printData = printData+1;
+				}
+				cout<<"\n";
 			}
 			break;
 
@@ -369,93 +369,93 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	}
 
 	if(noOfFields!=recordDescriptor.size())
-		{
-			int numOfOffenders=recordDescriptor.size()-noOfFields;
+	{
+		int numOfOffenders=recordDescriptor.size()-noOfFields;
 
-			dbgn1(" appending CRAP to the dsk record"," quite literally");
-			for(int i=0;i<numOfOffenders;i++)
-				memcpy(dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
+		dbgn1(" appending CRAP to the dsk record"," quite literally");
+		for(int i=0;i<numOfOffenders;i++)
+			memcpy(dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
 
-		}
+	}
 	return 0;
 }
 
 // WARNING: Its the responsibility of the caller to free the memory block assigned in this function
 void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT16  &length)
 {
-	    void *modRecord=NULL;
-	    BYTE * iterData = (BYTE*)data;
-		INT16 numberAttr=recordDescriptor.size();
-		INT16 dataOffset=0,offOffset=0;
-		length=(numberAttr*2)+2;INT32 num=0;
-		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
-		for(;it != recordDescriptor.end();it++)
-		{
-			switch(it->type){
-			case 0:
-				length=length+4;
-				iterData=iterData+4;
-				break;
+	void *modRecord=NULL;
+	BYTE * iterData = (BYTE*)data;
+	INT16 numberAttr=recordDescriptor.size();
+	INT16 dataOffset=0,offOffset=0;
+	length=(numberAttr*2)+2;INT32 num=0;
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	for(;it != recordDescriptor.end();it++)
+	{
+		switch(it->type){
+		case 0:
+			length=length+4;
+			iterData=iterData+4;
+			break;
 
-			case 1:
-				length=length+4;
-				iterData=iterData+4;
-				break;
+		case 1:
+			length=length+4;
+			iterData=iterData+4;
+			break;
 
-			case 2:
-				num = *((INT32 *)iterData);
-				length=length+num;
-				iterData=iterData+4+num;
-				break;
+		case 2:
+			num = *((INT32 *)iterData);
+			length=length+num;
+			iterData=iterData+4+num;
+			break;
 
-			default:
-				break;
+		default:
+			break;
 
-			}
 		}
-		length= maxim(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
-        modRecord=malloc(length);
+	}
+	length= maxim(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
+	modRecord=malloc(length);
 
-        memcpy(modRecord,&numberAttr,2);
-        dataOffset=(numberAttr*2)+2;
-        offOffset=2;
-        iterData = (BYTE*)data;
-        for(it = recordDescriptor.begin();it != recordDescriptor.end();it++)
-        {
-        	switch(it->type){
+	memcpy(modRecord,&numberAttr,2);
+	dataOffset=(numberAttr*2)+2;
+	offOffset=2;
+	iterData = (BYTE*)data;
+	for(it = recordDescriptor.begin();it != recordDescriptor.end();it++)
+	{
+		switch(it->type){
 
-        	case 0:
-                memcpy((BYTE *)modRecord+dataOffset,iterData,4);
-                iterData+=4;
-        		dataOffset=dataOffset+4;
-        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
-        		offOffset+=2;
-           		break;
+		case 0:
+			memcpy((BYTE *)modRecord+dataOffset,iterData,4);
+			iterData+=4;
+			dataOffset=dataOffset+4;
+			memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+			offOffset+=2;
+			break;
 
-        	case 1:
-        		memcpy((BYTE *)modRecord+dataOffset,iterData,4);
-        		iterData+=4;
-        		dataOffset=dataOffset+4;
-        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
-        		offOffset+=2;
-        		break;
+		case 1:
+			memcpy((BYTE *)modRecord+dataOffset,iterData,4);
+			iterData+=4;
+			dataOffset=dataOffset+4;
+			memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+			offOffset+=2;
+			break;
 
-        	case 2:
-        		num = *((INT32 *)iterData);
-           		iterData=iterData+4;
-        		memcpy((BYTE *)modRecord+dataOffset,iterData,num);
-        		dataOffset=dataOffset+num;
-        		iterData+=num;
-        		memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
-        		offOffset+=2;
-        		break;
+		case 2:
+			num = *((INT32 *)iterData);
+			iterData=iterData+4;
+			memcpy((BYTE *)modRecord+dataOffset,iterData,num);
+			dataOffset=dataOffset+num;
+			iterData+=num;
+			memcpy((BYTE *)modRecord+offOffset,&dataOffset,2);
+			offOffset+=2;
+			break;
 
-        	default:
-        		break;
+		default:
+			break;
 
-        	}
-        }
-		return modRecord;
+		}
+	}
+	return modRecord;
 }
 
 RC RecordBasedFileManager::deleteRecords(FileHandle &fileHandle)
@@ -532,7 +532,7 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 		increaseFreeSpace+=4;
 	}
 	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return -1;
-	dbgn1("Free Space increases by: ", freeSpaceIncrease);
+	dbgn1("Free Space increases by: ", increaseFreeSpace);
 	//Update FreeSpace in Header Page
 	fileHandle.updateFreeSpaceInHeader(rid.pageNum, increaseFreeSpace);
 	free(pageData);
@@ -884,12 +884,12 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 		diff=intVal(temp)-intVal(valueP);
 		break;
 	case 1:
-			if(*((float *)temp)>*((float *)valueP))
-				diff=1;
-			else if(*((float *)temp)==*((float *)valueP))
-				diff=0;
-			else
-				diff=-1;
+		if(*((float *)temp)>*((float *)valueP))
+			diff=1;
+		else if(*((float *)temp)==*((float *)valueP))
+			diff=0;
+		else
+			diff=-1;
 		break;
 	case 2:
 		diff= strcmp((char *)temp,(char *)valueP);
@@ -902,62 +902,62 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 
 RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 {
-		BYTE * printData = (BYTE*)temp;
-		BYTE * tempData = (BYTE *)data;
-		INT32 num = 0;
-		dbgn1("this ","getAttributeGroup");
+	BYTE * printData = (BYTE*)temp;
+	BYTE * tempData = (BYTE *)data;
+	INT32 num = 0;
+	dbgn1("this ","getAttributeGroup");
 
-		std::vector<Attribute>::const_iterator it = recDesc.begin();
-		std::vector<string>::const_iterator st = attrNames.begin();
-		dbgn("num of attributes",recDesc.size());
-		for(it = recDesc.begin();(it != recDesc.end() && st!=attrNames.end());it++)
-		{
-			if(it->length==0)continue;
+	std::vector<Attribute>::const_iterator it = recDesc.begin();
+	std::vector<string>::const_iterator st = attrNames.begin();
+	dbgn("num of attributes",recDesc.size());
+	for(it = recDesc.begin();(it != recDesc.end() && st!=attrNames.end());it++)
+	{
+		if(it->length==0)continue;
 
-			switch(it->type){
-			case 0:
-				if(it->name.compare(*st)==0)
-				{
-					memcpy(tempData,printData,4);
-					dbgn1("int attribute found",st);
-				}
-				printData = printData+4;
-				tempData+=4;
-				st++;
-				break;
-
-			case 1:
-				if(it->name.compare(*st)==0)
-				{
-					memcpy(data,printData,4);
-					dbgn1("float attribute found",st);
-				}
-				printData = printData+4;
-				tempData+=4;
-				st++;
-				break;
-
-			case 2:
-				num = *((INT32 *)printData);
-				if((it->name).compare(*st)==0)
-				{
-					if(isNull(num))
-						memcpy(data,printData,4);
-					else
-						memcpy(data,printData,4+num);
-					dbgn1("string attribute found",st);
-				}
-				printData = printData+4+num;
-				tempData+=4+num;
-				st++;
-				break;
-
-			default:
-				break;
-
+		switch(it->type){
+		case 0:
+			if(it->name.compare(*st)==0)
+			{
+				memcpy(tempData,printData,4);
+				dbgn1("int attribute found",st);
 			}
+			printData = printData+4;
+			tempData+=4;
+			st++;
+			break;
+
+		case 1:
+			if(it->name.compare(*st)==0)
+			{
+				memcpy(data,printData,4);
+				dbgn1("float attribute found",*st);
+			}
+			printData = printData+4;
+			tempData+=4;
+			st++;
+			break;
+
+		case 2:
+			num = *((INT32 *)printData);
+			if((it->name).compare(*st)==0)
+			{
+				if(isNull(num))
+					memcpy(data,printData,4);
+				else
+					memcpy(data,printData,4+num);
+				dbgn1("string attribute found",*st);
+			}
+			printData = printData+4+num;
+			tempData+=4+num;
+			st++;
+			break;
+
+		default:
+			break;
+
 		}
-		return 0;
+	}
+	return 0;
 
 }
 RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
@@ -970,11 +970,11 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 	for(;!found;incrementRID())
 	{
 		if((currRid.pageNum==numOfPages && currRid.slotNum==numOfSlots)||!isValid)
-			{
-				dbgn1("end of scan....","");
-				dbgn1("scan ",(unconditional)?"unconditional":"conditional");
-				return RBFM_EOF;
-			}
+		{
+			dbgn1("end of scan....","");
+			dbgn1("scan ",(unconditional)?"unconditional":"conditional");
+			return RBFM_EOF;
+		}
 
 		offset=getSlotOffV(curDataPage,currRid.slotNum);
 		len=getSlotLenV(curDataPage,currRid.slotNum);
