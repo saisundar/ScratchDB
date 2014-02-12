@@ -35,8 +35,16 @@ public:
 // Relation Manager
 class RelationManager
 {
+	vector<Attribute> systemDescriptor;
+	vector<Attribute> tableDescriptor;
+	FileHandle systemHandle;
+	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance(); // To test the functionality of the record-based file manager
+	map< string ,vector<Attribute> > descriptors;	   // Maintain RecordDescriptors
+	string systemCatalog;
+	char* tableCatalogConcat;
+
 public:
-  static RelationManager* instance();
+	static RelationManager* instance();
 
   RC createTable(const string &tableName, const vector<Attribute> &attrs);
 
@@ -75,6 +83,11 @@ public:
   RC addAttribute(const string &tableName, const Attribute &attr);
 
   RC reorganizeTable(const string &tableName);
+
+  // Created By US
+  RC insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols);
+
+  RC insertEntryForTableCatalog(FileHandle &fileHandle, const string &tableName, const string &columnName, INT32 columnType, INT32 columnPosition, INT32 maxSize);
 
 protected:
   RelationManager();

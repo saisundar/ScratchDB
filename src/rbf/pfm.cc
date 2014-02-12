@@ -317,17 +317,16 @@ unsigned FileHandle::getNumberOfPages()
 
 INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 	//Update FreeSpace in Header Page
+
+	dbgn1("<----------------------------In UpdateFreeSpaceInHeader------------------------->","");
 	INT32 headerPageNumber = getHeaderPageNum(pageNum);
-	void* headerPageData = 0;
-	fread(headerPageData,1,PAGE_SIZE,stream);
-	int i=0;
-	for(i=10;i<4096;i+=6){
-		if((*((INT32*)((BYTE*)headerPageData + i)))==pageNum){
-			break;
-		}
+	INT16 prevFreeSpace = 0;
+	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
+	fread((void*)&prevFreeSpace,1,2,stream);
+	prevFreeSpace += increaseBy;
+	dbgn1("Old Free Space: ",prevFreeSpace);
+	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
+	fwrite((void*)&prevFreeSpace,1,2,stream);
+	dbgn1("New Free Space: ",prevFreeSpace);
+	return prevFreeSpace;
 	}
-	INT16 oldFreespace = *((INT32*)((BYTE*)headerPageData + i + 4));
-	*((INT32*)((BYTE*)headerPageData + i + 4)) = oldFreespace + increaseBy;
-	free(headerPageData);
-	return oldFreespace + increaseBy;
-}

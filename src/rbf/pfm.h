@@ -37,6 +37,12 @@ typedef float FLOAT;
 # define dbgn1(str1,str2) (void)0;
 #endif
 
+# ifdef debug2
+# define dbgn2(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
+# else
+# define dbgn2(str1,str2) (void)0;
+#endif
+
 # define getSlotOffA(page,i) ((BYTE *)page+4088-(i*4)) 				// gives the address of slot offset
 # define getslotLenA(page,i) ((BYTE *)page+4090-(i*4)) 				// gives the address of slot length
 # define getSlotOffV(page,i) (*(INT16 *)((BYTE *)page+4088-(i*4)))  // gives the address of slot offset Value
