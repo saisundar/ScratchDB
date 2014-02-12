@@ -22,6 +22,8 @@ typedef float FLOAT;
 #define TOMBSIZE 6
 #define isNull(num) (num==1346458179)
 #define isNullA(addr) (*(INT32 *)addr==1346458179)
+#define intVal(addr) (*(INT32 *)addr)
+
 #define max(a,b) ((a)>(b)?(a):(b))
 # ifdef debug
 # define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";

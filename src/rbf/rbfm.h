@@ -64,17 +64,19 @@ private:
 	RID currRid;
 	vector<Attribute> recDesc;			//record descriptor
 	bool isValid;						//indicate swhther the iterator will produce useful info or not
+	bool unconditional;
 	CompOp oper;						//operation performed
 	string condAttr;					//the name of the conditonla attribute
 	void *valueP;						// pointer to the vlaue to be checked
 	AttrType type;						//type pf attribute
 	INT32 attrLength;					//length of the concerned attribute
+	INT32 attrNum;
 	vector<string> attrNames;			//vetor of attributes which are wanted
 	INT32 numOfPages;					//overall number of data pages in file
 	INT32 numOfSlots;					// number of slots in page
 	FileHandle currHandle;
 	bool isValidAttr(string condAttr,const vector<Attribute> &recordDescriptor);
-
+	void getAttributeGroup(void * data,void *temp);
 public:
 	RC setValues(FileHandle &fileHandle,							//
 			const vector<Attribute> &recordDescriptor,				//
@@ -89,6 +91,7 @@ public:
 		valueP=NULL;
 		attrLength=0;
 		headerPageNum=0;
+		attrNum=-1;
 
 	};
 	~RBFM_ScanIterator() {
@@ -97,8 +100,10 @@ public:
 	};
 
 	// "data" follows the same format as RecordBasedFileManager::insertRecord()
-	RC RBFM_ScanIterator::getNextDataPage();
-	RC RBFM_ScanIterator::incrementRID();
+	bool evaluateCondition(void * temp);
+	bool returnRes(int diff);
+	RC getNextDataPage();
+	RC incrementRID();
 	RC getNextRecord(RID &rid, void *data);
 	RC close() { return -1; };
 };

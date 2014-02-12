@@ -177,7 +177,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	//	fetch the actual page. read the record. convert into application format.return record.
 	INT32 virtualPageNum=rid.pageNum,slotNo=rid.slotNum;
 	RC rc;
-	dbgn("this ","readRecord");
+	dbgn("this ","readRecord			=============================================================");
 	dbgn("Filename",fileHandle.fileName);
 	void *page=malloc(PAGE_SIZE),*modRecord;
 	rc=fileHandle.readPage(virtualPageNum,page);
@@ -191,9 +191,13 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 	if(length<0)								//tombstone
 	{
+
 		RID tempId;
+		dbgn1("tombstne record =========================== in read","   ");
 		memcpy(&tempId.pageNum,((INT32 *)page+offset),4);
 		memcpy(&tempId.slotNum,((INT16 *)page+offset+4),2);
+		dbgn1("tombstone points to RID page number",tempId.pageNum);
+		dbgn1("tombstone points to RID slot number",tempId.slotNum);
 		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
 		free(page);
 		free(modRecord);
@@ -373,6 +377,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 		{
 			int numOfOffenders=recordDescriptor.size()-noOfFields;
 
+			dbgn1(" appending CRAP to the dsk record"," quite literally");
 			for(i=0;i<numOfOffenders;i++)
 				memcpy((void*)dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
 
