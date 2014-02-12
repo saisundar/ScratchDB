@@ -184,7 +184,9 @@ void secA_4(const string &tableName, const int nameLength, const string &name, c
     int tupleSize = 0;
     void *tuple = malloc(100);
     void *returnedData = malloc(100);
-    
+
+    //secA_4("tbl_employee", 6, "Veekay", 27, 171.4, 9000);
+
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
@@ -224,7 +226,7 @@ void secA_5(const string &tableName, const int nameLength, const string &name, c
     void *tuple = malloc(100);
     void *returnedData = malloc(100);
     void *returnedData1 = malloc(100);
-   
+    // secA_5("tbl_employee", 6, "Dillon", 29, 172.5, 7000);
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);

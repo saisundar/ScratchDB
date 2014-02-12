@@ -344,7 +344,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		BYTE* iterData = (BYTE*)data;
 		INT32 nameLength = *((INT32*)iterData);
 		iterData += 4;
-		attr.name.resize(nameLength+1,0);
+		attr.name.resize(nameLength,0);
 		dbgn1("attr namebefore copy",attr.name);
 		//memcpy(attr.name,iterData,nameLength);
 
@@ -407,8 +407,17 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 	dbgn2("<----------------------------In Delete Tuple (RM)------------------------->","");
 	FileHandle tableHandle;
 	vector<Attribute> dummy;
-	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)return -1;
-	if(rbfm->deleteRecord(tableHandle,dummy,rid)==-1)return -1;
+	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)
+	{
+		dbgn2("open file failed","ooops");
+		return -1;
+	}
+
+	if(rbfm->deleteRecord(tableHandle,dummy,rid)==-1)
+	{
+		dbgn2("delete record file failed","ooops");
+		return -1;
+	}
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
 	return 0;
 	return -1;
@@ -454,7 +463,7 @@ RC RelationManager::readTuple(const string &tableName, const RID &rid, void *dat
 		return -1;
 	}
 	if(rbfm->readRecord(tableHandle, recordDescriptor, rid, data)==-1){
-		dbgn2("could not insert the new record","In Read Tuple (RM)");
+		dbgn2("could not read the new record","In Read Tuple (RM)");
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
@@ -479,7 +488,7 @@ RC RelationManager::readAttribute(const string &tableName, const RID &rid, const
 		return -1;
 	}
 	if(rbfm->readAttribute(tableHandle, recordDescriptor, rid, attributeName, data)==-1){
-		dbgn2("could not insert the new record","In Read Attribute (RM)");
+		dbgn2("could not read the attribute","In Read Attribute (RM)");
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){

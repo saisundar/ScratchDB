@@ -175,11 +175,14 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	RC rc;
 	dbgn("this ","readRecord			=============================================================");
 	dbgn("Filename",fileHandle.fileName);
+	dbgn("record page requestd RID Page==",rid.pageNum);
+	dbgn("record page requestd RID Slot==",rid.slotNum);
 	void *page=malloc(PAGE_SIZE),*modRecord;
 	rc=fileHandle.readPage(virtualPageNum,page);
-	if(rc)return -1;
+	if(rc==-1)return -1;
 	INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
+	dbgn("total slots in the page",totalSlotNo);
 	if(slotNo>=totalSlotNo||slotNo<0)return -1;
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
@@ -486,8 +489,19 @@ RC RecordBasedFileManager::deleteRecords(FileHandle &fileHandle)
 }
 RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid){
 	dbgn1("<----------------------------In Delete Record------------------------->","");
-	if(fileHandle.stream==0)return -1;
-	if(fileHandle.mode==0)return -1;
+	if(fileHandle.stream==0)
+		{
+		dbgn1("stream -======0","oopsies");
+		return -1;
+		}
+//	if(fileHandle.mode==0)
+//		{
+//		dbgn1("mode -======0","oopsies");
+//		return -1;
+//		}
+
+	dbgn1("requested Slot number: ",rid.slotNum);
+	dbgn1("requested Slot number: ",rid.pageNum);
 
 	void * pageData = malloc(PAGE_SIZE);
 	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
@@ -546,7 +560,6 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 {
 	dbgn1("<----------------------------In Update Record------------------------->","");
 	if(fileHandle.stream==0)return -1;
-	if(fileHandle.mode==0)return -1;
 
 	void * pageData = malloc(PAGE_SIZE);
 	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
@@ -699,6 +712,8 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 	{
 		switch(it->type){
 		case 0:
+			dbgn1(" attribute iterated name",it->name);
+			dbgn1("desired atribute name",attributeName);
 			if((it->name).compare(attributeName)==0)
 			{
 				memcpy(data,printData,4);
@@ -709,6 +724,8 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 			break;
 
 		case 1:
+			dbgn1(" attribute iterated name",it->name);
+			dbgn1("desired atribute name",attributeName);
 			if((it->name).compare(attributeName)==0)
 			{
 				memcpy(data,printData,4);
@@ -720,6 +737,8 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 			break;
 
 		case 2:
+			dbgn1(" attribute iterated name",it->name);
+			dbgn1("desired atribute name",attributeName);
 			num = *((INT32 *)printData);
 			if((it->name).compare(attributeName)==0)
 			{
