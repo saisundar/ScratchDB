@@ -80,8 +80,8 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 	INT32 l1 = strlen(tableName.c_str());
 	INT32 l2 = strlen(columnName.c_str());
 	INT32 dataLength = 20 + l1 + l2;
-	void* Data = malloc(dataLength);
-	BYTE* tableData = (BYTE*)Data;
+	void* data = malloc(dataLength);
+	BYTE* tableData = (BYTE*)data;
 	//Copy length of tableName
 	INT32 temp = l1;
 	memcpy(tableData, &temp, 4);
@@ -117,9 +117,9 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 
 	// Insert Record;
 	RID systemRid;
-	dbgn2("Record Being Inserted in Table Catalog: ", rbfm->printRecord(tableDescriptor, tableData));
+	dbgn2("Record Being Inserted in Table Catalog: ", rbfm->printRecord(tableDescriptor, data));
 
-	rbfm->insertRecord(tableCatalogHandle,tableDescriptor,tableData,systemRid);
+	rbfm->insertRecord(tableCatalogHandle,tableDescriptor,data,systemRid);
 
 	free(tableData);
 	return 0;
