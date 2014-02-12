@@ -8,6 +8,7 @@
 #include <map>
 #include<iostream>
 #include<stdio.h>
+#include<cstdlib>
 using namespace std;
 
 //#define debug 1
@@ -24,7 +25,8 @@ typedef float FLOAT;
 #define isNullA(addr) (*(INT32 *)addr==1346458179)
 #define intVal(addr) (*(INT32 *)addr)
 
-#define max(a,b) ((a)>(b)?(a):(b))
+#define maxim(a,b) a>b?a:b
+
 # ifdef debug
 # define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
 # else
@@ -44,9 +46,9 @@ typedef float FLOAT;
 #endif
 
 # define getSlotOffA(page,i) ((BYTE *)page+4088-(i*4)) 				// gives the address of slot offset
-# define getslotLenA(page,i) ((BYTE *)page+4090-(i*4)) 				// gives the address of slot length
+# define getSlotLenA(page,i) ((BYTE *)page+4090-(i*4)) 				// gives the address of slot length
 # define getSlotOffV(page,i) (*(INT16 *)((BYTE *)page+4088-(i*4)))  // gives the address of slot offset Value
-# define getslotLenV(page,i) (*(INT16 *)((BYTE *)page+4090-(i*4)))  // gives the address of slot length Value
+# define getSlotLenV(page,i) (*(INT16 *)((BYTE *)page+4090-(i*4)))  // gives the address of slot length Value
 # define getFreeOffsetA(page) ((BYTE *)page+4094)					// gives the address of within the page
 # define getSlotNoA(page) ((BYTE *)page+4092)					    // gives the adress of "num of slots" field within the page
 # define getFreeOffsetV(page) *(INT16 *)((BYTE *)page+4094)			// gives the freeoffset value within the page
@@ -101,6 +103,7 @@ public:
     RC writePage(PageNum pageNum, const void *data);                    // Write a specific page
     RC appendPage(const void *data);                                    // Append a specific page
     unsigned getNumberOfPages();                                        // Get the number of pages in the file
+    INT16 updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy);
  };
 
  #endif

@@ -76,7 +76,7 @@ private:
 	INT32 numOfSlots;					// number of slots in page
 	FileHandle currHandle;
 	bool isValidAttr(string condAttr,const vector<Attribute> &recordDescriptor);
-	void getAttributeGroup(void * data,void *temp);
+	RC getAttributeGroup(void * data,void *temp);
 public:
 	RC setValues(FileHandle &fileHandle,							//
 			const vector<Attribute> &recordDescriptor,				//
@@ -84,6 +84,7 @@ public:
 			const CompOp compOp,              						// comparision type such as "<" and "="
 			const void *value,                    					// used in the comparison
 			const vector<string> &attributeNames);
+
 	RBFM_ScanIterator() {
 		curHeaderPage=NULL;
 		curDataPage=NULL;
@@ -92,10 +93,16 @@ public:
 		attrLength=0;
 		headerPageNum=0;
 		attrNum=-1;
+		numOfSlots = 0;
+		numOfPages = 0;
 
 	};
 	~RBFM_ScanIterator() {
-		currHandle.stream=0;free(curHeaderPage);free(curDataPage);free(valueP);		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
+		currHandle.stream=0;
+		free(curHeaderPage);
+		free(curDataPage);
+		free(valueP);
+		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
 
 	};
 
@@ -170,6 +177,10 @@ IMPORTANT, PLEASE READ: All methods below this comment (other than the construct
 public:
 
   RC reorganizeFile(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor);
+
+  // Our Functions
+
+  INT16 getFreeSpaceBlockSize(FileHandle &fileHandle, PageNum pageNum);
 
 
 protected:
