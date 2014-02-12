@@ -504,6 +504,8 @@ int main()
 
     // Create Table
     remove("System_Catalog");
+    remove("cat_tbl_employee");
+    remove("tbl_employee");
     createTable("tbl_employee");
 
     Tests();

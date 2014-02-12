@@ -14,11 +14,12 @@ RelationManager::RelationManager()
 {
 	rbfm = RecordBasedFileManager::instance();
 	systemCatalog = "System_Catalog";
-	tableCatalogConcat = new char[4];
+	tableCatalogConcat = new char[5];
 	*(tableCatalogConcat) = 'c';
 	*(tableCatalogConcat+1) = 'a';
 	*(tableCatalogConcat+2) =  't';
 	*(tableCatalogConcat+3) = '_';
+	*(tableCatalogConcat+4) = 0;
 
 	if(FileExists(systemCatalog))
 		rbfm->openFile(systemCatalog.c_str(),systemHandle);
@@ -111,7 +112,7 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 	tableData+=4;
 
 	//copy maxSize
-	temp = columnPosition;
+	temp = maxSize;
 	memcpy(tableData, &temp, 4);
 	tableData+=4;
 
@@ -197,20 +198,24 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	}
 
 	// Create new file for the table catalog and associate fileHandle
-	string tableCatalogName = strcat(tableCatalogConcat,tableName.c_str());
+	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
+	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
+	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
 	dbgn2("table Catalog Name: ",tableCatalogName);
-	if(rbfm->createFile(tableCatalogName.c_str())==-1){
+	dbgn2("table Catalog concat: ",tableCatalogConcat);
+
+	if(rbfm->createFile(tableCatalogName)==-1){
 		dbgn2("Create Table Catalog Failed","");
 		return -1;
 	}
 	FileHandle tableCatalogHandle;
-	if(rbfm->openFile(tableCatalogName.c_str(),tableCatalogHandle)==-1){
+	if(rbfm->openFile(tableCatalogName,tableCatalogHandle)==-1){
 		dbgn2("Open Table Catalog Failed","");
 		return -1;
 	}
 
 	// Insert Record for new Table Catalog in System_Catalog
-	insertEntryForSystemCatalog(tableCatalogName.c_str(), "System", 5);
+	insertEntryForSystemCatalog(tableCatalogName, "System", 5);
 
 	// Insert Records in Table Catalog
 	for(int i=0;i<attrs.size();i++){
@@ -257,15 +262,18 @@ RC RelationManager::deleteTable(const string &tableName)
 	rbfmsi.close();
 
 	// Make Application Layer Entry for tableName's Catalog to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
-	string tableCatalogName = strcat(tableCatalogConcat,tableName.c_str());
+	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
+	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
+	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
+
 	dbgn2("table Catalog Name: ",tableCatalogName);
-	length = strlen(tableCatalogName.c_str());
+	length = strlen(tableCatalogName);
 	dbgn2("length of table catalog search string: ", length+4);
 	tempData = malloc(4+length);
 	data = (BYTE*)tempData;
 	memcpy(data,&length,4);
 	data = data + 4;
-	memcpy(data,tableCatalogName.c_str(),4);
+	memcpy(data,tableCatalogName,4);
 	dbgn2("Searching For: ",tableCatalogName);
 	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, (void*)data, dummy, rbfmsi);
 	free(tempData);
@@ -290,7 +298,7 @@ RC RelationManager::deleteTable(const string &tableName)
 
 RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &attrs)
 {
-	dbgn2("<----------------------------In Create Record Descriptor------------------------->","");
+	dbgn2("<----------------------------getAttributes------------------------->","");
 	if(descriptors.find(tableName)!=descriptors.end()){
 		dbgn2("Descriptor is already Created",", returning stored value");
 		attrs = (vector<Attribute>)descriptors[tableName];
@@ -301,7 +309,9 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	// ELse create Record Descriptor for that table
 	// ********************************************* Left to Implement ******************************
 	// Insert Record Descriptor in Map
-	string tableCatalogName = strcat(tableCatalogConcat,tableName.c_str());
+	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
+	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
+	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
 	FileHandle tableCatalogHandle;
 	if(rbfm->openFile(tableCatalogName, tableCatalogHandle)==-1)
 	{
@@ -311,11 +321,11 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 
 	// Create attributes necessary for scan iterator
 	string conditionAttr ="columnPosition";
-	INT32 columnPosition = 0;
+	INT32 columnPosition = 0,i=0;
 	vector<string> projectedAttributes;
 	RBFM_ScanIterator rbfmsi;
 	RID dummyRid;
-	Attribute attr;
+//	Attribute attr;
 	void* data = malloc(42);
 
 	// Create Projected attributes to retrieve relevant attributes for catalog table
@@ -325,26 +335,35 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 
 	// Scan through the table catalog file to create the record descriptor
 	while(true){
+		RBFM_ScanIterator rbfmsi;
 		rbfm->scan(tableCatalogHandle, tableDescriptor, conditionAttr, EQ_OP, (void*)&columnPosition, projectedAttributes, rbfmsi);
 		if(rbfmsi.getNextRecord(dummyRid, data)==RBFM_EOF)break; // If no record found break, since we have scanned through all the records in the file
 
 		// Make Attribute object
+		Attribute attr;
 		BYTE* iterData = (BYTE*)data;
 		INT32 nameLength = *((INT32*)iterData);
 		iterData += 4;
-		memcpy(&attr.name,iterData,nameLength);
-		iterData+= nameLength;
-		attr.type = *((AttrType*)iterData);
-		iterData+=sizeof(AttrType);
-		attr.length = *((AttrLength*)iterData);
+		attr.name.resize(nameLength+1,0);
+		dbgn1("attr namebefore copy",attr.name);
+		//memcpy(attr.name,iterData,nameLength);
 
+		for(i=0;i<nameLength;i++,iterData++)attr.name[i]=*(char *)iterData;
+
+		attr.type = *((AttrType*)iterData);
+		iterData  +=sizeof(INT32);
+		attr.length = *((AttrLength*)iterData);
+		dbgn1("attr name",attr.name);
+		dbgn1("attr length",attr.length);
+		dbgn1("attr type",attr.type);
 		//Add attribute to record descriptor vector
 		attrs.push_back(attr);
 		columnPosition++;
+		rbfmsi.close();
 	}
 	dbgn2("Length of recordDescriptor: ",columnPosition);
 
-	rbfmsi.close();
+
 	descriptors.insert(std::pair< string ,vector<Attribute> >(tableName, attrs));
 	return 0;
 }

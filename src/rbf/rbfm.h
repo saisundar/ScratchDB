@@ -27,6 +27,25 @@ struct Attribute {
 	string   name;     // attribute name
 	AttrType type;     // attribute type
 	AttrLength length; // attribute length
+
+	Attribute(){
+		type= TypeInt;
+		length=0;
+		name="";
+
+	}
+	~Attribute(){
+			type= TypeInt;
+			length=0;
+			name="";
+		}
+	Attribute(const Attribute &obj)
+	{
+		type= obj.type;
+		length=obj.length;
+		name=obj.name;
+
+	}
 };
 
 // Comparison Operator (NOT needed for part 1 of the project)
@@ -102,6 +121,7 @@ public:
 		free(curHeaderPage);
 		free(curDataPage);
 		free(valueP);
+		dbgn1("destructur called for scaniterator.","");
 		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
 
 	};
@@ -112,7 +132,7 @@ public:
 	RC getNextDataPage();
 	RC incrementRID();
 	RC getNextRecord(RID &rid, void *data);
-	RC close() { return -1; };
+	RC close() { recDesc.clear();attrNames.clear();dbgn1("vectors cleared","");return 0; };
 };
 
 

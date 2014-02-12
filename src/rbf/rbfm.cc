@@ -320,7 +320,7 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16  r
 RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDescriptor,const void* data, const void* modRecord){
 	BYTE* storedDataPointer = (BYTE*)modRecord;
 	BYTE* dataPointer = (BYTE*)data;
-	INT32 noOfFields = *((INT16*)storedDataPointer),len;
+	INT32 noOfFields = *((INT16*)storedDataPointer),tempNo=noOfFields,len;
 	storedDataPointer = storedDataPointer+(noOfFields*2)+2;		//Pointing to start of data stream.
 	INT16 offsetPointer = 0;
 	offsetPointer+=2;
@@ -328,7 +328,7 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	INT32 num=1346458179;
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
-	while(noOfFields--)
+	while(tempNo--)
 	{
 		switch(it->type){
 		case 0:
@@ -389,7 +389,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 	INT16 dataOffset=0,offOffset=0;
 	length=(numberAttr*2)+2;INT32 num=0;
 	dbgn("<----------------------------In modifyRecordForInsert------------------------->","");
-	getchar();
+
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	for(;it != recordDescriptor.end();it++)
 	{
@@ -922,22 +922,22 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			if(it->name.compare(*st)==0)
 			{
 				memcpy(tempData,printData,4);
+				tempData+=4;
 				dbgn1("int attribute found",*st);
+				st++;
 			}
 			printData = printData+4;
-			tempData+=4;
-			st++;
 			break;
 
 		case 1:
 			if(it->name.compare(*st)==0)
 			{
-				memcpy(data,printData,4);
+				memcpy(tempData,printData,4);
+				tempData+=4;
 				dbgn1("float attribute found",*st);
+				st++;
 			}
 			printData = printData+4;
-			tempData+=4;
-			st++;
 			break;
 
 		case 2:
@@ -945,14 +945,13 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			if((it->name).compare(*st)==0)
 			{
 				if(isNull(num))
-					memcpy(data,printData,4);
+					{memcpy(tempData,printData,4);tempData+=4;}
 				else
-					memcpy(data,printData,4+num);
+					{memcpy(tempData,printData,4+num);tempData+=4+num;}
 				dbgn1("string attribute found",*st);
+				st++;
 			}
 			printData = printData+4+num;
-			tempData+=4+num;
-			st++;
 			break;
 
 		default:
@@ -969,6 +968,7 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 	INT16 offset=0,len=0,numOfAttr=-1,startOff,endOff,attrLen;
 	void * modRecord=NULL,*temp=NULL,*tempAttr=NULL;
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
+	dbgn1("this ","getNextRecord======================================");
 
 	for(;!found;incrementRID())
 	{
@@ -984,9 +984,10 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 
 		if(offset<0|| len<0)continue;
 
-		modRecord=malloc(len);temp=malloc(len);
+		modRecord=malloc(len);
 		memcpy(modRecord,(BYTE*)curDataPage+offset,len);
 		numOfAttr=*(INT16 *)modRecord;
+		temp=malloc(len*2);		//apprxiamtaley allocating..
 
 		if(!unconditional){								// means check for attiute condition
 
@@ -1000,18 +1001,18 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 			if(attrNum==0)
 			{
 				startOff=2*(numOfAttr+1);
-				endOff=*((INT16 *)modRecord+2);
+				endOff=*(INT16 *)((BYTE *)modRecord+2);
 			}
 			else
 			{
-				startOff=*((INT16 *)modRecord+2*(attrNum));
-				endOff=*((INT16 *)modRecord+2*(attrNum+1));
+				startOff=*((INT16 *)((BYTE *)modRecord+2*(attrNum)));
+				endOff=*((INT16 *)((BYTE *)modRecord+2*(attrNum+1)));
 			}
 
 			attrLen=endOff-startOff;
 			tempAttr=malloc(attrLen+1);
 
-			memcpy(temp,(BYTE*)modRecord+startOff,attrLen);
+			memcpy(tempAttr,(BYTE*)modRecord+startOff,attrLen);
 			*((char *)tempAttr+attrLen)=0;
 
 			if(!evaluateCondition(tempAttr))
@@ -1028,14 +1029,15 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		rbfm->modifyRecordForRead(recDesc,temp,modRecord);
 
 		getAttributeGroup(data,temp);
-		free(modRecord);free(tempAttr);free(temp);
-
+		free(modRecord);
+		free(tempAttr);
+		free(temp);
+		rid=currRid;
 		return 0;
 
 	}
 
-	//wont come here if next record is not found. as it wont break and will return EOF.
-	rid=currRid;
-	return 0;
+	//wont come here at all
+	return -1;
 }
 

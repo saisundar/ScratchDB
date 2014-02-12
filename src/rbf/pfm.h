@@ -28,19 +28,19 @@ typedef float FLOAT;
 #define maxim(a,b) a>b?a:b
 
 # ifdef debug
-# define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
+# define dbgn(str1,str2) cout<<(str1)<<": "<<(str2)<<endl ;
 # else
 # define dbgn(str1,str2) (void)0;
 #endif
 
 # ifdef debug1
-# define dbgn1(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
+# define dbgn1(str1,str2) cout<<(str1)<<": "<<(str2)<<endl ;
 # else
 # define dbgn1(str1,str2) (void)0;
 #endif
 
 # ifdef debug2
-# define dbgn2(str1,str2) cout<<(str1)<<": "<<(str2)<<"\n";
+# define dbgn2(str1,str2) cout<<(str1)<<": "<<(str2)<<endl ;
 # else
 # define dbgn2(str1,str2) (void)0;
 #endif
