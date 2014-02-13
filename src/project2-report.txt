@@ -1,0 +1,107 @@
+Group 16
+Kewal Gandhi 87887035
+Sai Sundar Raghavan 65525790
+
+We had implemented the following functions for Proj 2.
+
+The RBFM Scan iterator was designed out in the following way.
+The RM scan iterator encapuslates an object of RBFM iterator, and also the handle to the file.the RM iterator invokes the corresponding routines in RBFM.
+
+
+class RBFM_ScanIterator {
+private:
+
+	void *curHeaderPage;														//current header page
+	INT32 headerPageNum;														//current header pagnum
+	void *curDataPage;															//curent data page
+	RID currRid;																//current Rid
+	vector<Attribute> recDesc;													//record descriptor
+	bool isValid;																//indicate swhther the iterator will produce useful info or not
+	bool unconditional;															//indictaes whether the scan is unconditionla or conditional
+	CompOp oper;																//operation performed
+	string condAttr;															//the name of the conditonla attribute
+	void *valueP;																// pointer to the vlaue to be checked
+	AttrType type;																//type pf attribute
+	INT32 attrLength;															//length of the concerned attribute
+	INT32 attrNum;																// holds the integral equivalent of the attribute number, for faster access
+	vector<string> attrNames;													//vetor of attributes which are wanted
+	INT32 numOfPages;															//overall number of data pages in file
+	INT32 numOfSlots;															// number of slots in page
+	FileHandle currHandle;
+	bool isValidAttr(string condAttr,const vector<Attribute> &recordDescriptor);
+	RC getAttributeGroup(void * data,void *temp);
+public:
+	RC setValues(FileHandle &fileHandle,											//
+			const vector<Attribute> &recordDescriptor,								//
+			const char *conditionAttribute,											//
+			const CompOp compOp,              										// comparision type such as "<" and "="
+			const void *value,                    									// used in the comparison
+			const vector<string> &attributeNames);
+
+	RBFM_ScanIterator() {
+		curHeaderPage=NULL;
+		curDataPage=NULL;
+		isValid=false;
+		valueP=NULL;
+		attrLength=0;
+		headerPageNum=0;
+		attrNum=-1;
+		numOfSlots = 0;
+		numOfPages = 0;
+
+	};
+	~RBFM_ScanIterator() {
+		currHandle.stream=0;
+		if(curHeaderPage!=NULL)free(curHeaderPage);
+		if(curDataPage!=NULL)free(curDataPage);
+		if(valueP!=NULL)free(valueP);
+		dbgn1("destructur called for scaniterator.","");
+		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
+
+	};
+
+	// "data" follows the same format as RecordBasedFileManager::insertRecord()
+	bool evaluateCondition(void * temp);													//evalutes the rsult of the comparision				
+	bool returnRes(int diff);																//returns the result of the comparison			
+	RC getNextDataPage();																	//gets the next data page
+	RC incrementRID();																		//Increments the RID by one each time, handling 																							//spills to the next data page or header page
+	RC getNextRecord(RID &rid, void *data);													//gets the next recrd				
+																	
+};
+
+deleteRecord()
+deleteRecord is implemented by setting the offset value of the slot as -1
+
+deleteRecords()
+deleteRecord is handled by deleting the whole file and recreating a file with the samename and associating it to the same handle
+
+updateRecord()
+The update record function is designed to handle the following cases:
+Case 0 : 	Tomb Stone, delete record then update again 
+Case 1: 	Old Length < New Length
+Case 2.1: 	Old Length < New Length && Free Space Block can accommodate new record
+Case 2.2: 	Old Length < New Length && Free Space Block canNOT accommodate new record
+Case 3: 	Cannot fit on same page
+
+TOMB STONES are handled everywhere,
+They are handled by setting the length to -1
+
+RM Layer
+For this layer we implement a file called "System_Catalog" to maintain the records for all tables.
+AN entry is created for each table.
+Also we create a catalog table for each relation crearted to store metadata for that relation
+An entry is made for this table also.
+
+System Catalog:
+[tableName, tableType, numCols]
+
+Table Catalog(s):
+[tableName, columnName, columnType, columnPosition, maxSize]
+
+The important function in the RM Layer is getAttributes, where we create a record descriptor from the table catalog
+we just scan the table catalog for the particular file with increasing order of columPosition till RBFM_EOF is not met.
+
+Most othe functions in RM Layer simply call functions in the RBFM layer to record based manipulation of files
+
+The RM_ScanIterator contains a reference for a RBFM_ScanIterator and also contains a fileHandle object.
+

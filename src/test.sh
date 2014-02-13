@@ -5,4 +5,8 @@ cd codebase
 cd rbf
 make clean
 make
-./rbftest	
+cd ../rm
+make clean
+make
+./rmtest_1
+./rmtest_2
