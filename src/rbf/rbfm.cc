@@ -936,6 +936,10 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 	std::vector<Attribute>::const_iterator it = recDesc.begin();
 	std::vector<string>::const_iterator st = attrNames.begin();
 	dbgn("num of attributes",recDesc.size());
+
+	dbgn("recDesc length",recDesc.size());
+	dbgn("recDesc length",attrNames.size());
+
 	for(it = recDesc.begin();(it != recDesc.end() && st!=attrNames.end());it++)
 	{
 		if(it->length==0)continue;
