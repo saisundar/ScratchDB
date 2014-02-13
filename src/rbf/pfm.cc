@@ -117,11 +117,21 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 		return -1;
 
 	fclose(fileHandle.stream);
+	if(files.find(fileHandle.fileName)==files.end())
+			dbgn("major catastropheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","MAJORRRRRRRRRRRRRRRRRRRRRR");
 
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
-	files[fileHandle.fileName]--;
-	dbgn("close handle ref count",files[fileHandle.fileName]);
+
+	if(files.find(fileHandle.fileName)==files.end())
+	{
+		dbgn("majorcatastropheeeeeeeeeeee","MAJORRRRRRRRRRRRRRRRRRRRRR");
+	}
+	else
+	{
+		files[fileHandle.fileName]--;
+		dbgn("close handle ref count",files[fileHandle.fileName]);
+	}
 
 	fileHandle.stream = 0;
 	return 0;
@@ -235,6 +245,7 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 	fwrite(data, 1, PAGE_SIZE, stream);
 	fflush(stream);
+	dbgn("write Page is over","");
 	return 0;
 }
 

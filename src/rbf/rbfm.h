@@ -135,7 +135,8 @@ public:
 	RC close() {currHandle.stream=0;
 	free(curHeaderPage);curHeaderPage=NULL;
 	free(curDataPage);curDataPage=NULL;
-	free(valueP);valueP=NULL;
+	if(valueP!=NULL)free(valueP);
+	valueP=NULL;
 	recDesc.clear();attrNames.clear();dbgn1("vectors cleared","");return 0; };
 };
 

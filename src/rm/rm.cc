@@ -122,7 +122,7 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 
 	rbfm->insertRecord(tableCatalogHandle,tableDescriptor,data,systemRid);
 
-	free(tableData);
+	free(data);
 	return 0;
 }
 
@@ -226,6 +226,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 		dbgn2("Close Table Catalog Failed","");
 		return -1;
 	}
+	free(tableCatalogName);
 	return 0;
 }
 
@@ -272,7 +273,7 @@ RC RelationManager::deleteTable(const string &tableName)
 	free(tempData);
 
 	// Make Application Layer Entry for tableName's Catalog to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
-	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
+	char * tableCatalogName = (char *)malloc(strlen(tableName.c_str())+5);
 	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
 	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
 
@@ -314,6 +315,7 @@ RC RelationManager::deleteTable(const string &tableName)
 		dbgn2("Could not delete catalog file for the table: ", tableCatalogName);
 		return -1;
 	}
+	free(tableCatalogName);
 	free(tempData);
 	return 0;
 }
@@ -391,7 +393,8 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		return -1;
 	}
 
-
+	free(tableCatalogName);
+	free(data);
 	return 0;
 }
 
@@ -487,6 +490,7 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		}
 		return -1;
 	}
+	dbgn2("In Process Of closing Filehandle in","RM UPDATE")
 	if(rbfm->closeFile(tableHandle)==-1){
 		dbgn2("could NOT close the file","");
 		return -1;

@@ -77,7 +77,7 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 		}
 		else
 		{
-			//tombstone case-whee ineed to copy the first six bytes alone from the record
+			//tombstone case-where ineed to copy the first six bytes alone from the record
 			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,6);   /// copying only 6 bytes as its a tombstone....
 			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);
 			origLength=-6;
@@ -193,8 +193,8 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 		RID tempId;
 		dbgn1("tombstne record =========================== in read","   ");
-		memcpy(&tempId.pageNum,((INT32 *)page+offset),4);
-		memcpy(&tempId.slotNum,((INT16 *)page+offset+4),2);
+		memcpy(&tempId.pageNum,((BYTE *)page+offset),4);
+		memcpy(&tempId.slotNum,((BYTE *)page+offset+4),2);
 		dbgn1("tombstone points to RID page number",tempId.pageNum);
 		dbgn1("tombstone points to RID slot number",tempId.slotNum);
 		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
@@ -522,7 +522,7 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 	if(recordOffset == -1)return -1;
 
 	//IF record has tomb stone
-	if(recordLength == -1){
+	if(recordLength <0){
 		dbgn1("<----Handling Tomb Stone------>"," delete record then update again" );
 		RID newRid;
 		newRid.pageNum = (unsigned)*((INT32 *)((BYTE *)pageData+recordOffset));
@@ -582,7 +582,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	if(recordOffset == -1)return -1;
 
 	//IF record has tomb stone
-	if(recordLength == -1){
+	if(recordLength <0){
 		dbgn1("Case 0 : "," delete record then update again" );
 		RID newRid;
 		newRid.pageNum = (unsigned)*((INT32 *)((BYTE *)pageData+recordOffset));
@@ -666,8 +666,11 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 			dbgn1("newRID Slot Number: ",tombstoneSlotNum);
 
 			// insert new RID as tomb stone
-			*((INT32*)((BYTE*)pageData + recordOffset)) = tombstonePageNum;
-			*((INT16*)((BYTE*)pageData + recordOffset+4)) = tombstoneSlotNum;
+//			*((INT32*)((BYTE*)pageData + recordOffset)) = tombstonePageNum;
+//			*((INT16*)((BYTE*)pageData + recordOffset+4)) = tombstoneSlotNum;
+			memcpy((BYTE*)pageData + recordOffset,&tombstonePageNum,4);
+			memcpy((BYTE*)pageData + recordOffset+4,&tombstoneSlotNum,2);
+
 			// Set length = -1 to indicate tomb stone
 			*((INT16*)((BYTE*)pageData + slotOffset + 2)) = -1;
 			freeSpaceIncrease = oldLength - 6;
@@ -677,6 +680,8 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	dbgn1("Free Space increases by: ", freeSpaceIncrease);
 	fileHandle.updateFreeSpaceInHeader(rid.pageNum, freeSpaceIncrease);
 	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return-1;
+
+	dbgn1("UPDATE is doneeeeeeeeeeeeeeeeeeeeeeeeeee","");
 	free(pageData);
 	free(newRecord);
 	return 0;
@@ -758,6 +763,7 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 		}
 		++it;
 	}
+	free(recData);
 	return 0;
 }
 

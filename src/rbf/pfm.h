@@ -11,9 +11,9 @@
 #include<cstdlib>
 using namespace std;
 
-#define debug 1
-#define debug1 1
-#define debug2 1
+//#define debug 1
+//#define debug1 1
+//#define debug2 1
 //#define debug3 1
 typedef int32_t INT32;
 typedef int16_t INT16;
