@@ -118,9 +118,9 @@ public:
 	};
 	~RBFM_ScanIterator() {
 		currHandle.stream=0;
-		free(curHeaderPage);
-		free(curDataPage);
-		free(valueP);
+		if(curHeaderPage!=NULL)free(curHeaderPage);
+		if(curDataPage!=NULL)free(curDataPage);
+		if(valueP!=NULL)free(valueP);
 		dbgn1("destructur called for scaniterator.","");
 		//NOTE that there could be a risk of handle clsoing the stream.hene set the stream=0 here.
 
@@ -132,7 +132,11 @@ public:
 	RC getNextDataPage();
 	RC incrementRID();
 	RC getNextRecord(RID &rid, void *data);
-	RC close() { recDesc.clear();attrNames.clear();dbgn1("vectors cleared","");return 0; };
+	RC close() {currHandle.stream=0;
+	free(curHeaderPage);curHeaderPage=NULL;
+	free(curDataPage);curDataPage=NULL;
+	free(valueP);valueP=NULL;
+	recDesc.clear();attrNames.clear();dbgn1("vectors cleared","");return 0; };
 };
 
 

@@ -137,7 +137,7 @@ void secA_3(const string &tableName, const int nameLength, const string &name, c
     cout << "Original RID slot = " << rid.slotNum << endl;
 
     // Test Update Tuple
-    prepareTuple(6, "Newman", age, height, 100, updatedTuple, &updatedTupleSize);
+    prepareTuple(52, "Thomas34567893746372saisundrtahfnnshrutiasfdfndfdfhi", age, height, 100, updatedTuple, &updatedTupleSize);
     rc = rm->updateTuple(tableName, updatedTuple, rid);
     assert(rc == success);
     cout << "Updated RID slot = " << rid.slotNum << endl;
@@ -505,9 +505,15 @@ int main()
     cout << endl << "Test Basic Functions..." << endl;
 
     // Create Table
-/*    remove("System_Catalog");
+    remove("System_Catalog");
     remove("cat_tbl_employee");
-    remove("tbl_employee");*/
+    remove("tbl_employee");
+    remove("cat_tbl_employee2");
+    remove("tbl_employee2");
+    remove("cat_tbl_employee3");
+    remove("tbl_employee3");
+
+
     createTable("tbl_employee");
 
     Tests();
