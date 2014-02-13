@@ -25,6 +25,7 @@ class RM_ScanIterator {
 
 public:
 	RBFM_ScanIterator* rbfmsi;
+	FileHandle fileHandle;
 	RM_ScanIterator() {
 		rbfmsi = new RBFM_ScanIterator();
 	};
@@ -40,6 +41,10 @@ public:
 		return 0;
 	};
 	RC close() {
+		if(RecordBasedFileManager::instance()->closeFile(fileHandle)==-1){
+			dbgn2("could not close the file","In close (RM Iterator)");
+			return -1;
+		}
 		if(rbfmsi->close()==-1)return -1;
 		free(rbfmsi);
 		rbfmsi = NULL;
