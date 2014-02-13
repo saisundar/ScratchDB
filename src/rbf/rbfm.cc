@@ -827,7 +827,9 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 			memcpy(valueP,value,attrLength);
 			break;
 		case 2:
+			INT32 length = *((INT32*)value);
 			memcpy(valueP,(BYTE*)value+4,attrLength); // copy the string alone if the atribute is a string
+			*((BYTE*)valueP + length)=0;
 			break;
 		}
 
@@ -915,6 +917,8 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 		break;
 	case 2:
 		diff= strcmp((char *)temp,(char *)valueP);
+		dbgn1("Comparing the strings here !","");
+		dbgn1((char*)temp,(char*)valueP);
 		break;
 	}
 	result=returnRes(diff);
