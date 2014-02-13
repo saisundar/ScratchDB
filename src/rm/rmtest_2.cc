@@ -353,8 +353,8 @@ void secA_15(const string &tableName) {
 
 void Tests()
 {
-    // Simple Scan
-   // secA_8_B("tbl_employee3");
+     Simple Scan
+    secA_8_B("tbl_employee3");
 
     memProfile();
 	
@@ -364,28 +364,28 @@ void Tests()
     vector<RID> rids;
     vector<int> sizes;
 
-    // Insert Tuple
-//    secA_9("tbl_employee4", rids, sizes);
-//    // Read Tuple
-//    secA_10("tbl_employee4", rids, sizes);
-//
-//    // Update Tuple
-//    secA_11("tbl_employee4", rids, sizes);
-//
-//    // Delete Tuple
-//    secA_12("tbl_employee4", rids);
-//
-//    memProfile();
+    //Insert Tuple
+    secA_9("tbl_employee4", rids, sizes);
+    // Read Tuple
+    secA_10("tbl_employee4", rids, sizes);
 
-//    // Scan
-//    secA_13("tbl_employee4");
+    // Update Tuple
+    secA_11("tbl_employee4", rids, sizes);
+
+    // Delete Tuple
+    secA_12("tbl_employee4", rids);
+
+    memProfile();
+
+    // Scan
+    secA_13("tbl_employee4");
 
     // DeleteTuples/Table
     secA_14("tbl_employee4", rids);
     
-//    // Scan with conditions
-//    createTable("tbl_b_employee4");
-//    secA_15("tbl_b_employee4");
+    // Scan with conditions
+    createTable("tbl_b_employee4");
+    secA_15("tbl_b_employee4");
     
     memProfile();
     return;
