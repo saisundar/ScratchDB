@@ -583,6 +583,28 @@ RC RelationManager::scan(const string &tableName,
 		RM_ScanIterator &rm_ScanIterator)
 {
 	dbgn2("<----------------------------In scan (RM)------------------------->","");
+	vector<Attribute> recordDescriptor;
+	if(getAttributes(tableName, recordDescriptor)==-1){
+		dbgn2("could not create Record descriptor","In Read Attribute (RM))");
+		return -1;
+	}
+	FileHandle tableHandle;
+	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
+		dbgn2("could not create Record descriptor","IIn Read Attribute (RM)");
+		return -1;
+	}
+	if(rbfm->scan(tableHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames,*(rm_ScanIterator.rbfmsi)) == -1){
+		dbgn2("could not create rbfm scan iterator","In Read Attribute (RM)");
+		if(rbfm->closeFile(tableHandle)==-1){
+			dbgn2("could close the file","");
+			return -1;
+		}
+		return -1;
+	}
+	if(rbfm->closeFile(tableHandle)==-1){
+		dbgn2("could close the file","In Read Attribute (RM)");
+		return -1;
+	}
 	return 0;
 }
 
