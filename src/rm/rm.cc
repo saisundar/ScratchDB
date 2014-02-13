@@ -455,7 +455,7 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 	{
 		dbgn2("delete record file failed","ooops");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgn2("could not close the file","");
 			return -1;
 		}
 		return -1;
@@ -467,7 +467,7 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
-	dbgn2("<----------------------------In Insert Tuple (RM)------------------------->","");
+	dbgn2("<----------------------------In Update Tuple (RM)------------------------->","");
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
 		dbgn2("could not create Record descriptor","");
@@ -480,15 +480,15 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		return -1;
 	}
 	if(rbfm->updateRecord(tableHandle,recordDescriptor,data,rid)==-1){
-		dbgn2("could not insert the new record","");
+		dbgn2("could not update the new record","");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgn2("could NOT close the file","");
 			return -1;
 		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could close the file","");
+		dbgn2("could NOT close the file","");
 		return -1;
 	}
 	return 0;

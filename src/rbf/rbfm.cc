@@ -575,8 +575,8 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	INT16 recordOffset = *((INT16*)((BYTE*)pageData + slotOffset));
 	BYTE* recordLocation = (BYTE*)pageData + recordOffset;
 	INT16 recordLength = *((INT16*)((BYTE*)pageData + slotOffset+2));
-	dbgn1("Record Offset",recordOffset);
-	dbgn1("Record Length",recordLength);
+	dbgn1("old Record Offset",recordOffset);
+	dbgn1("old Record Length",recordLength);
 
 	//IF record is deleted
 	if(recordOffset == -1)return -1;
@@ -630,7 +630,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 			}
 			// If it cannot be directly appended in free space block
 			else{
-				dbgn1("Case 2.2: ","Old Length < New Length && Free Space Block can accommodate new record");
+				dbgn1("Case 2.2: ","Old Length < New Length && Free Space Block canNOT accommodate new record");
 				deleteRecord(fileHandle,recordDescriptor,rid);
 				reorganizePage(fileHandle,recordDescriptor,rid.pageNum);
 				// Read page again since you modified the data
@@ -688,7 +688,7 @@ INT16 RecordBasedFileManager::getFreeSpaceBlockSize(FileHandle &fileHandle, Page
 	if(fileHandle.readPage(pageNum,pageData)==-1)return-1;
 	INT16 totalSlotsInPage = *((INT16 *)((BYTE *)pageData+4092));
 	dbgn1("Total Slots: ",totalSlotsInPage);
-	INT16 freeSpacePointer = *((INT16 *)((BYTE *)pageData+4092));
+	INT16 freeSpacePointer = *((INT16 *)((BYTE *)pageData+4094));
 	dbgn1("Free Space Pointer: ",freeSpacePointer);
 	free(pageData);
 	dbgn1("Free Space: ",4092 - (totalSlotsInPage*4) - freeSpacePointer);

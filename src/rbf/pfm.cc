@@ -327,8 +327,8 @@ INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 	INT16 prevFreeSpace = 0;
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
 	fread((void*)&prevFreeSpace,1,2,stream);
-	prevFreeSpace += increaseBy;
 	dbgn1("Old Free Space: ",prevFreeSpace);
+	prevFreeSpace += increaseBy;
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
 	fwrite((void*)&prevFreeSpace,1,2,stream);
 	dbgn1("New Free Space: ",prevFreeSpace);
