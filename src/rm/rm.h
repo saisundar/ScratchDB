@@ -37,6 +37,7 @@ public:
 
 	// "data" follows the same format as RelationManager::insertTuple()
 	RC getNextTuple(RID &rid, void *data) {
+		dbgn2("get next tuple============","");
 		if(rbfmsi->getNextRecord(rid,data)==RBFM_EOF) return RM_EOF;
 		return 0;
 	};

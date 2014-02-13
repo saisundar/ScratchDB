@@ -1060,11 +1060,10 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		free(tempAttr);
 		free(temp);
 		rid=currRid;
-		return 0;
 
 	}
 
 	//wont come here at all
-	return -1;
+	return 0;
 }
 
