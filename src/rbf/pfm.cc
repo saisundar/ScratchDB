@@ -222,7 +222,7 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	if((pfm->files[fileName]<0 && !mode)||pageNum>=getNumberOfPages())
 		return -1;
 	INT32 actualPgNum=translatePageNum(pageNum);
-	dbgn("this ","readPage");
+	dbgn("this ","writePage========");
 	dbgn("virtual page num",pageNum);
 	dbgn("actual page num",actualPgNum);
 	if(actualPgNum==-1)return -1;
