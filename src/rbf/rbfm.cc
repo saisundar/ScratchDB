@@ -537,7 +537,7 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 	INT16 increaseFreeSpace = (recordLength == -1)? 6 : recordLength;
 
 	// Update FreeSpace Pointer if required
-	if(((BYTE*)pageData + recordOffset + increaseFreeSpace)==((BYTE *)pageData+4094)){
+	if((recordOffset + increaseFreeSpace)==*((INT16 *)((BYTE *)pageData+4094))){
 		*((INT16 *)((BYTE *)pageData+4094)) = recordOffset;
 	}
 
@@ -591,7 +591,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 		*((INT16*)((BYTE*)pageData + slotOffset+2)) = 6;
 		fileHandle.writePage(rid.pageNum,pageData);
 		updateRecord(fileHandle,recordDescriptor,data,rid);
-		if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
+		return 0;
 	}
 
 	INT16 oldLength = *((INT16*)((BYTE*)pageData + slotOffset + 2));
