@@ -22,13 +22,29 @@ using namespace std;
 //  rmScanIterator.close();
 
 class RM_ScanIterator {
+
 public:
-	RM_ScanIterator() {};
-	~RM_ScanIterator() {};
+	RBFM_ScanIterator* rbfmsi;
+	RM_ScanIterator() {
+		rbfmsi = new RBFM_ScanIterator();
+	};
+	~RM_ScanIterator() {
+		if(rbfmsi != NULL)
+			free(rbfmsi);
+		rbfmsi = NULL;
+	};
 
 	// "data" follows the same format as RelationManager::insertTuple()
-	RC getNextTuple(RID &rid, void *data) { return RM_EOF; };
-	RC close() { return -1; };
+	RC getNextTuple(RID &rid, void *data) {
+		if(rbfmsi->getNextRecord(rid,data)==RBFM_EOF) return RM_EOF;
+		return 0;
+	};
+	RC close() {
+		if(rbfmsi->close()==-1)return -1;
+		free(rbfmsi);
+		rbfmsi = NULL;
+		return 0;
+	};
 };
 
 
