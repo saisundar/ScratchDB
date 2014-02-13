@@ -1,6 +1,5 @@
 #include "test_util.h"
 
-
 void secA_8_B(const string &tableName)
 {
     // Functions Tested
@@ -134,7 +133,7 @@ void secA_11(const string &tableName, vector<RID> &rids, vector<int> &sizes)
     // Functions Tested:
     // 1. update tuple
     // 2. read tuple
-    cout << "****In Test case 11****--------------------------------------------------------------------------" << endl;
+    cout << "****In Test case 11****" << endl;
 
     RC rc = 0;
     void *tuple = malloc(1000);
@@ -354,10 +353,10 @@ void secA_15(const string &tableName) {
 
 void Tests()
 {
-	//Simple Scan
-	secA_8_B("tbl_employee3");
+    // Simple Scan
+    secA_8_B("tbl_employee3");
 
-	memProfile();
+    memProfile();
 
     // Pressure Test
     createLargeTable("tbl_employee4");
@@ -365,7 +364,7 @@ void Tests()
     vector<RID> rids;
     vector<int> sizes;
 
-    //Insert Tuple
+    // Insert Tuple
     secA_9("tbl_employee4", rids, sizes);
     // Read Tuple
     secA_10("tbl_employee4", rids, sizes);

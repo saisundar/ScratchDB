@@ -137,7 +137,7 @@ void secA_3(const string &tableName, const int nameLength, const string &name, c
     cout << "Original RID slot = " << rid.slotNum << endl;
 
     // Test Update Tuple
-    prepareTuple(52, "Thomas34567893746372saisundrtahfnnshrutiasfdfndfdfhi", age, height, 100, updatedTuple, &updatedTupleSize);
+    prepareTuple(6, "Newman", age, height, 100, updatedTuple, &updatedTupleSize);
     rc = rm->updateTuple(tableName, updatedTuple, rid);
     assert(rc == success);
     cout << "Updated RID slot = " << rid.slotNum << endl;
@@ -185,8 +185,6 @@ void secA_4(const string &tableName, const int nameLength, const string &name, c
     void *tuple = malloc(100);
     void *returnedData = malloc(100);
 
-    //secA_4("tbl_employee", 6, "Veekay", 27, 171.4, 9000);
-
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
@@ -226,7 +224,7 @@ void secA_5(const string &tableName, const int nameLength, const string &name, c
     void *tuple = malloc(100);
     void *returnedData = malloc(100);
     void *returnedData1 = malloc(100);
-    // secA_5("tbl_employee", 6, "Dillon", 29, 172.5, 7000);
+
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
@@ -431,7 +429,7 @@ void secA_8_A(const string &tableName)
     string attr = "Age";
     vector<string> attributes;
     attributes.push_back(attr);
-    rc = rm->scan(tableName,"", NO_OP, NULL, attributes, rmsi);
+    rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi);
     assert(rc == success);
 
     cout << "Scanned Data:" << endl;
@@ -505,15 +503,6 @@ int main()
     cout << endl << "Test Basic Functions..." << endl;
 
     // Create Table
-    remove("System_Catalog");
-    remove("cat_tbl_employee");
-    remove("tbl_employee");
-    remove("cat_tbl_employee2");
-    remove("tbl_employee2");
-    remove("cat_tbl_employee3");
-    remove("tbl_employee3");
-
-
     createTable("tbl_employee");
 
     Tests();
