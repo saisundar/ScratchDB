@@ -76,8 +76,8 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
 			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
 			freeOffset+=origLength;
-			dbgn(" moving slot",slot);
-			dbgn("new freeoffset",freeOffset);
+			dbgn1(" moving slot",slot);
+			dbgn1("new freeoffset",freeOffset);
 		}
 		else
 		{
@@ -132,8 +132,6 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		}
 	}
 
-	if(!slotReused){slotNo++;totalLength=length+4;}
-
 	if(freeSpace<totalLength)
 	{
 		reorganizePage(fileHandle,recordDescriptor,virtualPageNum);
@@ -141,6 +139,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
 		freeSpace=4092-(slotNo*4)-freeOffset;
 	}
+
+	if(!slotReused){slotNo++;totalLength=length+4;}
 
 	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
 	memcpy(getSlotOffA(page,i),&freeOffset,2);  //update offset for slot
@@ -179,8 +179,8 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	RC rc;
 	dbgn("this ","readRecord			=============================================================");
 	dbgn("Filename",fileHandle.fileName);
-	dbgn("record page requestd RID Page==",rid.pageNum);
-	dbgn("record page requestd RID Slot==",rid.slotNum);
+	dbgn1("record page requestd RID Page==",rid.pageNum);
+	dbgn1("record page requestd RID Slot==",rid.slotNum);
 	void *page=malloc(PAGE_SIZE),*modRecord;
 	rc=fileHandle.readPage(virtualPageNum,page);
 	if(rc==-1)return -1;
@@ -198,9 +198,12 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	{
 
 		RID tempId;
+		INT32 temp;
 		dbgn1("tombstne record =========================== in read","   ");
-		memcpy(&tempId.pageNum,((BYTE *)page+offset),4);
-		memcpy(&tempId.slotNum,((BYTE *)page+offset+4),2);
+		memcpy(&temp,((BYTE *)page+offset),4);
+		tempId.pageNum=temp;
+		memcpy(&temp,((BYTE *)page+offset+4),2);
+		tempId.slotNum=temp;
 		dbgn1("tombstone points to RID page number",tempId.pageNum);
 		dbgn1("tombstone points to RID slot number",tempId.slotNum);
 		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
