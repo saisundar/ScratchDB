@@ -62,6 +62,8 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 	freeOffset=0;
 	slotNo=getSlotNoV(newPage);
 
+	dbgn("total no of slots",slotNO);
+
 	for(slot=0;slot<slotNo;slot++)
 	{
 		origOffset=getSlotOffV(page,slot);origLength=getSlotLenV(page,slot);
@@ -74,6 +76,8 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
 			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
 			freeOffset+=origLength;
+			dbgn(" moving slot",slot);
+			dbgn("new freeoffset",freeOffset);
 		}
 		else
 		{
@@ -105,13 +109,13 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			data,					//
 			length);
 	INT16 totalLength=length;
-	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
+	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+500,headerPageActualNumber);
 	dbgn("virtualPageNum",virtualPageNum);
 	dbgn("headerPageActualNumber",headerPageActualNumber);
 
 	INT16 freeOffset,slotNo,freeSpace;
 	INT32 offset=virtualPageNum%681,i;
-	headerPage=malloc(PAGE_SIZE);
+
 	bool slotReused=false;
 
 	//reading of the data page..
@@ -151,7 +155,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	fileHandle.writePage(virtualPageNum,page);//written data page
 
 	//write the header page free space now
-
+	headerPage=malloc(PAGE_SIZE);
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fread(headerPage, 1, PAGE_SIZE, fileHandle.stream);
 	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES)); // here handle the case where tombstone is left--update has to take care.
@@ -422,7 +426,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 		}
 	}
 	length= maxim(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
-	dbgn("length of modified record","");
+	dbgn("length of modified record",length);
 	modRecord=malloc(length);
 	memcpy(modRecord,&numberAttr,2);
 	dataOffset=(numberAttr*2)+2;
@@ -567,6 +571,9 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
 
 	INT16 slotNo = rid.slotNum;
+
+	dbgn1("update requested fir Record pgnum",rid.pageNum);
+	dbgn1("update requested fir Record pgnum",rid.slotNum);
 	INT16 totalSlotsInPage = getSlotNoV(pageData);
 	dbgn1("Current Slot number: ",rid.slotNum);
 	dbgn1("Total number of slots in page",totalSlotsInPage);
