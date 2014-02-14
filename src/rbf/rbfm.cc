@@ -821,7 +821,7 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 
 	dbgn1("enter RBFM_ScanIterator::setValues","");
 	if(((!strcmp(conditionAttribute,"")) && (compOp==NO_OP) && (value== NULL))||compOp==NO_OP)
-	{unconditional=true;isValid=true;}
+	{unconditional=true;isValid=true;	dbgn1("unconditionala scan about to begin......","");}
 	else if(fileHandle.stream==0||!isValidAttr(conditionAttribute,recordDescriptor))
 	{
 		isValid=false;
@@ -873,7 +873,11 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 RC RBFM_ScanIterator::getNextDataPage()
 {
 	INT32 actualPageNum;
+	bool found=false;
+	while(!found)
+	{
 	currRid.pageNum++;
+
 	if(currRid.pageNum==numOfPages)
 	{
 		currRid.slotNum=numOfSlots;
@@ -890,6 +894,10 @@ RC RBFM_ScanIterator::getNextDataPage()
 	fread(curDataPage, PAGE_SIZE, 1, currHandle.stream);
 	currRid.slotNum=0;
 	numOfSlots=getSlotNoV(curDataPage);
+	dbgn1("number of slots in current data page",numOfSlots);
+	if(numOfSlots!=0)found=true;
+	}
+
 	return 0;
 }
 
@@ -1014,7 +1022,7 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 	void * modRecord=NULL,*temp=NULL,*tempAttr=NULL;
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
 	dbgn1("this ","getNextRecord======================================");
-
+	dbgn1("total num of pages=",numOfPages);
 	for(;!found;incrementRID())
 	{
 		if((currRid.pageNum==numOfPages && currRid.slotNum==numOfSlots)||!isValid)
@@ -1027,7 +1035,12 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		offset=getSlotOffV(curDataPage,currRid.slotNum);
 		len=getSlotLenV(curDataPage,currRid.slotNum);
 
-		if(offset<0|| len<0)continue;
+		if(offset<0|| len<0){
+			dbgn1("slot offset",offset);
+			dbgn1("slot length",len);
+			dbgn1("offset less than 0","or length lessert thn 0");
+			continue;
+		}
 
 		modRecord=malloc(len);
 		memcpy(modRecord,(BYTE*)curDataPage+offset,len);
