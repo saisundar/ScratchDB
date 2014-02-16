@@ -60,13 +60,16 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 	fileHandle.readPage(virtualPageNum,page);
 	fileHandle.readPage(virtualPageNum,newPage);
 	freeOffset=0;
-	slotNo=getSlotNoV(newPage);
-
-	dbgn("total no of slots",slotNO);
+	slotNo=getSlotNoV(newPage);origOffset=getFreeOffsetV(newPage);
+	dbgn("total no of slots",slotNo);
+	dbgn("original free offset",origOffset);
 
 	for(slot=0;slot<slotNo;slot++)
 	{
 		origOffset=getSlotOffV(page,slot);origLength=getSlotLenV(page,slot);
+		dbgn("slot no",slot);
+		dbgn("orig offset",origOffset);
+		dbgn("orig length",origLength);
 		if( origOffset == -1)   //means that the slot is empty.
 			continue;
 
@@ -84,7 +87,7 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 			//tombstone case-where ineed to copy the first six bytes alone from the record
 			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,6);   /// copying only 6 bytes as its a tombstone....
 			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);
-			origLength=-6;
+			origLength=-1;
 			memcpy(getSlotLenA(newPage,slot),&origLength,2);	//update length of slot to -6 ????? required or not ?
 			freeOffset+=TOMBSIZE;								/// incrementing by 6 bytes..
 		}
@@ -109,7 +112,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			data,					//
 			length);
 	INT16 totalLength=length;
-	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+500,headerPageActualNumber);
+	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
 	dbgn("virtualPageNum",virtualPageNum);
 	dbgn("headerPageActualNumber",headerPageActualNumber);
 
@@ -636,7 +639,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 			INT16 freeSpaceBlockPointer = 0;
 			if(freeSpaceBlockSize>newLength){
 				dbgn1("Case 2.1: ","Old Length < New Length && Free Space Block can accommodate new record");
-				freeSpaceBlockPointer = *((INT16 *)((BYTE *)pageData+4094));
+				freeSpaceBlockPointer = getFreeOffsetV(pageData);
 				memcpy((BYTE *)pageData+freeSpaceBlockPointer,newRecord,newLength);
 				freeSpaceIncrease = oldLength - newLength;
 			}
