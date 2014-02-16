@@ -333,17 +333,21 @@ unsigned FileHandle::getNumberOfPages()
 INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 	//Update FreeSpace in Header Page
 
-	dbgn1("<----------------------------In UpdateFreeSpaceInHeader------------------------->","");
+
 	INT32 headerPageNumber = getHeaderPageNum(pageNum);
 	INT16 prevFreeSpace = 0;
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
-	fread((void*)&prevFreeSpace,1,2,stream);
-	dbgn1("Old Free Space: ",prevFreeSpace);
+	fread(&prevFreeSpace,1,2,stream);
 	if(increaseBy==0)return prevFreeSpace;
+	dbgn1("<----------------------------In UpdateFreeSpaceInHeader-------------------------> for PAGE",pageNum);
+	dbgn1("Old Free Space: ",prevFreeSpace);
+	dbgn1("Increase by",increaseBy);
 	prevFreeSpace += increaseBy;
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
-	fwrite((void*)&prevFreeSpace,1,2,stream);
-	dbgn1("New Free Space: ",prevFreeSpace);
+	fwrite(&prevFreeSpace,1,2,stream);
+	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
+	fread(&prevFreeSpace,1,2,stream);
+	dbgn1("New Free Space: from the headerfile",prevFreeSpace);
 	return prevFreeSpace;
 }
 

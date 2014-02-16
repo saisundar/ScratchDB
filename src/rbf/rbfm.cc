@@ -112,7 +112,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 			data,					//
 			length);
 	INT16 totalLength=length;
-	INT32 virtualPageNum=findFirstFreePage(fileHandle,length,headerPageActualNumber);
+	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
 	dbgn("virtualPageNum",virtualPageNum);
 	dbgn("headerPageActualNumber",headerPageActualNumber);
 
@@ -513,7 +513,7 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 //		}
 
 	dbgn1("requested Slot number: ",rid.slotNum);
-	dbgn1("requested Slot number: ",rid.pageNum);
+	dbgn1("requested Page number: ",rid.pageNum);
 
 	void * pageData = malloc(PAGE_SIZE);
 	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
@@ -578,8 +578,9 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 
 	INT16 slotNo = rid.slotNum;
 
+	dbgn1("update requested fir Record slotNum",rid.slotNum);
 	dbgn1("update requested fir Record pgnum",rid.pageNum);
-	dbgn1("update requested fir Record pgnum",rid.slotNum);
+
 	INT16 totalSlotsInPage = getSlotNoV(pageData);
 	dbgn1("Current Slot number: ",rid.slotNum);
 	dbgn1("Total number of slots in page",totalSlotsInPage);
@@ -620,7 +621,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 
 	// if new record length is smaller than old record length
 	if(newLength<=oldLength){
-		dbgn1("Case 1: ","Old Length < New Length");
+		dbgn1("Case 1: ","Old Length > New Length");
 		memcpy(recordLocation,newRecord,newLength);
 		// set new length in slot
 		getSlotLenV(pageData,slotNo) = newLength;
@@ -693,8 +694,9 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 
 	}
 	dbgn1("Free Space increases by: ", freeSpaceIncrease);
+	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return-1;				//always call writepage before updating freespaceheader to acuire write ermission for the handle..
 	fileHandle.updateFreeSpaceInHeader(rid.pageNum, freeSpaceIncrease);
-	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return-1;
+
 
 	dbgn1("UPDATE is doneeeeeeeeeeeeeeeeeeeeeeeeeee","");
 	free(pageData);
