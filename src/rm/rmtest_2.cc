@@ -454,7 +454,7 @@ void Tests()
 
     // DeleteTuples/Table
     secA_14("tbl_employee4", rids);
-    
+
     // Scan with conditions
     createTable("tbl_b_employee4");
     secA_15("tbl_b_employee4");

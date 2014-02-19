@@ -12,7 +12,7 @@
 #include<cstdlib>
 using namespace std;
 
-#define debug 1
+//#define debug 1
 #define debug1 1
 //#define debug2 1
 //#define debug3 1
@@ -29,19 +29,19 @@ typedef float FLOAT;
 #define maxim(a,b) a>b?a:b
 
 # ifdef debug
-# define dbgn(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# define dbgn(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgn(str1,str2) (void)0;
 #endif
 
 # ifdef debug1
-# define dbgn1(str1,str2) cout<<setw(50)<<str1<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# define dbgn1(str1,str2) cout<<setw(50)<<str1<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgn1(str1,str2) (void)0;
 #endif
 
 # ifdef debug2
-# define dbgn2(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# define dbgn2(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgn2(str1,str2) (void)0;
 #endif

@@ -832,6 +832,8 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 		isValid=false;
 		return 1;
 	}
+	else
+		dbgn1("conditionala scan about to begin......","");
 
 	condAttr=conditionAttribute;
 	recDesc=recordDescriptor;
@@ -937,8 +939,12 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 	{
 	case 0:
 		diff=intVal(temp)-intVal(valueP);
+		dbgn1("Comparing the integers here !","");
+		dbgn1(intVal(temp),intVal(valueP));
 		break;
 	case 1:
+		dbgn1("Comparing the floats here !","");
+		dbgn1((*((float *)temp)),(*((float *)valueP)));
 		if(*((float *)temp)>*((float *)valueP))
 			diff=1;
 		else if(*((float *)temp)==*((float *)valueP))
@@ -953,7 +959,7 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 		break;
 	}
 	result=returnRes(diff);
-	dbgn("result of comparison",result==1);
+	dbgn1("result of comparison",result==1);
 	return(result);
 }
 
