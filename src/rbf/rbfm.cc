@@ -14,6 +14,7 @@ RecordBasedFileManager* RecordBasedFileManager::instance()
 
 RecordBasedFileManager::RecordBasedFileManager()
 {
+	isRedirected=false;
 }
 
 RecordBasedFileManager::~RecordBasedFileManager()
@@ -82,7 +83,7 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 			dbgn1(" moving slot",slot);
 			dbgn1("new freeoffset",freeOffset);
 		}
-		else
+		else if(origLength==-1)
 		{
 			//tombstone case-where ineed to copy the first six bytes alone from the record
 			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,6);   /// copying only 6 bytes as its a tombstone....
@@ -90,6 +91,17 @@ RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<A
 			origLength=-1;
 			memcpy(getSlotLenA(newPage,slot),&origLength,2);	//update length of slot to -6 ????? required or not ?
 			freeOffset+=TOMBSIZE;								/// incrementing by 6 bytes..
+		}
+		else
+		{
+			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,modlus(origLength));   //copy the record
+			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
+			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
+			freeOffset+=modlus(origLength);
+			dbgn1(" moving slot",slot);
+			dbgn1("new freeoffset",freeOffset);
+
+
 		}
 	}
 	memcpy(getFreeOffsetA(newPage),&freeOffset,2);
@@ -147,11 +159,15 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
 	memcpy(getSlotOffA(page,i),&freeOffset,2);  //update offset for slot
+	if(isRedirected){
+			length = -1*length;
+			isRedirected = false;
+		}
 	memcpy(getSlotLenA(page,i),&length,2);		//update length for slot
 	dbgn("freeOffset",freeOffset);
 	dbgn("length",length);
-	memcpy((BYTE *)page+freeOffset,modRecord,length);		//write the record
-	freeOffset=freeOffset+length;
+	memcpy((BYTE *)page+freeOffset,modRecord,modlus(length));		//write the record
+	freeOffset=freeOffset+modlus(length);
 	memcpy(getFreeOffsetA(page),&freeOffset,2);
 	memcpy(getSlotNoA(page),&slotNo,2);
 
@@ -197,22 +213,26 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
 	if(offset==-1)return -1;
 
-	if(length<0)								//tombstone
+	if(length==-1)								//tombstone
 	{
 
 		RID tempId;
-		INT32 temp;
+		INT32 temp;INT16 tmpSlot;
 		dbgn1("tombstne record =========================== in read","   ");
 		memcpy(&temp,((BYTE *)page+offset),4);
 		tempId.pageNum=temp;
-		memcpy(&temp,((BYTE *)page+offset+4),2);
-		tempId.slotNum=temp;
+		memcpy(&tmpSlot,((BYTE *)page+offset+4),2);
+		tempId.slotNum=tmpSlot;
 		dbgn1("tombstone points to RID page number",tempId.pageNum);
 		dbgn1("tombstone points to RID slot number",tempId.slotNum);
 		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
 		free(page);
 		return rc;
 
+	}
+	// In case of redirected record, set length of data to be copied
+	else if(length < -1){
+			length = -1*length;
 	}
 	modRecord=malloc(length);
 	memcpy(modRecord,(BYTE *)page+offset,length);
@@ -340,7 +360,6 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 	INT16 offsetPointer = 0;
 	offsetPointer+=2;
 	INT16 prevOffset=(noOfFields*2)+2,presOffset=0;
-	INT32 num=1346458179;
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	while(tempNo-- && it!=recordDescriptor.end())
@@ -546,7 +565,7 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 	*((INT16*)((BYTE*)pageData + slotOffset)) = -1;
 
 	//Variable to store increase in freeSpace to update in header page
-	INT16 increaseFreeSpace = (recordLength == -1)? 6 : recordLength;
+	INT16 increaseFreeSpace = (recordLength == -1)? 6 : modlus(recordLength);
 
 	// Update FreeSpace Pointer if required
 	if((recordOffset + increaseFreeSpace)==*((INT16 *)((BYTE *)pageData+4094))){
@@ -587,7 +606,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 
 	INT16 freeSpaceIncrease = 0;
 	if(slotNo>=totalSlotsInPage||slotNo<0)return -1;
-	INT16 slotOffset 	= 4088-slotNo*4;
+	//INT16 slotOffset 	= 4088-slotNo*4;
 	INT16 recordOffset  = getSlotOffV(pageData,slotNo);
 	BYTE* recordLocation= (BYTE*)pageData + recordOffset;
 	INT16 recordLength  =  getSlotLenV(pageData,slotNo);
@@ -598,7 +617,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	if(recordOffset == -1)return -1;
 
 	//IF record has tomb stone
-	if(recordLength <0){
+	if(recordLength == -1){
 		dbgn1("Case 0 : "," delete record then update again" );
 		RID newRid;
 		newRid.pageNum = (unsigned)*((INT32 *)((BYTE *)pageData+recordOffset));
@@ -675,6 +694,7 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 		else{
 			dbgn1("Case 3: ","Cannot fit on same page");
 			RID newRid;
+			isRedirected = true;
 			insertRecord(fileHandle,recordDescriptor,data,newRid);
 			INT32 tombstonePageNum = newRid.pageNum;
 			INT16 tombstoneSlotNum = newRid.slotNum;
@@ -1046,17 +1066,50 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		offset=getSlotOffV(curDataPage,currRid.slotNum);
 		len=getSlotLenV(curDataPage,currRid.slotNum);
 
-		if(offset<0|| len<0){
+		if(offset<0|| len<-1){
 			dbgn1("slot offset",offset);
 			dbgn1("slot length",len);
 			dbgn1("offset less than 0","or length lessert thn 0");
 			continue;
 		}
+		if(len==-1) 			// tombstone case
+		{
+			void *page=malloc(PAGE_SIZE);
+			RID tempId;
+			INT32 tmp;INT16 tmpSlot;
+			dbgn1("tombstone record =========================== in read","   ");
+			memcpy(&tmp,((BYTE *)page+offset),4);
+			tempId.pageNum=tmp;
+			memcpy(&tmpSlot,((BYTE *)page+offset+4),2);
+			tempId.slotNum=tmpSlot;
+			dbgn1("tombstone points to RID page number",tempId.pageNum);
+			dbgn1("tombstone points to RID slot number",tempId.slotNum);
+			RC rc=currHandle.readPage(tempId.pageNum,page);
+			if(rc==-1)return -1;
+			INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
+			dbgn("total slots in the page",totalSlotNo);
+			if(tempId.slotNum>=totalSlotNo||tempId.slotNum<0)return -1;
+
+			INT16 offsetRed=getSlotOffV(page,tempId.slotNum);
+			INT16 lenRed=getSlotLenV(page,tempId.slotNum);
+			dbgn("length of redirected record..should be -ve",lenRed);
+
+			lenRed=lenRed*-1; // always as its aredirected record
+			modRecord=malloc(lenRed);
+			memcpy(modRecord,(BYTE*)page+offsetRed,lenRed);
+			temp=malloc(lenRed*2);
+			free(page);
+
+		}
+		else
+		{
 		modRecord=malloc(len);
 		memcpy(modRecord,(BYTE*)curDataPage+offset,len);
+		temp=malloc(len*2);
+		}
 		numOfAttr=*(INT16 *)modRecord;
-		temp=malloc(len*2);		//apprxiamtaley allocating..
+		//apprxiamtaley allocating..
 
 		if(!unconditional){								// means check for attiute condition
 

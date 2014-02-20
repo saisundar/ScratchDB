@@ -13,7 +13,7 @@
 using namespace std;
 
 //#define debug 1
-#define debug1 1
+//#define debug1 1
 //#define debug2 1
 //#define debug3 1
 typedef int32_t INT32;
@@ -25,6 +25,7 @@ typedef float FLOAT;
 #define isNull(num) (num==1346458179)
 #define isNullA(addr) (*(INT32 *)addr==1346458179)
 #define intVal(addr) (*(INT32 *)addr)
+#define modlus(a)  (((a)>0)?(a):(-a))
 
 #define maxim(a,b) a>b?a:b
 

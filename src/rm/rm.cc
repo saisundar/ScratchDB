@@ -218,7 +218,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	insertEntryForSystemCatalog(tableCatalogName, "System", 5);
 
 	// Insert Records in Table Catalog
-	for(int i=0;i<attrs.size();i++){
+	for(INT32 i=0;i<attrs.size();i++){
 		Attribute tableAttr = attrs[i];
 		insertEntryForTableCatalog(tableCatalogHandle, tableName, tableAttr.name, tableAttr.type, i, tableAttr.length);
 	}

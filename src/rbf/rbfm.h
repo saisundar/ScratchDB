@@ -144,6 +144,8 @@ public:
 class RecordBasedFileManager
 {
 public:
+	bool isRedirected;
+
 	static RecordBasedFileManager* instance();
 
 	RC createFile(const string &fileName);
