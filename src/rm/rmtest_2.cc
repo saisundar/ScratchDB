@@ -658,23 +658,27 @@ void Tests()
     rc = secA_9("tbl_employee4", rids, sizes);
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
     // Read Tuple
     rc = secA_10("tbl_employee4", rids, sizes);
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     // Update Tuple
     rc = secA_11("tbl_employee4", rids, sizes);
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     // Delete Tuple
     rc = secA_12("tbl_employee4", rids);
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     memProfile();
@@ -683,12 +687,14 @@ void Tests()
     rc = secA_13("tbl_employee4");
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     // DeleteTuples/Table
     rc = secA_14("tbl_employee4", rids);
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     // Scan with conditions
@@ -696,6 +702,7 @@ void Tests()
     rc = secA_15("tbl_b_employee4");
     if (rc == 0) {
         total += 4;
+        cout << "Grade is: " << total << endl;
     }
 
     memProfile();
@@ -704,6 +711,7 @@ void Tests()
     rc = testRMLayer("tbl_employee5");
     if (rc == 0) {
         total += 16;
+        cout << "Grade is: " << total << endl;
     }
     
     memProfile();
@@ -729,9 +737,9 @@ int main()
 	remove("cat_tbl_employee5");
 	remove("tbl_employee5");
     cout << endl << "Test Basic Functions..." << endl;
-    tests2();
+  //  tests2();
 
-//    Tests();
+   Tests();
 
     return 0;
 }
