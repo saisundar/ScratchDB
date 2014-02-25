@@ -114,6 +114,7 @@ public:
 		attrNum=-1;
 		numOfSlots = 0;
 		numOfPages = 0;
+		unconditional=false;
 
 	};
 	~RBFM_ScanIterator() {

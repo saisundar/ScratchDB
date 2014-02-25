@@ -911,7 +911,10 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 		return 1;
 	}
 	else
+	{
 		dbgnRBFM("conditionala scan about to begin......","");
+		unconditional=false;
+	}
 
 	condAttr=conditionAttribute;
 	recDesc=recordDescriptor;
@@ -1012,7 +1015,8 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 {
 	int diff;
 	bool result=false;
-
+	dbgnRBFM("evaluateCondition"," ");
+	dbgnRBFM("type of attribute tobe compared",type);
 	switch(type)
 	{
 	case 0:
@@ -1162,6 +1166,7 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		}
 		else
 		{
+			dbgnRBFM("Normal record =========================== in iterator read","   ");
 			modRecord=malloc(len);
 			memcpy(modRecord,(BYTE*)curDataPage+offset,len);
 			temp=malloc(len*2);
@@ -1178,6 +1183,7 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 			continue;
 			}
 
+			dbgnRBFM("unconditional, hence getting attribute to be compared","   ");
 			if(attrNum==0)
 			{
 				startOff=2*(numOfAttr+1);

@@ -12,17 +12,17 @@
 #include<cstdlib>
 using namespace std;
 
-/*
+
 #define debugFH 1
 #define debugFHU 1
-#define debugPFM 1
-#define debugPFMU 1
+//#define debugPFM 1
+//#define debugPFMU 1
 #define debugRBFM 1
 #define debugRBFMU 1
-//#define debug1 1
+#define debug1 1
 #define debug2 1
 //#define debug3 1
-*/
+
 typedef int32_t INT32;
 typedef int16_t INT16;
 typedef int8_t BYTE;
