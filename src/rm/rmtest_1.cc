@@ -1,6 +1,8 @@
 #include "test_util.h"
 
-void secA_0(const string &tableName)
+unsigned total = 0;
+
+int secA_0(const string &tableName)
 {
     // Functions Tested
     // 1. Get Attributes
@@ -9,7 +11,10 @@ void secA_0(const string &tableName)
     // GetAttributes
     vector<Attribute> attrs;
     RC rc = rm->getAttributes(tableName, attrs);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 0 failed****" << endl << endl;
+        return -1;
+    }
 
     for(unsigned i = 0; i < attrs.size(); i++)
     {
@@ -18,11 +23,11 @@ void secA_0(const string &tableName)
         cout << "Attribute Length: " << attrs[i].length << endl << endl;
     }
     cout<<"** Test Case 0 passed"<<endl;
-    return;
+    return 0;
 }
 
 
-void secA_1(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_1(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions tested
     // 1. Create Table ** -- made separate now.
@@ -41,11 +46,17 @@ void secA_1(const string &tableName, const int nameLength, const string &name, c
     cout << "Insert Data:" << endl;
     printTuple(tuple, tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 1 failed****" << endl << endl;
+        return -1;
+    }
     
     // Given the rid, read the tuple from table
     rc = rm->readTuple(tableName, rid, returnedData);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 1 failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "Returned Data:" << endl;
     printTuple(returnedData, tupleSize);
@@ -58,15 +69,18 @@ void secA_1(const string &tableName, const int nameLength, const string &name, c
     else
     {
         cout << "****Test case 1 failed****" << endl << endl;
+        free(tuple);
+        free(returnedData);
+        return -1;
     }
 
     free(tuple);
     free(returnedData);
-    return;
+    return 0;
 }
 
 
-void secA_2(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_2(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions Tested
     // 1. Insert tuple
@@ -84,18 +98,27 @@ void secA_2(const string &tableName, const int nameLength, const string &name, c
     cout << "Insert Data:" << endl;
     printTuple(tuple, tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 2 failed****" << endl << endl;
+        return -1;
+    }
     
 
     // Test Delete Tuple
     rc = rm->deleteTuple(tableName, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 2 failed****" << endl << endl;
+        return -1;
+    }
     cout<< "delete data done"<<endl;
     
     // Test Read Tuple
     memset(returnedData, 0, 100);
     rc = rm->readTuple(tableName, rid, returnedData);
-    assert(rc != success);
+    if(rc == success) {
+        cout << "****Test case 2 failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "After Deletion." << endl;
     
@@ -107,15 +130,18 @@ void secA_2(const string &tableName, const int nameLength, const string &name, c
     else
     {
         cout << "****Test case 2 failed****" << endl << endl;
+        free(tuple);
+        free(returnedData);
+        return -1;
     }
         
     free(tuple);
     free(returnedData);
-    return;
+    return 0;
 }
 
 
-void secA_3(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_3(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions Tested
     // 1. Insert Tuple    
@@ -133,18 +159,27 @@ void secA_3(const string &tableName, const int nameLength, const string &name, c
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 3 failed****" << endl << endl;
+        return -1;
+    }
     cout << "Original RID slot = " << rid.slotNum << endl;
 
     // Test Update Tuple
     prepareTuple(6, "Newman", age, height, 100, updatedTuple, &updatedTupleSize);
     rc = rm->updateTuple(tableName, updatedTuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 3 failed****" << endl << endl;
+        return -1;
+    }
     cout << "Updated RID slot = " << rid.slotNum << endl;
 
     // Test Read Tuple 
     rc = rm->readTuple(tableName, rid, returnedData);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 3 failed****" << endl << endl;
+        return -1;
+    }
     cout << "Read RID slot = " << rid.slotNum << endl;
    
     // Print the tuples 
@@ -164,16 +199,20 @@ void secA_3(const string &tableName, const int nameLength, const string &name, c
     else
     {
         cout << "****Test case 3 failed****" << endl << endl;
+        free(tuple);
+        free(updatedTuple);
+        free(returnedData);
+        return -1;
     }
 
     free(tuple);
     free(updatedTuple);
     free(returnedData);
-    return;
+    return 0;
 }
 
 
-void secA_4(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_4(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions Tested
     // 1. Insert tuple
@@ -188,16 +227,25 @@ void secA_4(const string &tableName, const int nameLength, const string &name, c
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 4 failed****" << endl << endl;
+        return -1;
+    }
 
     // Test Read Attribute
     rc = rm->readAttribute(tableName, rid, "Salary", returnedData);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 4 failed****" << endl << endl;
+        return -1;
+    }
  
     cout << "Salary: " << *(int *)returnedData << endl;
     if (memcmp((char *)returnedData, (char *)tuple+18, 4) != 0)
     {
         cout << "****Test case 4 failed" << endl << endl;
+        free(tuple);
+        free(returnedData);
+        return -1;
     }
     else
     {
@@ -206,11 +254,11 @@ void secA_4(const string &tableName, const int nameLength, const string &name, c
     
     free(tuple);
     free(returnedData);
-    return;
+    return 0;
 }
 
 
-void secA_5(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_5(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions Tested
     // 0. Insert tuple;
@@ -228,23 +276,35 @@ void secA_5(const string &tableName, const int nameLength, const string &name, c
     // Test Insert Tuple 
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 5 failed****" << endl << endl;
+        return -1;
+    }
 
     // Test Read Tuple
     rc = rm->readTuple(tableName, rid, returnedData);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 5 failed****" << endl << endl;
+        return -1;
+    }
     printTuple(returnedData, tupleSize);
 
     cout << "Now Deleting..." << endl;
 
     // Test Delete Tuples
     rc = rm->deleteTuples(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 5 failed****" << endl << endl;
+        return -1;
+    }
     
     // Test Read Tuple
     memset((char*)returnedData1, 0, 100);
     rc = rm->readTuple(tableName, rid, returnedData1);
-    assert(rc != success);
+    if(rc == success) {
+        cout << "****Test case 5 failed****" << endl << endl;
+        return -1;
+    }
     printTuple(returnedData1, tupleSize);
     
     if(memcmp(tuple, returnedData1, tupleSize) != 0)
@@ -254,16 +314,20 @@ void secA_5(const string &tableName, const int nameLength, const string &name, c
     else
     {
         cout << "****Test case 5 failed****" << endl << endl;
+        free(tuple);
+        free(returnedData);
+        free(returnedData1);
+        return -1;
     }
        
     free(tuple);
     free(returnedData);
     free(returnedData1);
-    return;
+    return 0;
 }
 
 
-void secA_6(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
+int secA_6(const string &tableName, const int nameLength, const string &name, const int age, const float height, const int salary)
 {
     // Functions Tested
     // 0. Insert tuple;
@@ -281,21 +345,33 @@ void secA_6(const string &tableName, const int nameLength, const string &name, c
     // Test Insert Tuple
     prepareTuple(nameLength, name, age, height, salary, tuple, &tupleSize);
     RC rc = rm->insertTuple(tableName, tuple, rid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 6 failed****" << endl << endl;
+        return -1;
+    }
 
     // Test Read Tuple 
     rc = rm->readTuple(tableName, rid, returnedData);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 6 failed****" << endl << endl;
+        return -1;
+    }
 
     // Test Delete Table
     rc = rm->deleteTable(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 6 failed****" << endl << endl;
+        return -1;
+    }
     cout << "After deletion!" << endl;
     
     // Test Read Tuple 
     memset((char*)returnedData1, 0, 100);
     rc = rm->readTuple(tableName, rid, returnedData1);
-    assert(rc != success);
+    if(rc == success) {
+        cout << "****Test case 6 failed****" << endl << endl;
+        return -1;
+    }
     
     if(memcmp(returnedData, returnedData1, tupleSize) != 0)
     {
@@ -304,16 +380,20 @@ void secA_6(const string &tableName, const int nameLength, const string &name, c
     else
     {
         cout << "****Test case 6 failed****" << endl << endl;
+        free(tuple);
+        free(returnedData);
+        free(returnedData1);
+        return -1;
     }
         
     free(tuple);
     free(returnedData);    
     free(returnedData1);
-    return;
+    return 0;
 }
 
 
-void secA_7(const string &tableName)
+int secA_7(const string &tableName)
 {
     // Functions Tested
     // 1. Reorganize Page **
@@ -341,14 +421,20 @@ void secA_7(const string &tableName)
         float height = (float)i;
         prepareTuple(6, "Tester", 20+i, height, 123, tuple, &tupleSize);
         rc = rm->insertTuple(tableName, tuple, rid);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 7 failed****" << endl << endl;
+            return -1;
+        }
 
         tuples.push_back((char *)tuple);
         sizes[i] = tupleSize;
         rids[i] = rid;
         if (i > 0) {
             // Since we are inserting 5 tiny tuples into an empty table where the page size is 4kb, all the 5 tuples should be on the first page. 
-            assert(rids[i - 1].pageNum == rids[i].pageNum);
+            if(rids[i - 1].pageNum != rids[i].pageNum) {
+                cout << "****Test case 7 failed****" << endl << endl;
+                return -1;
+            }
         }
         cout << rid.pageNum << endl;
     }
@@ -356,21 +442,32 @@ void secA_7(const string &tableName)
     
     int pageid = rid.pageNum;
     rc = rm->reorganizePage(tableName, pageid);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 7 failed****" << endl << endl;
+        return -1;
+    }
 
     // Print out the tuples one by one
     int i = 0;
     for (i = 0; i < numTuples; i++)
     {
         rc = rm->readTuple(tableName, rids[i], returnedData);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 7 failed****" << endl << endl;
+            return -1;
+        }
         printTuple(returnedData, tupleSize);
 
         //if any of the tuples are not the same as what we entered them to be ... there is a problem with the reorganization.
         if (memcmp(tuples[i], returnedData, sizes[i]) != 0)
         {      
             cout << "****Test case 7 failed****" << endl << endl;
-            break;
+            free(returnedData);
+            for(int j = 0; j < numTuples; j++)
+            {
+                free(tuples[j]);
+            }
+            return -1;
         }
     }
     if(i == numTuples)
@@ -380,18 +477,21 @@ void secA_7(const string &tableName)
     
     // Delete Table    
     rc = rm->deleteTable(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 7 failed****" << endl << endl;
+        return -1;
+    }
 
     free(returnedData);
     for(i = 0; i < numTuples; i++)
     {
         free(tuples[i]);
     }
-    return;
+    return 0;
 }
 
 
-void secA_8_A(const string &tableName)
+int secA_8_A(const string &tableName)
 {
     // Functions Tested
     // 1. Simple scan **
@@ -417,7 +517,10 @@ void secA_8_A(const string &tableName)
         prepareTuple(6, "Tester", age, height, 123, tuple, &tupleSize);
         ages.insert(age);
         rc = rm->insertTuple(tableName, tuple, rid);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 8_A failed****" << endl << endl;
+            return -1;
+        }
 
         tuples.push_back((char *)tuple);
         rids[i] = rid;
@@ -430,7 +533,10 @@ void secA_8_A(const string &tableName)
     vector<string> attributes;
     attributes.push_back(attr);
     rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 8_A failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "Scanned Data:" << endl;
     
@@ -446,7 +552,7 @@ void secA_8_A(const string &tableName)
             {
                 free(tuples[i]);
             }
-            return;
+            return -1;
         }
     }
     rmsi.close();
@@ -457,43 +563,72 @@ void secA_8_A(const string &tableName)
         free(tuples[i]);
     }
     cout << "****Test case 8_A passed****" << endl << endl; 
-    return;
+    return 0;
 }
 
 void Tests()
 {
     // GetAttributes
-    secA_0("tbl_employee");
+    int rc = secA_0("tbl_employee");
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Insert/Read Tuple
-    secA_1("tbl_employee", 6, "Peters", 24, 170.1, 5000);
+    rc = secA_1("tbl_employee", 6, "Peters", 24, 170.1, 5000);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Delete Tuple
-    secA_2("tbl_employee", 6, "Victor", 22, 180.2, 6000);
+    rc = secA_2("tbl_employee", 6, "Victor", 22, 180.2, 6000);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Update Tuple
-    secA_3("tbl_employee", 6, "Thomas", 28, 187.3, 4000);
+    rc = secA_3("tbl_employee", 6, "Thomas", 28, 187.3, 4000);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Read Attributes
-    secA_4("tbl_employee", 6, "Veekay", 27, 171.4, 9000);
+    rc = secA_4("tbl_employee", 6, "Veekay", 27, 171.4, 9000);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Delete Tuples
-    secA_5("tbl_employee", 6, "Dillon", 29, 172.5, 7000);
+    rc = secA_5("tbl_employee", 6, "Dillon", 29, 172.5, 7000);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Delete Table
-    secA_6("tbl_employee", 6, "Martin", 26, 173.6, 8000);
+    rc = secA_6("tbl_employee", 6, "Martin", 26, 173.6, 8000);
+    if (rc == 0) {
+        total += 4;
+    }
    
     memProfile();
  
     // Reorganize Page
     createTable("tbl_employee2");
-    secA_7("tbl_employee2");
+    rc = secA_7("tbl_employee2");
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Simple Scan
     createTable("tbl_employee3");
-    secA_8_A("tbl_employee3");
+    rc = secA_8_A("tbl_employee3");
+    if (rc == 0) {
+        total += 4;
+    }
 
     memProfile();
+
+    cout << "Grade is: " << total << endl;
     return;
 }
 

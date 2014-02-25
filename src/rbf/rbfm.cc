@@ -1,5 +1,3 @@
-// #include <unistd.h>
-// #include <sys/types.h>
 #include "rbfm.h"
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
@@ -23,122 +21,159 @@ RecordBasedFileManager::~RecordBasedFileManager()
 }
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
+	dbgnRBFM("<RBFM--------------createFile--------------RBFM>","");
+
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if( pfm->createFile(fileName.c_str())!=0)
+	if( pfm->createFile(fileName.c_str())!=0){
+		dbgnRBFM("Error in creating File","");
+		dbgnRBFM("</RBFM-------------createFile-------------RBFM/>","");
 		return -1;
+	}
+	dbgnRBFM("</RBFM-------------createFile-------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {
+	dbgnRBFM("<RBFM--------------destroyFile--------------RBFM>","");
+
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if(pfm->destroyFile(fileName.c_str())!=0)
+	if(pfm->destroyFile(fileName.c_str())!=0){
+		dbgnRBFM("Error in destroying File","");
+		dbgnRBFM("</RBFM-------------destroyFile-------------RBFM/>","");
 		return -1;
+	}
+	dbgnRBFM("</RBFM-------------destroyFile-------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::openFile(const string &fileName, FileHandle &fileHandle) {
+	dbgnRBFM("<RBFM--------------openFile--------------RBFM>","");
+
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if(pfm->openFile(fileName.c_str(),fileHandle)!=0)
+	if(pfm->openFile(fileName.c_str(),fileHandle)!=0){
+		dbgnRBFM("Error in opening File","");
+		dbgnRBFM("</RBFM-------------openFile-------------RBFM/>","");
 		return -1;
+	}
+	dbgnRBFM("</RBFM-------------openFile-------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::closeFile(FileHandle &fileHandle) {
+	dbgnRBFM("<RBFM--------------closeFile--------------RBFM>","");
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if(pfm->closeFile(fileHandle)!=0)
+	if(pfm->closeFile(fileHandle)!=0){
+		dbgnRBFM("Error in closing File","");
+		dbgnRBFM("</RBFM-------------closeFile-------------RBFM/>","");
 		return -1;
+	}
+	dbgnRBFM("</RBFM-------------closeFile-------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::reorganizePage(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const unsigned pageNumber)
 {
-	void *page=malloc(PAGE_SIZE),*newPage=malloc(PAGE_SIZE); // to be freed when I exit
-	dbgn1("this=================================================================== ","Reorganize called");
-	dbgn1("Filename",fileHandle.fileName);
-	INT16 freeOffset,origOffset,origLength=0,slotNo,slot=0;
+	dbgnRBFM("<RBFM--------------ReorganizePage--------------RBFM>","");
+	dbgnRBFM("Filename",fileHandle.fileName);
+
+	void *page=malloc(PAGE_SIZE);
+	void *newPage=malloc(PAGE_SIZE);
+
+	INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0;
 	INT32 virtualPageNum=pageNumber;
 
 	fileHandle.readPage(virtualPageNum,page);
 	fileHandle.readPage(virtualPageNum,newPage);
 	freeOffset=0;
-	slotNo=getSlotNoV(newPage);origOffset=getFreeOffsetV(newPage);
-	dbgn("total no of slots",slotNo);
-	dbgn("original free offset",origOffset);
+	totalSlots=getSlotNoV(newPage);
+	origOffset=getFreeOffsetV(newPage);
+	dbgnRBFM("Total no of slots",totalSlots);
+	dbgnRBFM("Original free offset",origOffset);
 
-	for(slot=0;slot<slotNo;slot++)
+	for(currSlot=0;currSlot<totalSlots;currSlot++)
 	{
-		origOffset=getSlotOffV(page,slot);origLength=getSlotLenV(page,slot);
-		dbgn("slot no",slot);
-		dbgn("orig offset",origOffset);
-		dbgn("orig length",origLength);
-		if( origOffset == -1)   //means that the slot is empty.
+		origOffset=getSlotOffV(page,currSlot);
+		origLength=getSlotLenV(page,currSlot);
+		dbgnRBFM("Current slot no",currSlot);
+		dbgnRBFM("Original offset",origOffset);
+		dbgnRBFM("Original length",origLength);
+
+		// Empty slot
+		if( origOffset == -1)
 			continue;
 
-		if(origLength>=0)
+		// Original Record
+		if(origLength >= 0)
 		{
 			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,origLength);   //copy the record
-			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
-			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
+			memcpy(getSlotOffA(newPage,currSlot),&freeOffset,2);			 		 //copy new offset
 			freeOffset+=origLength;
-			dbgn1(" moving slot",slot);
-			dbgn1("new freeoffset",freeOffset);
+			dbgnRBFM("Moving slot",currSlot);
+			dbgnRBFM("New freeOffset",freeOffset);
 		}
-		else if(origLength==-1)
+
+		// Tomb stone case, Copy only 6 bytes
+		else if(origLength == -1)
 		{
-			//tombstone case-where ineed to copy the first six bytes alone from the record
-			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,6);   /// copying only 6 bytes as its a tombstone....
-			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);
+			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,6);
+			memcpy(getSlotOffA(newPage,currSlot),&freeOffset,2);
 			origLength=-1;
-			memcpy(getSlotLenA(newPage,slot),&origLength,2);	//update length of slot to -6 ????? required or not ?
-			freeOffset+=TOMBSIZE;								/// incrementing by 6 bytes..
+			memcpy(getSlotLenA(newPage,currSlot),&origLength,2);
+			freeOffset+=TOMBSIZE;
 		}
+
+		// Redirected Record
 		else
 		{
 			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,modlus(origLength));   //copy the record
-			memcpy(getSlotOffA(newPage,slot),&freeOffset,2);			 //copy the new offset int othe slot
-			//memcpy(getslotLenA(newPage,i),&origLength,2);			 //copy the new length int othe slot ---- redundant as length will alredy be there in the slot info
+			memcpy(getSlotOffA(newPage,currSlot),&freeOffset,2);			 				 //copy the new offset
 			freeOffset+=modlus(origLength);
-			dbgn1(" moving slot",slot);
-			dbgn1("new freeoffset",freeOffset);
-
-
+			dbgnRBFM("Moving slot",currSlot);
+			dbgnRBFM("New freeOffset",freeOffset);
 		}
 	}
 	memcpy(getFreeOffsetA(newPage),&freeOffset,2);
-	dbgn1("the new free offset after reorganizing is ",freeOffset);
+	dbgnRBFM("The new free offset after reorganizing is ",freeOffset);
 
 	fileHandle.writePage(virtualPageNum,newPage);
 	free(page);
 	free(newPage);
+	dbgnRBFM("</RBFM-------------ReorganizePage-------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
 
-	void *modRecord=NULL,*headerPage,*page=malloc(PAGE_SIZE); // to be freed when I exit
-	dbgn("this=================================================================== ","insertRecord");
-	dbgn("Filename",fileHandle.fileName);
+	dbgnRBFM("<RBFM----------------InsertRecord----------------RBFM>","");
+	dbgnRBFM("Filename",fileHandle.fileName);
+
+	void *modRecord=NULL;
+	void *headerPage;
+	void *page=malloc(PAGE_SIZE);
+
 	INT32 headerPageActualNumber;
 	INT16 length;
-	modRecord = modifyRecordForInsert(recordDescriptor,					//
-			data,					//
-			length);
-	INT16 totalLength=length;
-	INT32 virtualPageNum=findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
-	dbgn("virtualPageNum",virtualPageNum);
-	dbgn("headerPageActualNumber",headerPageActualNumber);
+	modRecord = modifyRecordForInsert(recordDescriptor, data, length);
 
-	INT16 freeOffset,slotNo,freeSpace;
+	INT16 totalLength = length;
+	INT32 virtualPageNum = findFirstFreePage(fileHandle,length+4,headerPageActualNumber);
+
+	dbgnRBFM("VirtualPageNum",virtualPageNum);
+	dbgnRBFM("HeaderPageNumber",headerPageActualNumber);
+
+	INT16 freeOffset,totalSlots,freeSpace;
 	INT32 offset=virtualPageNum%681,i;
 
 	bool slotReused=false;
 
-	//reading of the data page..
+	// Read Page Data
 	fileHandle.readPage(virtualPageNum,page);
-	freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
-	freeSpace=4092-(slotNo*4)-freeOffset;
+	freeOffset=getFreeOffsetV(page);
+	totalSlots=getSlotNoV(page);
+	freeSpace=4092-(totalSlots*4)-freeOffset;
 
-	for(i=0;i<slotNo;i++)
+	// Reusing slot if i < totalSlots
+	for(i=0;i<totalSlots;i++)
 	{
 		if(getSlotOffV(page,i)==-1)
 		{
@@ -147,29 +182,39 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 		}
 	}
 
+	// Case where reorganize page will be called
 	if(freeSpace<totalLength)
 	{
 		reorganizePage(fileHandle,recordDescriptor,virtualPageNum);
+		// REQUIRED: Read Page Data AGAIN !
 		fileHandle.readPage(virtualPageNum,page);
-		freeOffset=getFreeOffsetV(page);slotNo=getSlotNoV(page);
-		freeSpace=4092-(slotNo*4)-freeOffset;
+		freeOffset=getFreeOffsetV(page);
+		totalSlots=getSlotNoV(page);
+		freeSpace=4092-(totalSlots*4)-freeOffset;
 	}
 
-	if(!slotReused){slotNo++;totalLength=length+4;}
+	// If slot is not reused, add 4 bytes for new slot
+	if(!slotReused){
+		totalSlots++;
+		totalLength=length+4;
+	}
 
-	rid.slotNum=i;rid.pageNum=virtualPageNum;	dbgn("**************RID pgno",rid.pageNum);dbgn("*****************RID slotNo",rid.slotNum);	//update RID
+	rid.slotNum=i;
+	rid.pageNum=virtualPageNum;
+	dbgnRBFM("RID PAGE NO",rid.pageNum);
+	dbgnRBFM("RID SLOT NO",rid.slotNum);	//update RID
 	memcpy(getSlotOffA(page,i),&freeOffset,2);  //update offset for slot
 	if(isRedirected){
-			length = -1*length;
-			isRedirected = false;
-		}
+		length = -1*length;
+		isRedirected = false;
+	}
 	memcpy(getSlotLenA(page,i),&length,2);		//update length for slot
-	dbgn("freeOffset",freeOffset);
-	dbgn("length",length);
+	dbgnRBFM("freeOffset",freeOffset);
+	dbgnRBFM("length",length);
 	memcpy((BYTE *)page+freeOffset,modRecord,modlus(length));		//write the record
 	freeOffset=freeOffset+modlus(length);
 	memcpy(getFreeOffsetA(page),&freeOffset,2);
-	memcpy(getSlotNoA(page),&slotNo,2);
+	memcpy(getSlotNoA(page),&totalSlots,2);
 
 	fileHandle.writePage(virtualPageNum,page);//written data page
 
@@ -178,9 +223,9 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fread(headerPage, 1, PAGE_SIZE, fileHandle.stream);
 	freeSpace=*(INT16 *)((BYTE *)headerPage+4+((offset+1)*PES)); // here handle the case where tombstone is left--update has to take care.
-	dbgn("free space in page",freeSpace);
+	dbgnRBFM("free space in page",freeSpace);
 	freeSpace=freeSpace-totalLength;
-	dbgn("free space in page",freeSpace);
+	dbgnRBFM("free space in page",freeSpace);
 	memcpy((BYTE *)headerPage+4+((offset+1)*PES),&freeSpace,2);
 	fseek(fileHandle.stream,headerPageActualNumber*PAGE_SIZE,SEEK_SET);
 	fwrite(headerPage, 1, PAGE_SIZE, fileHandle.stream);
@@ -188,51 +233,55 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 	free(page);
 	free(modRecord);
 
+	dbgnRBFM("</RBFM----------------InsertRecord----------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
 
 	//	fetch the actual page. read the record. convert into application format.return record.
+	dbgnRBFM("<RBFM----------------ReadRecord----------------RBFM>","");
 	INT32 virtualPageNum=rid.pageNum,slotNo=rid.slotNum;
 	RC rc;
-	dbgn("this ","readRecord			=============================================================");
-	dbgn("Filename",fileHandle.fileName);
-	dbgn1("record page requestd RID Page==",rid.pageNum);
-	dbgn1("record page requestd RID Slot==",rid.slotNum);
+	dbgnRBFM("Filename",fileHandle.fileName);
+	dbgnRBFM("record page requestd RID Page==",rid.pageNum);
+	dbgnRBFM("record page requestd RID Slot==",rid.slotNum);
 	void *page=malloc(PAGE_SIZE),*modRecord;
 	rc=fileHandle.readPage(virtualPageNum,page);
 	if(rc==-1)return -1;
 	INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
-	dbgn("total slots in the page",totalSlotNo);
+	dbgnRBFM("total slots in the page",totalSlotNo);
 	if(slotNo>=totalSlotNo||slotNo<0)return -1;
 
 	INT16 offset=*(INT16 *)((BYTE *)page+4088-(slotNo*4));
 	INT16 length=*(INT16 *)((BYTE *)page+4090-(slotNo*4));
 
+	// Handle deleted records
 	if(offset==-1)return -1;
 
-	if(length==-1)								//tombstone
+	// Handle tomb stone records
+	if(length==-1)
 	{
 
 		RID tempId;
 		INT32 temp;INT16 tmpSlot;
-		dbgn1("tombstne record =========================== in read","   ");
+		dbgnRBFM("TOMBSTONE RECORD FOUND","!!!");
 		memcpy(&temp,((BYTE *)page+offset),4);
 		tempId.pageNum=temp;
 		memcpy(&tmpSlot,((BYTE *)page+offset+4),2);
 		tempId.slotNum=tmpSlot;
-		dbgn1("tombstone points to RID page number",tempId.pageNum);
-		dbgn1("tombstone points to RID slot number",tempId.slotNum);
+		dbgnRBFM("tomb stone points to RID page number",tempId.pageNum);
+		dbgnRBFM("tomb stone points to RID slot number",tempId.slotNum);
 		RC rc=readRecord(fileHandle,recordDescriptor,tempId,data);
 		free(page);
 		return rc;
 
 	}
+
 	// In case of redirected record, set length of data to be copied
 	else if(length < -1){
-			length = -1*length;
+		length = -1*length;
 	}
 	modRecord=malloc(length);
 	memcpy(modRecord,(BYTE *)page+offset,length);
@@ -240,19 +289,20 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 	modifyRecordForRead(recordDescriptor,data,modRecord);
 	free(page);
 	free(modRecord);
-
+	dbgnRBFM("</RBFM----------------ReadRecord----------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
 	//	with record descriptor decode the given record and print it.this has to decode application format of record.
 
+	dbgnRBFM("<RBFM----------------printRecord----------------RBFM>","");
 	BYTE * printData = (BYTE*)data;
 	INT32 num = 0;FLOAT num1;
-	dbgn("this ","printRecord");
+	dbgnRBFM("this ","printRecord");
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
-	dbgn("num of attributes",recordDescriptor.size());
+	dbgnRBFM("num of attributes",recordDescriptor.size());
 	while(it != recordDescriptor.end())
 	{
 		switch(it->type){
@@ -304,11 +354,12 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 		}
 		++it;
 	}
-
+	dbgnRBFM("</RBFM----------------printRecord----------------RBFM/>","");
 	return 0;
 }
 
 INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16  requiredSpace, INT32  &headerPageNumber){
+	dbgnRBFMU("<RBFMu------findFirstFPage------RBFMu>","");
 	bool isPageFound = false;
 	int noOfPages = fileHandle.getNumberOfPages();
 	int curr = 10;									//Current Seek Position
@@ -322,8 +373,8 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16  r
 		pagesTraversedInCurrentHeader++;
 		fseek(fileHandle.stream,curr,SEEK_SET);		//Set position to freeSpace field in "Page Entries"
 		fread(&freeSpace, 1, 2, fileHandle.stream);	//Start reading freeSpace field in "Page Entries"
-		dbgn("freeSpace",freeSpace);
-		dbgn("requiredSpace",requiredSpace);
+		dbgnRBFMU("freeSpace",freeSpace);
+		dbgnRBFMU("requiredSpace",requiredSpace);
 
 		if(freeSpace>=requiredSpace){				//If freeSpace is sufficient, end search
 			isPageFound=true;
@@ -349,10 +400,12 @@ INT32 RecordBasedFileManager::findFirstFreePage(FileHandle &fileHandle, INT16  r
 	}
 
 	headerPageNumber = nextHeaderPageNo;
+	dbgnRBFMU("</RBFMu------findFirstFPage------RBFMu/>","");
 	return (header*681)+pagesTraversedInCurrentHeader-1;
 }
 
 RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDescriptor,const void* data, const void* modRecord){
+	dbgnRBFMU("<RBFMu------modifyRecordforRead------RBFMu>","");
 	BYTE* storedDataPointer = (BYTE*)modRecord;
 	BYTE* dataPointer = (BYTE*)data;
 	INT32 noOfFields = *((INT16*)storedDataPointer),tempNo=noOfFields,len;
@@ -402,32 +455,34 @@ RC RecordBasedFileManager::modifyRecordForRead(const vector<Attribute> &recordDe
 		++it;
 	}
 
-//	if(noOfFields!=recordDescriptor.size())
-//	{
-//		int numOfOffenders=recordDescriptor.size()-noOfFields;
-//
-//		dbgn1(" appending CRAP to the dsk record"," quite literally");
-//		for(int i=0;i<numOfOffenders;i++)
-//			memcpy(dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
-//
-//	}
+	//	if(noOfFields!=recordDescriptor.size())
+	//	{
+	//		int numOfOffenders=recordDescriptor.size()-noOfFields;
+	//
+	//		dbgnRBFM(" appending CRAP to the dsk record"," quite literally");
+	//		for(int i=0;i<numOfOffenders;i++)
+	//			memcpy(dataPointer+(i*4),&num,4);   //quite literally appending the string "CRAP" into the data record.
+	//
+	//	}
+	dbgnRBFMU("</RBFMu------modifyRecordforRead------RBFMu/>","");
+
 	return 0;
 }
 
 // WARNING: Its the responsibility of the caller to free the memory block assigned in this function
 void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &recordDescriptor,const void *data,INT16  &length)
 {
+	dbgnRBFMU("<RBFMu------modifyRecordforInsert------RBFMu>","");
 	void *modRecord=NULL;
 	BYTE * iterData = (BYTE*)data;
 	INT16 numberAttr=recordDescriptor.size();
 	INT16 dataOffset=0,offOffset=0;
 	length=(numberAttr*2)+2;INT32 num=0;
-	dbgn("<----------------------------In modifyRecordForInsert------------------------->","");
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	for(;it != recordDescriptor.end();it++)
 	{
-		dbgn("type",it->type);
+		dbgnRBFMU("type",it->type);
 		switch(it->type){
 		case 0:
 			length=length+4;
@@ -451,7 +506,7 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 		}
 	}
 	length= maxim(length,TOMBSIZE);					//// in order to inflate the record for  minimum of 6 bytes to accomodate tombstone
-	dbgn("length of modified record",length);
+	dbgnRBFMU("length of modified record",length);
 	modRecord=malloc(length);
 	memcpy(modRecord,&numberAttr,2);
 	dataOffset=(numberAttr*2)+2;
@@ -492,22 +547,23 @@ void* RecordBasedFileManager::modifyRecordForInsert(const vector<Attribute> &rec
 
 		}
 	}
+	dbgnRBFMU("</RBFMu------modifyRecordforInsert------RBFMu/>","");
 	return modRecord;
 }
 
 RC RecordBasedFileManager::deleteRecords(FileHandle &fileHandle)
 {
-	dbgn1("<----------------------------In Delete All Records------------------------->","");
+	dbgnRBFM("<RBFM----------------deleteRecords----------------RBFM>","");
 	PagedFileManager *pfm = PagedFileManager::instance();
 	const char* fileName = fileHandle.fileName.c_str();
 	pfm->closeFile(fileHandle);
-	dbgn1("fileHandle ","closed");
+	dbgnRBFM("fileHandle ","closed");
 	pfm->destroyFile(fileName);
-	dbgn1(fileName," destroyed");
+	dbgnRBFM(fileName," destroyed");
 	pfm->createFile(fileName);
-	dbgn1(fileName," created again");
+	dbgnRBFM(fileName," created again");
 	pfm->openFile(fileName,fileHandle);
-	dbgn1("fileHandle"," associated again");
+	dbgnRBFM("fileHandle"," associated again");
 	/*	if(fileHandle.stream==0)return -1;
 	if(fileHandle.mode==0)return -1;
 	// truncate(fileHandle.fileName.c_str(),PAGE_SIZE);
@@ -516,45 +572,46 @@ RC RecordBasedFileManager::deleteRecords(FileHandle &fileHandle)
 	fwrite(&zeros,4,1,fileHandle.stream);
 	fseek(fileHandle.stream,4092,SEEK_SET);
 	fwrite(&zeros,4,1,fileHandle.stream);*/
+	dbgnRBFM("</RBFM---------------deleteRecords---------------RBFM/>","");
 	return 0;
 }
 RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid){
-	dbgn1("<----------------------------In Delete Record------------------------->","");
+	dbgnRBFM("<RBFM----------------delete1Record----------------RBFM>","");
 	if(fileHandle.stream==0)
-		{
-		dbgn1("stream -======0","oopsies");
+	{
+		dbgnRBFM("stream -======0","oopsies");
 		return -1;
-		}
-//	if(fileHandle.mode==0)
-//		{
-//		dbgn1("mode -======0","oopsies");
-//		return -1;
-//		}
+	}
+	//	if(fileHandle.mode==0)
+	//		{
+	//		dbgnRBFM("mode -======0","oopsies");
+	//		return -1;
+	//		}
 
-	dbgn1("requested Slot number: ",rid.slotNum);
-	dbgn1("requested Page number: ",rid.pageNum);
+	dbgnRBFM("requested Slot number: ",rid.slotNum);
+	dbgnRBFM("requested Page number: ",rid.pageNum);
 
 	void * pageData = malloc(PAGE_SIZE);
 	if(fileHandle.readPage(rid.pageNum,pageData)==-1)return-1;
 
 	INT16 slotNo=rid.slotNum;
 	INT16 totalSlotsInPage = *(INT16 *)((BYTE *)pageData+4092);
-	dbgn1("Current Slot number: ",rid.slotNum);
-	dbgn1("Total number of slots in page: ",totalSlotsInPage);
+	dbgnRBFM("Current Slot number: ",rid.slotNum);
+	dbgnRBFM("Total number of slots in page: ",totalSlotsInPage);
 
 	if(slotNo>=totalSlotsInPage||slotNo<0)return -1;
 	INT16 slotOffset = 4088-slotNo*4;
 	INT16 recordOffset = *((INT16*)((BYTE*)pageData + slotOffset));
 	INT16 recordLength = *((INT16*)((BYTE*)pageData + slotOffset + 2));
-	dbgn1("Record Offset",recordOffset);
-	dbgn1("Record Length",recordLength);
+	dbgnRBFM("Record Offset",recordOffset);
+	dbgnRBFM("Record Length",recordLength);
 
 	//If record is already deleted return error
 	if(recordOffset == -1)return -1;
 
 	//IF record has tomb stone
 	if(recordLength <0){
-		dbgn1("<----Handling Tomb Stone------>"," delete record then update again" );
+		dbgnRBFM("<----Handling Tomb Stone------>"," delete record then update again" );
 		RID newRid;
 		newRid.pageNum = (unsigned)*((INT32 *)((BYTE *)pageData+recordOffset));
 		newRid.slotNum = (unsigned)*((INT16 *)((BYTE *)pageData+recordOffset+4));
@@ -574,22 +631,23 @@ RC RecordBasedFileManager::deleteRecord(FileHandle &fileHandle, const vector<Att
 
 	// Update Number of slots if required
 	if(slotNo == totalSlotsInPage-1){
-		dbgn1("Last Slot has been deleted ", "");
+		dbgnRBFM("Last Slot has been deleted ", "");
 		totalSlotsInPage = totalSlotsInPage-1;
 		*((INT16 *)((BYTE *)pageData+4092)) = totalSlotsInPage;
 		increaseFreeSpace+=4;
 	}
 	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return -1;
-	dbgn1("Free Space increases by: ", increaseFreeSpace);
+	dbgnRBFM("Free Space increases by: ", increaseFreeSpace);
 	//Update FreeSpace in Header Page
 	fileHandle.updateFreeSpaceInHeader(rid.pageNum, increaseFreeSpace);
 	free(pageData);
+	dbgnRBFM("</RBFM---------------delete1Record---------------RBFM/>","");
 	return 0;
 }
 
 RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, const RID &rid)
 {
-	dbgn1("<----------------------------In Update Record------------------------->","");
+	dbgnRBFM("<RBFM----------------updateRecord----------------RBFM>","");
 	if(fileHandle.stream==0)return -1;
 
 	void * pageData = malloc(PAGE_SIZE);
@@ -597,12 +655,12 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 
 	INT16 slotNo = rid.slotNum;
 
-	dbgn1("update requested fir Record slotNum",rid.slotNum);
-	dbgn1("update requested fir Record pgnum",rid.pageNum);
+	dbgnRBFM("update requested fir Record slotNum",rid.slotNum);
+	dbgnRBFM("update requested fir Record pgnum",rid.pageNum);
 
 	INT16 totalSlotsInPage = getSlotNoV(pageData);
-	dbgn1("Current Slot number: ",rid.slotNum);
-	dbgn1("Total number of slots in page",totalSlotsInPage);
+	dbgnRBFM("Current Slot number: ",rid.slotNum);
+	dbgnRBFM("Total number of slots in page",totalSlotsInPage);
 
 	INT16 freeSpaceIncrease = 0;
 	if(slotNo>=totalSlotsInPage||slotNo<0)return -1;
@@ -610,15 +668,15 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	INT16 recordOffset  = getSlotOffV(pageData,slotNo);
 	BYTE* recordLocation= (BYTE*)pageData + recordOffset;
 	INT16 recordLength  =  getSlotLenV(pageData,slotNo);
-	dbgn1("old Record Offset",recordOffset);
-	dbgn1("old Record Length",recordLength);
+	dbgnRBFM("old Record Offset",recordOffset);
+	dbgnRBFM("old Record Length",recordLength);
 
 	//IF record is deleted
 	if(recordOffset == -1)return -1;
 
 	//IF record has tomb stone
 	if(recordLength == -1){
-		dbgn1("Case 0 : "," delete record then update again" );
+		dbgnRBFM("Case 0 : "," delete record then update again" );
 		RID newRid;
 		newRid.pageNum = (unsigned)*((INT32 *)((BYTE *)pageData+recordOffset));
 		newRid.slotNum = (unsigned)*((INT16 *)((BYTE *)pageData+recordOffset+4));
@@ -635,12 +693,12 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 	// Read the new record
 	void* newRecord = modifyRecordForInsert(recordDescriptor,data,newLength);
 
-	dbgn1("Old Length",oldLength);
-	dbgn1("New Length",newLength);
+	dbgnRBFM("Old Length",oldLength);
+	dbgnRBFM("New Length",newLength);
 
 	// if new record length is smaller than old record length
 	if(newLength<=oldLength){
-		dbgn1("Case 1: ","Old Length > New Length");
+		dbgnRBFM("Case 1: ","Old Length > New Length");
 		memcpy(recordLocation,newRecord,newLength);
 		// set new length in slot
 		getSlotLenV(pageData,slotNo) = newLength;
@@ -658,14 +716,14 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 			// If it can be directly appended in free space block
 			INT16 freeSpaceBlockPointer = 0;
 			if(freeSpaceBlockSize>newLength){
-				dbgn1("Case 2.1: ","Old Length < New Length && Free Space Block can accommodate new record");
+				dbgnRBFM("Case 2.1: ","Old Length < New Length && Free Space Block can accommodate new record");
 				freeSpaceBlockPointer = getFreeOffsetV(pageData);
 				memcpy((BYTE *)pageData+freeSpaceBlockPointer,newRecord,newLength);
 				freeSpaceIncrease = oldLength - newLength;
 			}
 			// If it cannot be directly appended in free space block
 			else{
-				dbgn1("Case 2.2: ","Old Length < New Length && Free Space Block canNOT accommodate new record");
+				dbgnRBFM("Case 2.2: ","Old Length < New Length && Free Space Block canNOT accommodate new record");
 				deleteRecord(fileHandle,recordDescriptor,rid);
 				reorganizePage(fileHandle,recordDescriptor,rid.pageNum);
 				// Read page again since you modified the data
@@ -683,27 +741,27 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 			getSlotOffV(pageData,slotNo) = freeSpaceBlockPointer;
 			getSlotLenV(pageData,slotNo) = newLength;
 
-			dbgn1("New Record Offset",getSlotOffV(pageData,slotNo));
-			dbgn1("New Record Length",getSlotLenV(pageData,slotNo));
+			dbgnRBFM("New Record Offset",getSlotOffV(pageData,slotNo));
+			dbgnRBFM("New Record Length",getSlotLenV(pageData,slotNo));
 
 			// Update free space block pointer
 			getFreeOffsetV(pageData) = freeSpaceBlockPointer + newLength;
-			dbgn1("Free Space Block Pointer", getFreeOffsetV(pageData));
+			dbgnRBFM("Free Space Block Pointer", getFreeOffsetV(pageData));
 		}
 		// If it does not fit on same Page
 		else{
-			dbgn1("Case 3: ","Cannot fit on same page");
+			dbgnRBFM("Case 3: ","Cannot fit on same page");
 			RID newRid;
 			isRedirected = true;
 			insertRecord(fileHandle,recordDescriptor,data,newRid);
 			INT32 tombstonePageNum = newRid.pageNum;
 			INT16 tombstoneSlotNum = newRid.slotNum;
-			dbgn1("newRID Page Number: ",tombstonePageNum);
-			dbgn1("newRID Slot Number: ",tombstoneSlotNum);
+			dbgnRBFM("newRID Page Number: ",tombstonePageNum);
+			dbgnRBFM("newRID Slot Number: ",tombstoneSlotNum);
 
 			// insert new RID as tomb stone
-//			*((INT32*)((BYTE*)pageData + recordOffset)) = tombstonePageNum;
-//			*((INT16*)((BYTE*)pageData + recordOffset+4)) = tombstoneSlotNum;
+			//			*((INT32*)((BYTE*)pageData + recordOffset)) = tombstonePageNum;
+			//			*((INT16*)((BYTE*)pageData + recordOffset+4)) = tombstoneSlotNum;
 			memcpy((BYTE*)pageData + recordOffset,&tombstonePageNum,4);
 			memcpy((BYTE*)pageData + recordOffset+4,&tombstoneSlotNum,2);
 
@@ -713,27 +771,27 @@ RC RecordBasedFileManager::updateRecord(FileHandle &fileHandle, const vector<Att
 		}
 
 	}
-	dbgn1("Free Space increases by: ", freeSpaceIncrease);
+	dbgnRBFM("Free Space increases by: ", freeSpaceIncrease);
 	if(fileHandle.writePage(rid.pageNum,pageData)==-1)return-1;				//always call writepage before updating freespaceheader to acuire write ermission for the handle..
 	fileHandle.updateFreeSpaceInHeader(rid.pageNum, freeSpaceIncrease);
 
-
-	dbgn1("UPDATE is doneeeeeeeeeeeeeeeeeeeeeeeeeee","");
 	free(pageData);
 	free(newRecord);
+	dbgnRBFM("</RBFM---------------updateRecord---------------RBFM/>","");
 	return 0;
 }
 INT16 RecordBasedFileManager::getFreeSpaceBlockSize(FileHandle &fileHandle, PageNum pageNum)
 {
-	dbgn1("<----------------------------In Get Free SPace Block Size------------------------->","");
+	dbgnRBFMU("<RBFMu-------getFreeBlockSize-------RBFMu>","");
 	void * pageData = malloc(PAGE_SIZE);
 	if(fileHandle.readPage(pageNum,pageData)==-1)return-1;
 	INT16 totalSlotsInPage = *((INT16 *)((BYTE *)pageData+4092));
-	dbgn1("Total Slots: ",totalSlotsInPage);
+	dbgnRBFMU("Total Slots: ",totalSlotsInPage);
 	INT16 freeSpacePointer = *((INT16 *)((BYTE *)pageData+4094));
-	dbgn1("Free Space Pointer: ",freeSpacePointer);
+	dbgnRBFMU("Free Space Pointer: ",freeSpacePointer);
 	free(pageData);
-	dbgn1("Free Space: ",4092 - (totalSlotsInPage*4) - freeSpacePointer);
+	dbgnRBFMU("Free Space: ",4092 - (totalSlotsInPage*4) - freeSpacePointer);
+	dbgnRBFMU("</RBFMu------getFreeBlockSize------RBFMu/>","");
 	return 4092 - (totalSlotsInPage*4) - freeSpacePointer;
 }
 
@@ -746,41 +804,41 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 	BYTE * printData = (BYTE*)recData;
 	INT32 num = 0;
 	bool found=false;
-	dbgn1("this ","readAttribute");
+	dbgnRBFM("this ","readAttribute");
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
-	dbgn1("num of attributes",recordDescriptor.size());
+	dbgnRBFM("num of attributes",recordDescriptor.size());
 	while(it != recordDescriptor.end() && !found)
 	{
 		switch(it->type){
 		case 0:
-			dbgn1(" attribute iterated name",it->name);
-			dbgn1("desired atribute name",attributeName);
+			dbgnRBFM(" attribute iterated name",it->name);
+			dbgnRBFM("desired atribute name",attributeName);
 			if((it->name).compare(attributeName)==0)
 			{
 				memcpy(data,printData,4);
 				found=true;
-				dbgn1("attribute found","integer");
+				dbgnRBFM("attribute found","integer");
 			}
 			printData = printData+4;
 			break;
 
 		case 1:
-			dbgn1(" attribute iterated name",it->name);
-			dbgn1("desired atribute name",attributeName);
+			dbgnRBFM(" attribute iterated name",it->name);
+			dbgnRBFM("desired atribute name",attributeName);
 			if((it->name).compare(attributeName)==0)
 			{
 				memcpy(data,printData,4);
 				found=true;
-				dbgn1("attribute found","float");
+				dbgnRBFM("attribute found","float");
 			}
 			printData = printData+4;
 
 			break;
 
 		case 2:
-			dbgn1(" attribute iterated name",it->name);
-			dbgn1("desired atribute name",attributeName);
+			dbgnRBFM(" attribute iterated name",it->name);
+			dbgnRBFM("desired atribute name",attributeName);
 			num = *((INT32 *)printData);
 			if((it->name).compare(attributeName)==0)
 			{
@@ -789,7 +847,7 @@ RC RecordBasedFileManager::readAttribute(FileHandle &fileHandle, const vector<At
 				else
 					memcpy(data,printData,4+num);
 				found=true;
-				dbgn1("attribute found","string");
+				dbgnRBFM("attribute found","string");
 			}
 			printData = printData+4+num;
 			break;
@@ -823,7 +881,7 @@ RC RecordBasedFileManager::scan(FileHandle &fileHandle,const vector<Attribute> &
 // returns false if attribute is not found in the given record descriptors.
 bool RBFM_ScanIterator::isValidAttr(string condAttr,const vector<Attribute> &recordDescriptor){
 	INT32 i;
-	dbgn1("enter RBFM_ScanIterator::isValidAttr","");
+	dbgnRBFM("enter RBFM_ScanIterator::isValidAttr","");
 	for(i=0;i<recordDescriptor.size();i++)
 		if(recordDescriptor[i].length!=0 && recordDescriptor[i].name.compare(condAttr)==0)
 		{
@@ -831,7 +889,7 @@ bool RBFM_ScanIterator::isValidAttr(string condAttr,const vector<Attribute> &rec
 			attrLength=recordDescriptor[i].length;
 			valueP=malloc(attrLength);
 			type=recordDescriptor[i].type;
-			dbgn1("attirbute found.number",i);
+			dbgnRBFM("attirbute found.number",i);
 			isValid=true;
 			break;
 		}
@@ -844,16 +902,16 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 		const void *value,                    					// used in the comparison
 		const vector<string> &attributeNames){
 
-	dbgn1("enter RBFM_ScanIterator::setValues","");
+	dbgnRBFM("enter RBFM_ScanIterator::setValues","");
 	if(((!strcmp(conditionAttribute,"")) && (compOp==NO_OP) && (value== NULL))||compOp==NO_OP)
-	{unconditional=true;isValid=true;	dbgn1("unconditionala scan about to begin......","");}
+	{unconditional=true;isValid=true;	dbgnRBFM("unconditionala scan about to begin......","");}
 	else if(fileHandle.stream==0||!isValidAttr(conditionAttribute,recordDescriptor))
 	{
 		isValid=false;
 		return 1;
 	}
 	else
-		dbgn1("conditionala scan about to begin......","");
+		dbgnRBFM("conditionala scan about to begin......","");
 
 	condAttr=conditionAttribute;
 	recDesc=recordDescriptor;
@@ -903,26 +961,26 @@ RC RBFM_ScanIterator::getNextDataPage()
 	bool found=false;
 	while(!found)
 	{
-	currRid.pageNum++;
+		currRid.pageNum++;
 
-	if(currRid.pageNum==numOfPages)
-	{
-		currRid.slotNum=numOfSlots;
-		return 0;
-	}
-	if(currRid.pageNum%681==0)
-	{
-		headerPageNum=currHandle.getNextHeaderPage(headerPageNum);
-		fseek(currHandle.stream,headerPageNum*PAGE_SIZE,SEEK_SET);
-		fread(curHeaderPage, PAGE_SIZE, 1, currHandle.stream);
-	}
-	actualPageNum=*((INT32 *)((BYTE *)curHeaderPage+((currRid.pageNum%681+1)*PES)));
-	fseek(currHandle.stream,actualPageNum*PAGE_SIZE,SEEK_SET);
-	fread(curDataPage, PAGE_SIZE, 1, currHandle.stream);
-	currRid.slotNum=0;
-	numOfSlots=getSlotNoV(curDataPage);
-	dbgn1("number of slots in current data page",numOfSlots);
-	if(numOfSlots!=0)found=true;
+		if(currRid.pageNum==numOfPages)
+		{
+			currRid.slotNum=numOfSlots;
+			return 0;
+		}
+		if(currRid.pageNum%681==0)
+		{
+			headerPageNum=currHandle.getNextHeaderPage(headerPageNum);
+			fseek(currHandle.stream,headerPageNum*PAGE_SIZE,SEEK_SET);
+			fread(curHeaderPage, PAGE_SIZE, 1, currHandle.stream);
+		}
+		actualPageNum=*((INT32 *)((BYTE *)curHeaderPage+((currRid.pageNum%681+1)*PES)));
+		fseek(currHandle.stream,actualPageNum*PAGE_SIZE,SEEK_SET);
+		fread(curDataPage, PAGE_SIZE, 1, currHandle.stream);
+		currRid.slotNum=0;
+		numOfSlots=getSlotNoV(curDataPage);
+		dbgnRBFM("number of slots in current data page",numOfSlots);
+		if(numOfSlots!=0)found=true;
 	}
 
 	return 0;
@@ -935,8 +993,8 @@ RC RBFM_ScanIterator::incrementRID(){
 	else if(currRid.slotNum==numOfSlots-1)
 		getNextDataPage();
 
-	dbgn1("new RID page number",currRid.pageNum);
-	dbgn1("new RID slot number",currRid.slotNum);
+	dbgnRBFM("new RID page number",currRid.pageNum);
+	dbgnRBFM("new RID slot number",currRid.slotNum);
 
 	return 0;
 }
@@ -959,12 +1017,12 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 	{
 	case 0:
 		diff=intVal(temp)-intVal(valueP);
-		dbgn1("Comparing the integers here !","");
-		dbgn1(intVal(temp),intVal(valueP));
+		dbgnRBFM("Comparing the integers here !","");
+		dbgnRBFM(intVal(temp),intVal(valueP));
 		break;
 	case 1:
-		dbgn1("Comparing the floats here !","");
-		dbgn1((*((float *)temp)),(*((float *)valueP)));
+		dbgnRBFM("Comparing the floats here !","");
+		dbgnRBFM((*((float *)temp)),(*((float *)valueP)));
 		if(*((float *)temp)>*((float *)valueP))
 			diff=1;
 		else if(*((float *)temp)==*((float *)valueP))
@@ -974,12 +1032,12 @@ bool RBFM_ScanIterator::evaluateCondition(void * temp)
 		break;
 	case 2:
 		diff= strcmp((char *)temp,(char *)valueP);
-		dbgn1("Comparing the strings here !","");
-		dbgn1((char*)temp,(char*)valueP);
+		dbgnRBFM("Comparing the strings here !","");
+		dbgnRBFM((char*)temp,(char*)valueP);
 		break;
 	}
 	result=returnRes(diff);
-	dbgn1("result of comparison",result==1);
+	dbgnRBFM("result of comparison",result==1);
 	return(result);
 }
 
@@ -988,14 +1046,14 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 	BYTE * printData = (BYTE*)temp;
 	BYTE * tempData = (BYTE *)data;
 	INT32 num = 0;
-	dbgn1("this ","getAttributeGroup");
+	dbgnRBFM("this ","getAttributeGroup");
 
 	std::vector<Attribute>::const_iterator it = recDesc.begin();
 	std::vector<string>::const_iterator st = attrNames.begin();
-	dbgn("num of attributes",recDesc.size());
+	dbgnRBFM("num of attributes",recDesc.size());
 
-	dbgn("recDesc length",recDesc.size());
-	dbgn("recDesc length",attrNames.size());
+	dbgnRBFM("recDesc length",recDesc.size());
+	dbgnRBFM("recDesc length",attrNames.size());
 
 	for(it = recDesc.begin();(it != recDesc.end() && st!=attrNames.end());it++)
 	{
@@ -1007,7 +1065,7 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			{
 				memcpy(tempData,printData,4);
 				tempData+=4;
-				dbgn1("int attribute found",*st);
+				dbgnRBFM("int attribute found",*st);
 				st++;
 			}
 			printData = printData+4;
@@ -1018,7 +1076,7 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			{
 				memcpy(tempData,printData,4);
 				tempData+=4;
-				dbgn1("float attribute found",*st);
+				dbgnRBFM("float attribute found",*st);
 				st++;
 			}
 			printData = printData+4;
@@ -1029,10 +1087,10 @@ RC RBFM_ScanIterator::getAttributeGroup(void * data,void *temp)
 			if((it->name).compare(*st)==0)
 			{
 				if(isNull(num))
-					{memcpy(tempData,printData,4);tempData+=4;}
+				{memcpy(tempData,printData,4);tempData+=4;}
 				else
-					{memcpy(tempData,printData,4+num);tempData+=4+num;}
-				dbgn1("string attribute found",*st);
+				{memcpy(tempData,printData,4+num);tempData+=4+num;}
+				dbgnRBFM("string attribute found",*st);
 				st++;
 			}
 			printData = printData+4+num;
@@ -1052,14 +1110,14 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 	INT16 offset=0,len=0,numOfAttr=-1,startOff,endOff,attrLen;
 	void * modRecord=NULL,*temp=NULL,*tempAttr=NULL;
 	RecordBasedFileManager *rbfm = RecordBasedFileManager::instance();
-	dbgn1("this ","getNextRecord======================================");
-	dbgn1("total num of pages=",numOfPages);
+	dbgnRBFM("this ","getNextRecord======================================");
+	dbgnRBFM("total num of pages=",numOfPages);
 	for(;!found;incrementRID())
 	{
 		if((currRid.pageNum==numOfPages && currRid.slotNum==numOfSlots)||!isValid)
 		{
-			dbgn1("end of scan....","");
-			dbgn1("scan ",(unconditional)?"unconditional":"conditional");
+			dbgnRBFM("end of scan....","");
+			dbgnRBFM("scan ",(unconditional)?"unconditional":"conditional");
 			return RBFM_EOF;
 		}
 
@@ -1067,9 +1125,9 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		len=getSlotLenV(curDataPage,currRid.slotNum);
 
 		if(offset<0|| len<-1){
-			dbgn1("slot offset",offset);
-			dbgn1("slot length",len);
-			dbgn1("offset less than 0","or length lessert thn 0");
+			dbgnRBFM("slot offset",offset);
+			dbgnRBFM("slot length",len);
+			dbgnRBFM("offset less than 0","or length lessert thn 0");
 			continue;
 		}
 		if(len==-1) 			// tombstone case
@@ -1077,23 +1135,23 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 			void *page=malloc(PAGE_SIZE);
 			RID tempId;
 			INT32 tmp;INT16 tmpSlot;
-			dbgn1("tombstone record =========================== in read","   ");
+			dbgnRBFM("tombstone record =========================== in read","   ");
 			memcpy(&tmp,((BYTE *)page+offset),4);
 			tempId.pageNum=tmp;
 			memcpy(&tmpSlot,((BYTE *)page+offset+4),2);
 			tempId.slotNum=tmpSlot;
-			dbgn1("tombstone points to RID page number",tempId.pageNum);
-			dbgn1("tombstone points to RID slot number",tempId.slotNum);
+			dbgnRBFM("tombstone points to RID page number",tempId.pageNum);
+			dbgnRBFM("tombstone points to RID slot number",tempId.slotNum);
 			RC rc=currHandle.readPage(tempId.pageNum,page);
 			if(rc==-1)return -1;
 			INT32 totalSlotNo=*(INT16 *)((BYTE *)page+4092);
 
-			dbgn("total slots in the page",totalSlotNo);
+			dbgnRBFM("total slots in the page",totalSlotNo);
 			if(tempId.slotNum>=totalSlotNo||tempId.slotNum<0)return -1;
 
 			INT16 offsetRed=getSlotOffV(page,tempId.slotNum);
 			INT16 lenRed=getSlotLenV(page,tempId.slotNum);
-			dbgn("length of redirected record..should be -ve",lenRed);
+			dbgnRBFM("length of redirected record..should be -ve",lenRed);
 
 			lenRed=lenRed*-1; // always as its aredirected record
 			modRecord=malloc(lenRed);
@@ -1104,9 +1162,9 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		}
 		else
 		{
-		modRecord=malloc(len);
-		memcpy(modRecord,(BYTE*)curDataPage+offset,len);
-		temp=malloc(len*2);
+			modRecord=malloc(len);
+			memcpy(modRecord,(BYTE*)curDataPage+offset,len);
+			temp=malloc(len*2);
 		}
 		numOfAttr=*(INT16 *)modRecord;
 		//apprxiamtaley allocating..
@@ -1114,7 +1172,7 @@ RC RBFM_ScanIterator::getNextRecord(RID &rid, void *data)
 		if(!unconditional){								// means check for attiute condition
 
 			if(attrNum>=numOfAttr)						//means null records at the end-===> added column but not updated===>record may be ignored.
-			{	dbgn1(" desc attribute number is"," greater than disk attributes==>null");
+			{	dbgnRBFM(" desc attribute number is"," greater than disk attributes==>null");
 
 			// see if the given value itself is null in that case this record matches....
 			continue;

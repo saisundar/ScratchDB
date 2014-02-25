@@ -1,76 +1,10 @@
 #include "test_util.h"
 
+#include <sstream>
 
-void secA_8_A(const string &tableName)
-{
-    // Functions Tested
-    // 1. Simple scan **
-    cout << "****In Test Case 8_A****" << endl;
+unsigned total = 0;
 
-    RID rid;
-    int tupleSize = 0;
-    int numTuples = 100;
-    void *tuple;
-    void *returnedData = malloc(100);
-
-    RID rids[numTuples];
-    vector<char *> tuples;
-    set<int> ages;
-    RC rc = 0;
-    for(int i = 0; i < numTuples; i++)
-    {
-        tuple = malloc(100);
-
-        // Insert Tuple
-        float height = (float)i;
-        int age = 20+i;
-        prepareTuple(6, "Tester", age, height, 123, tuple, &tupleSize);
-        ages.insert(age);
-        rc = rm->insertTuple(tableName, tuple, rid);
-        assert(rc == success);
-
-        tuples.push_back((char *)tuple);
-        rids[i] = rid;
-    }
-    cout << "After Insertion!" << endl;
-
-    // Set up the iterator
-    RM_ScanIterator rmsi;
-    string attr = "Age";
-    vector<string> attributes;
-    attributes.push_back(attr);
-    rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi);
-    assert(rc == success);
-
-    cout << "Scanned Data:" << endl;
-
-    while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
-    {
-        cout << "Age: " << *(int *)returnedData << endl;
-        if (ages.find(*(int *)returnedData) == ages.end())
-        {
-            cout << "****Test case 8_A failed****" << endl << endl;
-            rmsi.close();
-            free(returnedData);
-            for(int i = 0; i < numTuples; i++)
-            {
-                free(tuples[i]);
-            }
-            return;
-        }
-    }
-    rmsi.close();
-
-    free(returnedData);
-    for(int i = 0; i < numTuples; i++)
-    {
-        free(tuples[i]);
-    }
-    cout << "****Test case 8_A passed****" << endl << endl;
-    return;
-}
-
-void secA_8_B(const string &tableName)
+int secA_8_B(const string &tableName)
 {
     // Functions Tested
     // 1. Simple scan **
@@ -94,7 +28,10 @@ void secA_8_B(const string &tableName)
     vector<string> attributes;
     attributes.push_back(attr);
     rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 8_B failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "Scanned Data:" << endl;
     
@@ -106,22 +43,25 @@ void secA_8_B(const string &tableName)
             cout << "****Test case 8_B failed****" << endl << endl;
             rmsi.close();
             free(returnedData);
-            return;
+            return -1;
         }
     }
     rmsi.close();
     
     // Delete a Table
     rc = rm->deleteTable(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 8_B failed****" << endl << endl;
+        return -1;
+    }
 
     free(returnedData);
     cout << "****Test case 8_B passed****" << endl << endl; 
-    return;
+    return 0;
 }
 
 
-void secA_9(const string &tableName, vector<RID> &rids, vector<int> &sizes)
+int secA_9(const string &tableName, vector<RID> &rids, vector<int> &sizes)
 {
     // Functions Tested:
     // 1. create table
@@ -136,7 +76,10 @@ void secA_9(const string &tableName, vector<RID> &rids, vector<int> &sizes)
     // GetAttributes
     vector<Attribute> attrs;
     RC rc = rm->getAttributes(tableName, attrs);
-    assert(rc == success);
+    if(rc != success) {
+         cout << "****Test case 9 failed****" << endl << endl;
+        return -1;
+    }
 
     for(unsigned i = 0; i < attrs.size(); i++)
     {
@@ -154,7 +97,10 @@ void secA_9(const string &tableName, vector<RID> &rids, vector<int> &sizes)
         prepareLargeTuple(i, tuple, &size);
 
         rc = rm->insertTuple(tableName, tuple, rid);
-        assert(rc == success);
+        if(rc != success) {
+             cout << "****Test case 9 failed****" << endl << endl;
+            return -1;
+        }
 
         rids.push_back(rid);
         sizes.push_back(size);        
@@ -162,10 +108,12 @@ void secA_9(const string &tableName, vector<RID> &rids, vector<int> &sizes)
     cout << "****Test case 9 passed****" << endl << endl;
 
     free(tuple);
+
+    return 0;
 }
 
 
-void secA_10(const string &tableName, const vector<RID> &rids, const vector<int> &sizes)
+int secA_10(const string &tableName, const vector<RID> &rids, const vector<int> &sizes)
 {
     // Functions Tested:
     // 1. read tuple
@@ -181,24 +129,29 @@ void secA_10(const string &tableName, const vector<RID> &rids, const vector<int>
         memset(tuple, 0, 1000);
         memset(returnedData, 0, 1000);
         rc = rm->readTuple(tableName, rids[i], returnedData);
-        assert(rc == success);
+        if(rc != success) {
+             cout << "****Test case 10 failed****" << endl << endl;
+            return -1;
+        }
 
         int size = 0;
         prepareLargeTuple(i, tuple, &size);
         if(memcmp(returnedData, tuple, sizes[i]) != 0)
         {
             cout << "****Test case 10 failed****" << endl << endl;
-            return;
+            return -1;
         }
     }
     cout << "****Test case 10 passed****" << endl << endl;
 
     free(tuple);
     free(returnedData);
+
+    return 0;
 }
 
 
-void secA_11(const string &tableName, vector<RID> &rids, vector<int> &sizes)
+int secA_11(const string &tableName, vector<RID> &rids, vector<int> &sizes)
 {
     // Functions Tested:
     // 1. update tuple
@@ -218,7 +171,10 @@ void secA_11(const string &tableName, vector<RID> &rids, vector<int> &sizes)
 
         prepareLargeTuple(i+10, tuple, &size);
         rc = rm->updateTuple(tableName, tuple, rid);
-        assert(rc == success);
+        if(rc != success) {
+             cout << "****Test case 11 failed****" << endl << endl;
+            return -1;
+        }
 
         sizes[i] = size;
         rids[i] = rid;
@@ -232,22 +188,27 @@ void secA_11(const string &tableName, vector<RID> &rids, vector<int> &sizes)
         memset(returnedData, 0, 1000);
         prepareLargeTuple(i+10, tuple, &size);
         rc = rm->readTuple(tableName, rids[i], returnedData);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 11 failed****" << endl << endl;
+            return -1;
+        }
 
         if(memcmp(returnedData, tuple, sizes[i]) != 0)
         {
             cout << "****Test case 11 failed****" << endl << endl;
-            return;
+            return -1;
         }
     }
     cout << "****Test case 11 passed****" << endl << endl;
 
     free(tuple);
     free(returnedData);
+
+    return 0;
 }
 
 
-void secA_12(const string &tableName, const vector<RID> &rids)
+int secA_12(const string &tableName, const vector<RID> &rids)
 {
     // Functions Tested
     // 1. delete tuple
@@ -261,25 +222,36 @@ void secA_12(const string &tableName, const vector<RID> &rids)
     for(int i = 0; i < 1000; i++)
     {
         rc = rm->deleteTuple(tableName, rids[i]);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 12 failed****" << endl << endl;
+            return -1;
+        }
 
         rc = rm->readTuple(tableName, rids[i], returnedData);
-        assert(rc != success);
+        if(rc == success) {
+            cout << "****Test case 12 failed****" << endl << endl;
+            return -1;
+        }
     }
     cout << "After deletion!" << endl;
 
     for(int i = 1000; i < 2000; i++)
     {
         rc = rm->readTuple(tableName, rids[i], returnedData);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 12 failed****" << endl << endl;
+            return -1;
+        }
     }
     cout << "****Test case 12 passed****" << endl << endl;
 
     free(returnedData);
+
+    return 0;
 }
 
 
-void secA_13(const string &tableName)
+int secA_13(const string &tableName)
 {
     // Functions Tested
     // 1. scan
@@ -292,7 +264,10 @@ void secA_13(const string &tableName)
     attrs.push_back("attr28");
    
     RC rc = rm->scan(tableName, "", NO_OP, NULL, attrs, rmsi); 
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 13 failed****" << endl << endl;
+        return -1;
+    }
 
     RID rid;
     int j = 0;
@@ -331,10 +306,12 @@ void secA_13(const string &tableName)
 
     cout << "****Test case 13 passed****" << endl << endl;
     free(returnedData);
+
+    return 0;
 }
 
 
-void secA_14(const string &tableName, const vector<RID> &rids)
+int secA_14(const string &tableName, const vector<RID> &rids)
 {
     // Functions Tested
     // 1. reorganize page
@@ -344,19 +321,29 @@ void secA_14(const string &tableName, const vector<RID> &rids)
 
     RC rc;
     rc = rm->reorganizePage(tableName, rids[1000].pageNum);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 14 failed****" << endl << endl;
+        return -1;
+    }
 
     rc = rm->deleteTuples(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 14 failed****" << endl << endl;
+        return -1;
+    }
 
     rc = rm->deleteTable(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 14 failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "****Test case 14 passed****" << endl << endl;
+    return 0;
 }
 
 
-void secA_15(const string &tableName) {
+int secA_15(const string &tableName) {
 
     cout << "****In Test case 15****" << endl;
     
@@ -383,7 +370,10 @@ void secA_15(const string &tableName) {
         
         prepareTuple(6, "Tester", age, height, 123, tuple, &tupleSize);
         rc = rm->insertTuple(tableName, tuple, rid);
-        assert(rc == success);
+        if(rc != success) {
+            cout << "****Test case 15 failed****" << endl << endl;
+            return -1;
+        }
 
         tuples.push_back((char *)tuple);
         rids[i] = rid;
@@ -396,20 +386,29 @@ void secA_15(const string &tableName) {
     vector<string> attributes;
     attributes.push_back(attr); 
     rc = rm->scan(tableName, attr, GT_OP, &ageVal, attributes, rmsi);
-    assert(rc == success); 
+    if(rc != success) {
+        cout << "****Test case 15 failed****" << endl << endl;
+        return -1;
+    }
 
     cout << "Scanned Data:" << endl;
     
     while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
     {
         cout << "Age: " << *(int *)returnedData << endl;
-        assert ( (*(int *) returnedData) > ageVal );
+        if((*(int *) returnedData) <= ageVal) {
+            cout << "****Test case 15 failed****" << endl << endl;
+            return -1;
+        }
     }
     rmsi.close();
     
     // Deleta Table
     rc = rm->deleteTable(tableName);
-    assert(rc == success);
+    if(rc != success) {
+        cout << "****Test case 15 failed****" << endl << endl;
+        return -1;
+    }
 
     free(returnedData);
     for(int i = 0; i < numTuples; i++)
@@ -418,15 +417,234 @@ void secA_15(const string &tableName) {
     }
     
     cout << "****Test case 15 passed****" << endl << endl;
+    return 0;
 }
 
+int testRMLayer(const string &tableName) {
+    cout << "****In testRMLayer ****" << endl;
+
+    RID rid;
+    int tupleSize = 0;
+    int numTuples = 10;
+    void *tuple;
+    void *returnedData = malloc(100);
+
+    RID rids[numTuples];
+    vector<char *> tuples;
+    set<int> ages;
+    RC rc = 0;
+    for(int i = 0; i < numTuples; i++)
+    {
+        tuple = malloc(100);
+
+        // Insert Tuple
+        float height = (float)i;
+        int age = i;
+        ostringstream convert;   // stream used for the conversion
+        convert << i;
+        string name = "Tester" + convert.str();
+        prepareTuple(name.size(), name, age, height, 2000 + i, tuple, &tupleSize);
+        ages.insert(age);
+        rc = rm->insertTuple(tableName, tuple, rid);
+        if(rc != success) {
+            cout << "****Test case testRMLayer failed****" << endl << endl;
+            return -1;
+        }
+
+        tuples.push_back((char *)tuple);
+        rids[i] = rid;
+    }
+    cout << "After Insertion!" << endl;
+
+    for(int i = 0; i < numTuples; i++)
+    {
+        int attrID = rand() % 4;
+        string attributeName;
+        if (attrID == 0) {
+            attributeName = "EmpName";
+        } else if (attrID == 1) {
+            attributeName = "Age";
+        } else if (attrID == 2) {
+            attributeName = "Height";
+        } else if (attrID == 3) {
+            attributeName = "Salary";
+        }
+        rc = rm->readAttribute(tableName, rids[i], attributeName, returnedData);
+        if(rc != success) {
+            cout << "****Test case testRMLayer failed****" << endl << endl;
+            return -1;
+        }
+
+        int nameLength = *(int *)tuples.at(i);
+        if (attrID == 0) {
+            if (memcmp(((char *)returnedData + 4), ((char *)tuples.at(i) + 4), nameLength) != 0) {
+                cout << "****Test case testRMLayer failed" << endl << endl;
+                return -1;
+            }
+        } else if (attrID == 1) {
+            if (memcmp(((char *)returnedData), ((char *)tuples.at(i) + nameLength + 4), 4) != 0) {
+                cout << "****Test case testRMLayer failed" << endl << endl;
+                return -1;
+            }
+        } else if (attrID == 2) {
+            if (memcmp(((char *)returnedData), ((char *)tuples.at(i) + nameLength + 4 + 4), 4) != 0) {
+                cout << "****Test case testRMLayer failed" << endl << endl;
+                return -1;
+            }
+        } else if (attrID == 3) {
+            if (memcmp(((char *)returnedData), ((char *)tuples.at(i) + nameLength + 4 + 4 + 4), 4) != 0) {
+                cout << "****Test case testRMLayer failed" << endl << endl;
+                return -1;
+            }
+        }
+    }
+
+
+    // Set up the iterator
+    RM_ScanIterator rmsi;
+    string attr = "Age";
+    vector<string> attributes;
+    attributes.push_back(attr);
+    rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi);
+    if(rc != success) {
+        cout << "****Test case testRMLayer failed****" << endl << endl;
+        return -1;
+    }
+
+    while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
+    {
+        if (ages.find(*(int *)returnedData) == ages.end())
+        {
+            cout << "****Test case testRMLayer failed****" << endl << endl;
+            rmsi.close();
+            free(returnedData);
+            for(int i = 0; i < numTuples; i++)
+            {
+                free(tuples[i]);
+            }
+            return -1;
+        }
+    }
+    rmsi.close();
+
+
+    RM_ScanIterator rmsi2;
+
+    void *value = malloc(14);
+    string name = "Tester9999";
+    int nameLength = 10;
+
+    memcpy((char *)value, &nameLength, 4);
+    memcpy((char *)value + 4, name.c_str(), nameLength);
+
+    attributes.clear();
+    attr = "EmpName";
+
+    attributes.push_back("Height");
+    attributes.push_back("Salary");
+    rc = rm->scan(tableName, attr, GT_OP, value, attributes, rmsi2);
+    if(rc != success) {
+        free(returnedData);
+        for(int i = 0; i < numTuples; i++)
+        {
+            free(tuples[i]);
+        }
+        cout << "****Test case testRMLayer failed****" << endl << endl;
+        return -1;
+    }
+
+    int counter = 0;
+    while(rmsi2.getNextTuple(rid, returnedData) != RM_EOF)
+    {
+        counter++;
+        if (*(float *)returnedData > 100000.0 || *(float *)returnedData < 99990.0 || *(int *)((char *)returnedData + 4) > 102000 || *(int *)((char *)returnedData + 4) < 101990)
+        {
+             cout << "****Test case testRMLayer failed" << endl << endl;
+             rmsi2.close();
+             free(returnedData);
+             for(int i = 0; i < numTuples; i++)
+             {
+                 free(tuples[i]);
+             }
+             return -1;
+        }
+    }
+    rmsi2.close();
+
+    for(int i = 0; i < numTuples; i++)
+    {
+        rc = rm->deleteTuple(tableName, rids[i]);
+        if(rc != success) {
+            free(returnedData);
+            for(int i = 0; i < numTuples; i++)
+            {
+                free(tuples[i]);
+            }
+            cout << "****Test case testRMLayer failed****" << endl << endl;
+            return -1;
+        }
+
+        rc = rm->readTuple(tableName, rids[i], returnedData);
+        if(rc == success) {
+            free(returnedData);
+            for(int i = 0; i < numTuples; i++)
+            {
+                free(tuples[i]);
+            }
+            cout << "****Test case testRMLayer failed****" << endl << endl;
+            return -1;
+        }
+    }
+
+    // Set up the iterator
+    RM_ScanIterator rmsi3;
+    rc = rm->scan(tableName, "", NO_OP, NULL, attributes, rmsi3);
+    if(rc != success) {
+        free(returnedData);
+        for(int i = 0; i < numTuples; i++)
+        {
+            free(tuples[i]);
+        }
+        cout << "****Test case testRMLayer failed****" << endl << endl;
+        return -1;
+    }
+
+    if(rmsi3.getNextTuple(rid, returnedData) != RM_EOF)
+    {
+        cout << "****Test case testRMLayer failed" << endl << endl;
+        rmsi3.close();
+        free(returnedData);
+        for(int i = 0; i < numTuples; i++)
+        {
+            free(tuples[i]);
+        }
+        return -1;
+    }
+    rmsi3.close();
+
+    // Delete a Table
+    rc = rm->deleteTable(tableName);
+    if(rc != success) {
+        cout << "****Test case testRMLayer failed****" << endl << endl;
+        return -1;
+    }
+
+    free(returnedData);
+    for(int i = 0; i < numTuples; i++)
+    {
+        free(tuples[i]);
+    }
+    cout << "****Test case testRMLayer passed****" << endl << endl;
+    return 0;
+}
 
 void Tests()
 {
-	createTable("tbl_employee3");
-	secA_8_A("tbl_employee3");
     // Simple Scan
-    secA_8_B("tbl_employee3");
+    int rc = secA_8_B("tbl_employee3");
+    if (rc != 0) {
+        total -= 4;
+    }
 
     memProfile();
 
@@ -437,38 +655,83 @@ void Tests()
     vector<int> sizes;
 
     // Insert Tuple
-    secA_9("tbl_employee4", rids, sizes);
+    rc = secA_9("tbl_employee4", rids, sizes);
+    if (rc == 0) {
+        total += 4;
+    }
     // Read Tuple
-    secA_10("tbl_employee4", rids, sizes);
+    rc = secA_10("tbl_employee4", rids, sizes);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Update Tuple
-    secA_11("tbl_employee4", rids, sizes);
+    rc = secA_11("tbl_employee4", rids, sizes);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Delete Tuple
-    secA_12("tbl_employee4", rids);
+    rc = secA_12("tbl_employee4", rids);
+    if (rc == 0) {
+        total += 4;
+    }
 
     memProfile();
 
     // Scan
-    secA_13("tbl_employee4");
+    rc = secA_13("tbl_employee4");
+    if (rc == 0) {
+        total += 4;
+    }
 
     // DeleteTuples/Table
-    secA_14("tbl_employee4", rids);
+    rc = secA_14("tbl_employee4", rids);
+    if (rc == 0) {
+        total += 4;
+    }
 
     // Scan with conditions
     createTable("tbl_b_employee4");
-    secA_15("tbl_b_employee4");
+    rc = secA_15("tbl_b_employee4");
+    if (rc == 0) {
+        total += 4;
+    }
+
+    memProfile();
+
+    createTable("tbl_employee5");
+    rc = testRMLayer("tbl_employee5");
+    if (rc == 0) {
+        total += 16;
+    }
     
     memProfile();
+
+    cout << "Grade is: " << total << endl;
     return;
+}
+
+void tests2(){
+    createTable("tbl_employee5");
+        RC rc = testRMLayer("tbl_employee5");
+        if (rc == 0) {
+            total += 16;
+        }
+
+        memProfile();
 }
 
 int main()
 {
     // Basic Functions
+	remove("System_Catalog");
+	remove("cat_tbl_employee5");
+	remove("tbl_employee5");
     cout << endl << "Test Basic Functions..." << endl;
+    tests2();
 
-    Tests();
+//    Tests();
 
     return 0;
 }

@@ -35,6 +35,7 @@ PagedFileManager::~PagedFileManager()
 
 INT32 PagedFileManager::insertHeader(FILE* fileStream)
 {
+	dbgnPFMU("<PFMu----insertHeader----PFMu>","");
 	void *data = malloc(PAGE_SIZE);
 	for(int i=0;i<PAGE_SIZE;i++)
 		*((BYTE *)data+i) = 0;
@@ -42,6 +43,7 @@ INT32 PagedFileManager::insertHeader(FILE* fileStream)
 	INT32 end = ftell(fileStream);
 	fwrite(data,1,PAGE_SIZE,fileStream);
 	free(data);
+	dbgnPFMU("</PFMu---insertHeader---PFMu/>","");
 	return end/PAGE_SIZE;
 }
 
@@ -51,8 +53,8 @@ INT32 PagedFileManager::insertHeader(FILE* fileStream)
 // fileName: const char* (c - string)
 RC PagedFileManager::createFile(const char *fileName)
 {
-	dbgn("this ","createFile");
-	dbgn("Filename",fileName);
+	dbgnPFM("<PFM---------createFile---------PFM>","");
+	dbgnPFM("Filename",fileName);
 	if(FileExists(fileName))
 		return -1;
 
@@ -60,6 +62,7 @@ RC PagedFileManager::createFile(const char *fileName)
 	file = fopen(fileName,"wb");
 	insertHeader(file);
 	fclose(file);
+	dbgnPFM("</PFM--------createFile--------PFM/>","");
 	return 0;
 }
 
@@ -69,16 +72,17 @@ RC PagedFileManager::createFile(const char *fileName)
 // fileName: const char* (c - string)
 RC PagedFileManager::destroyFile(const char *fileName)
 {
-	dbgn("this ","destroyFile");
-	dbgn("Filename",fileName);
+	dbgnPFM("<PFM--------destroyFile--------PFM>","");
+	dbgnPFM("Filename",fileName);
 	if(!FileExists(fileName)|| (files.find(fileName)!=files.end() && files.find(fileName)->second!=0))
 		return -1;
-	if(files.find(fileName)!=files.end())dbgn("ref count",files.find(fileName)->second);
-	dbgn("File actually destroyed ","destroyFile");
-
+	if(files.find(fileName)!=files.end())
+		dbgnPFM("Reference count for file",files[fileName]);
 	remove(fileName);
+	dbgnPFM("File destroyed ","");
 	if(files.find(fileName)!=files.end())
 		files.erase(files.find(fileName));
+	dbgnPFM("</PFM-------destroyFile-------PFM/>","");
 	return 0;
 }
 
@@ -89,8 +93,8 @@ RC PagedFileManager::destroyFile(const char *fileName)
 
 RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 {
-	dbgn("this ","openFile");
-	dbgn("Filename",fileName);
+	dbgnPFM("<PFM---------openFile---------PFM>","");
+	dbgnPFM("Filename",fileName);
 	if(!FileExists(fileName))
 		return -1;
 	if(fileHandle.stream)
@@ -101,7 +105,9 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 	if(files.find(fileName)==files.end())
 		files.insert(std::pair<string,INT32>(fileName,0));
 	files[fileName]++;
-	dbgn("ref count_open_file",files[fileName]);
+	dbgnPFM("Reference count for file",files[fileName]);
+	dbgnPFM("</PFM--------openFile--------PFM/>","");
+
 	return 0;
 }
 
@@ -111,29 +117,24 @@ RC PagedFileManager::openFile(const char *fileName, FileHandle &fileHandle)
 // This function also updates the count of open streams of a file(read/write)
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-	dbgn("this ","closeFile");
-	dbgn("Filename",fileHandle.fileName);
+	dbgnPFM("<PFM---------closeFile---------PFM>","");
+	dbgnPFM("Filename",fileHandle.fileName);
 	if(fileHandle.stream==0)
 		return -1;
 
-	fclose(fileHandle.stream);
-	if(files.find(fileHandle.fileName)==files.end())
-			dbgn("major catastropheeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","MAJORRRRRRRRRRRRRRRRRRRRRR");
+	if(files.find(fileHandle.fileName)==files.end()){
+		dbgnPFM("CLOSING A FILE WHICH IS NOT OPENED",fileHandle.fileName);
+		return -1;
+	}
 
 	if(fileHandle.mode)
 		files[fileHandle.fileName] = -1*files[fileHandle.fileName];
+	files[fileHandle.fileName]--;
+	dbgnPFM("reference count for file",files[fileHandle.fileName]);
 
-	if(files.find(fileHandle.fileName)==files.end())
-	{
-		dbgn("majorcatastropheeeeeeeeeeee","MAJORRRRRRRRRRRRRRRRRRRRRR");
-	}
-	else
-	{
-		files[fileHandle.fileName]--;
-		dbgn("close handle ref count",files[fileHandle.fileName]);
-	}
-
+	fclose(fileHandle.stream);
 	fileHandle.stream = 0;
+	dbgnPFM("</PFM--------closeFile--------PFM/>","");
 	return 0;
 }
 
@@ -165,15 +166,19 @@ INT32 FileHandle::getNextHeaderPage(INT32 pageNum)
 //	RETURNS ACTUAL PAGE NUMBER OF HEADER PAGE where the record for VIRTUAL PAGE NUMBER pageNum is stored
 INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 {
+	dbgnFHU("<FHu----gHeaderPageNum----FHu>","");
+
+	// Request to find the header page of a data page which does not exist
 	if(pageNum>=getNumberOfPages()) return -1;
 
 	INT32 headPageNum=(pageNum)/681;INT32 tempPgNum=0;
-	dbgn("this ","get header pagnum");
-	dbgn("vrtl pg num ",pageNum);
+	dbgnFHU("Virtual page no ",pageNum);
 
 	for(int i=0;i<headPageNum;i++)
 		tempPgNum=getNextHeaderPage(tempPgNum);
-	dbgn("headr pg num ",tempPgNum);
+	dbgnFHU("Header page no ",tempPgNum);
+
+	dbgnFHU("</FHu---gHeaderPageNum---FHu/>","");
 	return tempPgNum;
 }
 
@@ -181,17 +186,25 @@ INT32 FileHandle::getHeaderPageNum(INT32 pageNum)
 //	reads the Header pages and	RETURNS ACTUAL PAGE NUMBER
 INT32 FileHandle::translatePageNum(INT32 pageNum)
 {
+	dbgnFHU("<FHu----traslatePageNum----FHu>","");
+
+	//
 	if(pageNum>=getNumberOfPages()) return -1;
+
 	INT32 headPageNum=getHeaderPageNum(pageNum);
-	dbgn("this ","tranlsate pagnum");
-	dbgn("vrtl pg num ",pageNum);
-	dbgn("headr pg num ",headPageNum);
+	dbgnFHU("Virtual page no ",pageNum);
+	dbgnFHU("Header page no ",headPageNum);
+
 	INT32 offset=pageNum%681;
+
 	if(headPageNum==-1)return -1;
+
 	INT32 actualPgNum;
 	fseek(stream,(headPageNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
 	fread(&actualPgNum, 1, 4, stream);
-	dbgn("actual pg num ",actualPgNum);
+	dbgnFHU("Actual page no ",actualPgNum);
+
+	dbgnFHU("</FHu---traslatePageNum---FHu/>","");
 	return actualPgNum;
 }
 
@@ -203,15 +216,22 @@ INT32 FileHandle::translatePageNum(INT32 pageNum)
 //     should its write privileges be revoked and hence freed for other users ?
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-	if(pageNum>=getNumberOfPages())
+	dbgnFH("<FH----------readPage----------FH>","");
+	// If request to read a page which does not exist is made throw error
+	if(pageNum>=getNumberOfPages()){
+		dbgnFH("Number of pages exceeds","total pages")
+		dbgnFH("</FH---------readPage---------FH/>","");
 		return -1;
+	}
 	INT32 actualPgNum=translatePageNum(pageNum);
-	dbgn("this ","readPage");
-	dbgn("virtual page num",pageNum);
-	dbgn("actual page num",actualPgNum);
+	dbgnFH("Virtual page no",pageNum);
+	dbgnFH("Actual page no",actualPgNum);
+
 	if(actualPgNum==-1)return -1;
+
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 	fread(data, 1, PAGE_SIZE, stream);
+	dbgnFH("</FH---------readPage---------FH/>","");
 	return 0;
 }
 
@@ -227,15 +247,22 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
-
+	dbgnFH("<FH----------writePage----------FH>","");
 	PagedFileManager *pfm = PagedFileManager::instance();
+
+	// If current file does not have write permission and some other file is assigned write permissions
+	// throw an error
+	// If file is not opened throw error
+	// If request to write to a page which does not exist is made, throw error
+
 	if((pfm->files[fileName]<0 && !mode)||pageNum>=getNumberOfPages())
 		return -1;
 	INT32 actualPgNum=translatePageNum(pageNum);
-	dbgn("this ","writePage========");
-	dbgn("virtual page num",pageNum);
-	dbgn("actual page num",actualPgNum);
+	dbgnFH("Virtual page no",pageNum);
+	dbgnFH("Actual page no",actualPgNum);
 	if(actualPgNum==-1)return -1;
+
+	// If write permissions not given, give write permissions
 	if(!mode)
 	{
 		freopen(fileName.c_str(),"r+b",stream);
@@ -245,13 +272,14 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 	fseek(stream,actualPgNum*PAGE_SIZE,SEEK_SET);
 	fwrite(data, 1, PAGE_SIZE, stream);
 	fflush(stream);
-	dbgn("write Page is over","");
+	dbgnFH("</FH---------writePage---------FH/>","");
 	return 0;
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
+	dbgnFH("<FH----------AppendPage----------FH>","");
 	PagedFileManager *pfm = PagedFileManager::instance();
 	if(pfm->files[fileName]<0 && !mode)
 		return -1;
@@ -266,7 +294,7 @@ RC FileHandle::appendPage(const void *data)
 
 	INT32 actualPageNo = ftell(stream);
 	actualPageNo = actualPageNo/PAGE_SIZE;
-	dbgn("page no of New page added:",actualPageNo);
+	dbgnFH("page no of New page added:",actualPageNo);
 	fwrite(data, 1, PAGE_SIZE, stream);
 	fflush(stream);
 
@@ -306,8 +334,9 @@ RC FileHandle::appendPage(const void *data)
 	fseek(stream,currentHeaderPage*PAGE_SIZE + PES*(inHeaderPosition+1) + 4,SEEK_SET);
 	INT16 freeSpace = 4092;
 	fwrite((void*)&freeSpace,1,2,stream);
-	dbgn("Appendpage: actual page no of newly appended page",translatePageNum(virtualPageNo));
-	dbgn("number of pages after insertion",getNumberOfPages());
+	dbgnFH("AppendPage: actual page no of newly appended page",translatePageNum(virtualPageNo));
+	dbgnFH("number of pages after insertion",getNumberOfPages());
+	dbgnFH("</FH---------AppendPage--------FH/>","");
 	return 0;
 
 }
@@ -318,43 +347,57 @@ RC FileHandle::appendPage(const void *data)
 //		It returns an error if no stream is assigned to the fileHandle
 unsigned FileHandle::getNumberOfPages()
 {
+	dbgnFHU("<FHu----noOFPages----FHu>","");
 	if(stream==0)
-	{ cout<<" NO STREAM PRESENT!!!";
-	return 0;
+	{
+		dbgnFHU("Stream error","Does not exist!");
+		return -1;
 	}
 	INT32 pgn=-1;
 	fseek(stream,0,SEEK_SET);
 	fread(&pgn, 4, 1, stream);
+	dbgnFHU("</FHu---noOFPages---FHu/>","");
 	return(pgn);
 }
 
 // <updateFreeSpaceInHeader> updates the free space in the header page by the amount specified in the parameter
-
+// If called with increasedBy = 0, will return current free space.
 INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
-	//Update FreeSpace in Header Page
 
+	dbgnFH("<FH----UpdFreeSpaceIH----FH>","");
+	dbgnFH("Updating FreeSpace for Page",pageNum);
 
 	INT32 headerPageNumber = getHeaderPageNum(pageNum);
 	INT16 prevFreeSpace = 0;
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
 	fread(&prevFreeSpace,1,2,stream);
-	if(increaseBy==0)return prevFreeSpace;
-	dbgn1("<----------------------------In UpdateFreeSpaceInHeader-------------------------> for PAGE",pageNum);
-	dbgn1("Old Free Space: ",prevFreeSpace);
-	dbgn1("Increase by",increaseBy);
+	if(increaseBy==0){
+		dbgnFH("Called for current freeSpace","");
+		dbgnFH("</FH---UpdFreeSpaceIH---FH/>","");
+		return prevFreeSpace;
+	}
+
+	dbgnFH("Old Free Space: ",prevFreeSpace);
+	dbgnFH("Increase by",increaseBy);
+
 	prevFreeSpace += increaseBy;
+
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
 	fwrite(&prevFreeSpace,1,2,stream);
+
+	// Should we still keep this ?
 	fseek(stream,headerPageNumber*PAGE_SIZE+(pageNum % 681)*6 + 10,SEEK_SET);
 	fread(&prevFreeSpace,1,2,stream);
-	dbgn1("New Free Space: from the headerfile",prevFreeSpace);
+
+	dbgnFH("Updated Free Space(Read from HeaderFile)",prevFreeSpace);
+	dbgnFH("</FH---UpdFreeSpaceIH---FH/>","");
 	return prevFreeSpace;
 }
 
+// Function to check if the file exists in the file system
 bool FileExists(string fileName)
 {
 	struct stat stFileInfo;
-
 	if(stat(fileName.c_str(), &stFileInfo) == 0) return true;
 	else return false;
 }

@@ -12,10 +12,17 @@
 #include<cstdlib>
 using namespace std;
 
-//#define debug 1
+/*
+#define debugFH 1
+#define debugFHU 1
+#define debugPFM 1
+#define debugPFMU 1
+#define debugRBFM 1
+#define debugRBFMU 1
 //#define debug1 1
-//#define debug2 1
+#define debug2 1
 //#define debug3 1
+*/
 typedef int32_t INT32;
 typedef int16_t INT16;
 typedef int8_t BYTE;
@@ -29,20 +36,50 @@ typedef float FLOAT;
 
 #define maxim(a,b) a>b?a:b
 
-# ifdef debug
-# define dbgn(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# ifdef debugRBFM
+# define dbgnRBFM(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
-# define dbgn(str1,str2) (void)0;
+# define dbgnRBFM(str1,str2) (void)0;
+#endif
+
+# ifdef debugRBFMU
+# define dbgnRBFMU(str1,str2) cout<<"\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnRBFMU(str1,str2) (void)0;
+#endif
+
+# ifdef debugPFMU
+# define dbgnPFMU(str1,str2) cout<<"\t\t\t\t\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnPFMU(str1,str2) (void)0;
+#endif
+
+# ifdef debugFHU
+# define dbgnFHU(str1,str2) cout<<"\t\t\t\t\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnFHU(str1,str2) (void)0;
+#endif
+
+# ifdef debugPFM
+# define dbgnPFM(str1,str2) cout<<"\t\t\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnPFM(str1,str2) (void)0;
+#endif
+
+# ifdef debugFH
+# define dbgnFH(str1,str2) cout<<"\t\t\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnFH(str1,str2) (void)0;
 #endif
 
 # ifdef debug1
-# define dbgn1(str1,str2) cout<<setw(50)<<str1<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# define dbgn1(str1,str2) cout<<setw(50)<<str1<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgn1(str1,str2) (void)0;
 #endif
 
 # ifdef debug2
-# define dbgn2(str1,str2) cout<<setw(50)<<(str1)<<": "<<setw(20)<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# define dbgn2(str1,str2) cout<<setw(50)<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgn2(str1,str2) (void)0;
 #endif

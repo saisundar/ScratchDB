@@ -579,12 +579,7 @@ RC RelationManager::reorganizePage(const string &tableName, const unsigned pageN
 	return 0;
 }
 
-RC RelationManager::scan(const string &tableName,
-		const string &conditionAttribute,
-		const CompOp compOp,
-		const void *value,
-		const vector<string> &attributeNames,
-		RM_ScanIterator &rm_ScanIterator)
+RC RelationManager :: scan(const string &tableName, const string &conditionAttribute, const CompOp compOp, const void *value, const vector<string> &attributeNames, RM_ScanIterator &rm_ScanIterator)
 {
 	dbgn2("<----------------------------In scan (RM)------------------------->","");
 	vector<Attribute> recordDescriptor;
