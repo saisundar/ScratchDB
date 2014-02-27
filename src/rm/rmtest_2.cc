@@ -425,7 +425,7 @@ int testRMLayer(const string &tableName) {
 
     RID rid;
     int tupleSize = 0;
-    int numTuples = 10;
+    int numTuples = 100000;
     void *tuple;
     void *returnedData = malloc(100);
 
@@ -737,9 +737,9 @@ int main()
 	remove("cat_tbl_employee5");
 	remove("tbl_employee5");
     cout << endl << "Test Basic Functions..." << endl;
-  //  tests2();
+    tests2();
 
-   Tests();
+   //Tests();
 
     return 0;
 }

@@ -62,6 +62,41 @@ RC IndexManager::closeFile(FileHandle &fileHandle)
 	return 0;
 }
 
+///this routine will give >0 :    if keyIndex < keyInput
+//						  0  : 	if keyIndex = keyInput
+//						 <0  : 	if keyIndex > keyInput
+// it chekcs if arg2 > arg2, return normalised diff(irrepsective of datatype)
+float IndexManager::compare(void * keyIndex,void* keyInput,AttrType type)  ////
+{
+	float diff;
+	bool result=false;
+	dbgnIXU("<IXu---------------compare---------------IXu>"," ");
+	dbgnIXU("type of attribute tobe compared",type);
+	switch(type)
+	{
+	case 0:
+		diff=intVal(keyInput)-intVal(keyIndex);
+		dbgnIXU("Comparing the integers here !","");
+		dbgnIXU(intVal(keyInput),intVal(keyIndex));
+		break;
+	case 1:
+		dbgnIXU("Comparing the floats here !","");
+		dbgnIXU((*((float *)keyInput)),(*((float *)keyIndex)));
+		diff=*((float *)keyInput)-*((float *)keyIndex);
+
+		if(modlus(diff)<0.000001)diff=0;
+		break;
+	case 2:
+		diff= strcmp((char *)keyInput,(char *)keyIndex);
+		dbgnIXU("Comparing the strings here !","");
+		dbgnIXU((char*)keyInput,(char*)keyIndex);
+		break;
+	}
+
+	dbgnIXU("result of comparison",result==1);
+	return(diff);
+}
+
 // Inserts a new page of INDEX TYPE and updates the pageNum to contain the Virtual Page Number of the new Page added
 // Also updates the header page to contain the correct amount of freeSpace
 RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
