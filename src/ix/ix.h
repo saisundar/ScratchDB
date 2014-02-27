@@ -8,7 +8,15 @@
 #include "../rbf/rbfm.h"
 
 # define IX_EOF (-1)  // end of the index scan
-
+# define getRoot(handle,root) {           			\
+		if(handle.stream==0)		\
+		root=-1;				\
+		else						\
+		{							\
+			fseek(handle.stream,PAGE_SIZE,SEEK_SET);				\
+			fread(&root, 1, 4, handle.stream);	  	  	  	  	  	\
+		}							\
+}									\
 
 #define pageType(data) (*((BYTE*)data))
 

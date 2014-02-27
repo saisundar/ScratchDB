@@ -28,6 +28,7 @@ RC IndexManager::createFile(const string &fileName)
 	FileHandle fileHandle;
 	if(pfm->openFile(fileName.c_str(), fileHandle)==-1)return -1;
 	void* data = malloc(PAGE_SIZE);
+	memcpy(data,&((INT32)(-1)),4);
 	fileHandle.appendPage(data);
 	if(pfm->closeFile(fileHandle)==-1)return -1;
 	free(data);
@@ -131,6 +132,9 @@ RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
 
 RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
+	INT32 root;
+	getRoot(fileHandle,root);
+
 	return -1;
 }
 
