@@ -9,6 +9,21 @@
 
 # define IX_EOF (-1)  // end of the index scan
 
+
+#define pageType(data) (*((BYTE*)data))
+
+# ifdef debugIX
+# define dbgnIX(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnIX(str1,str2) (void)0;
+#endif
+
+# ifdef debugIXU
+# define dbgnIXU(str1,str2) cout<<"\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnIXU(str1,str2) (void)0;
+#endif
+
 class IX_ScanIterator;
 
 class IndexManager {

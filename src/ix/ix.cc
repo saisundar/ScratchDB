@@ -68,11 +68,11 @@ RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
 	dbgnRBFM("<IXu---------------insertIndexNode---------------IXu>","");
 	void* data = malloc(PAGE_SIZE);
 	pageType(data) = (BYTE)1;
-	getFreeOffsetV(data) = (INT16)8;
+	getFreeOffsetV(data) = (INT16)12;
 	getSlotNoV(data) = (INT16)0;
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
-	fileHandle.updateFreeSpaceInHeader(pageNum,-8);
+	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
 	free(data);
 	dbgnRBFM("</IXu--------------insertIndexNode--------------IXu/>","");
 	return 0;
@@ -84,11 +84,11 @@ RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
 	dbgnRBFM("<IXu---------------insertLeafNode---------------IXu>","");
 	void* data = malloc(PAGE_SIZE);
 	pageType(data) = (BYTE)0;
-	getFreeOffsetV(data) = (INT16)16;
+	getFreeOffsetV(data) = (INT16)12;
 	getSlotNoV(data) = (INT16)0;
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
-	fileHandle.updateFreeSpaceInHeader(pageNum,-16);
+	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
 	free(data);
 	dbgnRBFM("</IXu---------------insertLeafNode--------------IXu/>","");
 	return 0;
