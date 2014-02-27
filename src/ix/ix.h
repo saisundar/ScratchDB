@@ -45,6 +45,9 @@ class IndexManager {
       bool        highKeyInclusive,
       IX_ScanIterator &ix_ScanIterator);
 
+  //Utility FUnctions;
+   RC insertIndexNode(INT32& pageNum, FileHandle fileHandle);
+   RC insertLeafNode(INT32& pageNum, FileHandle fileHandle);
  protected:
   IndexManager   ();                            // Constructor
   ~IndexManager  ();                            // Destructor
