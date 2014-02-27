@@ -1,20 +1,6 @@
 
 #include "ix.h"
 
-#define pageType(data) (*((BYTE*)data))
-
-# ifdef debugIX
-# define dbgnIX(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
-# else
-# define dbgnIX(str1,str2) (void)0;
-#endif
-
-# ifdef debugIXU
-# define dbgnIXU(str1,str2) cout<<"\t\t\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
-# else
-# define dbgnIXU(str1,str2) (void)0;
-#endif
-
 IndexManager* IndexManager::_index_manager = 0;
 
 IndexManager* IndexManager::instance()
@@ -79,27 +65,32 @@ RC IndexManager::closeFile(FileHandle &fileHandle)
 // Inserts a new page of INDEX TYPE and updates the pageNum to contain the Virtual Page Number of the new Page added
 // Also updates the header page to contain the correct amount of freeSpace
 RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
+	dbgnRBFM("<IXu---------------insertIndexNode---------------IXu>","");
 	void* data = malloc(PAGE_SIZE);
-	pageType(data) = 1;
-	getFreeOffsetV(data) = 8;
-	getSlotNoV(data) = 0;
+	pageType(data) = (BYTE)1;
+	getFreeOffsetV(data) = (INT16)8;
+	getSlotNoV(data) = (INT16)0;
 	fileHandle.appendPage(data);
-	pageNum = fileHandle.getNumberOfPages();
+	pageNum = fileHandle.getNumberOfPages()-1;
 	fileHandle.updateFreeSpaceInHeader(pageNum,-8);
+	free(data);
+	dbgnRBFM("</IXu--------------insertIndexNode--------------IXu/>","");
 	return 0;
 }
 
 // Inserts a new page of LEAF TYPE and updates the pageNum to contain the Virtual Page Number of the new Page added
 // Also updates the header page to contain the correct amount of freeSpace
 RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
-
+	dbgnRBFM("<IXu---------------insertLeafNode---------------IXu>","");
 	void* data = malloc(PAGE_SIZE);
-	pageType(data) = 0;
-	getFreeOffsetV(data) = 16;
-	getSlotNoV(data) = 0;
+	pageType(data) = (BYTE)0;
+	getFreeOffsetV(data) = (INT16)16;
+	getSlotNoV(data) = (INT16)0;
 	fileHandle.appendPage(data);
-	pageNum = fileHandle.getNumberOfPages();
+	pageNum = fileHandle.getNumberOfPages()-1;
 	fileHandle.updateFreeSpaceInHeader(pageNum,-16);
+	free(data);
+	dbgnRBFM("</IXu---------------insertLeafNode--------------IXu/>","");
 	return 0;
 }
 
