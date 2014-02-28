@@ -130,10 +130,157 @@ RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
 	return 0;
 }
 
+RC IndexManager::updateRoot(FileHandle &fileHandle,INT32 root)
+{
+	void* page=malloc(PAGE_SIZE);
+	fileHandle.readPage(0,page);
+	memcpy(page,&root,4);
+	fileHandle.writePage(0,page);
+	free(page);
+	return 0;
+
+}
+
+// this routine assumes that page is a valid pointer with the actual page info, and key is a null pointer which will be allocated
+// inside the routine
+// returns the length of the new key, returns -1 if error or deleted.
+INT32 IndexManager::getKeyAtSlot(FileHandle &fileHandle,void* page,void* key,INT16 slotNo)
+{
+
+	if(page==NULL)return -1;
+
+	INT16 keyOffset = getSlotOffV(page,slotNo);
+	INT16 keyLength = getSlotLenV(page,slotNo);
+
+	key= malloc(keyLength);
+	memcpy(key,(BYTE *)page+keyOffset,keyLength);
+
+	return keyLength;
+
+}
+
+RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid,INT32 nodeNum,INT32 &newchildPage)
+{
+	void* page=malloc(PAGE_SIZE);
+
+	if(fileHandle.readPage(nodeNum,page)!=0)
+		dbgnIX("Oops wrong pagenum--does not exist or some error !"," ");
+	if(isleaf(page))
+	{
+
+
+
+
+	}
+	else
+	{
+
+
+
+
+	}
+
+}
+
+RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,INT32 newChild)
+{
+
+	INT16 freeSpace=updateFreeSpaceInHeader(virtualPgNum,0);
+	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
+	requiredSpace+=4;
+
+	if(freeSpace>requiredSpace)
+	{
+
+
+
+
+	}
+	else
+	{
+
+		split ..................
+
+
+	}
+
+
+
+}
+
+RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key)
+{
+
+	INT16 freeSpace=updateFreeSpaceInHeader(virtualPgNum,0);
+	INT16 requiredSpace =
+
+
+
+
+
+
+
+
+
+}
+
+
 RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
-	INT32 root;
+	INT32 root,newchild=-1,newRoot,newChild=-1;
+	INT16 keyLength=0;
+	void *newRootPage,*middleKey,*newChildPage;
 	getRoot(fileHandle,root);
+
+	if(root==-1)
+	{
+		insertLeafNode(root, fileHandle);
+		updateRoot(fileHandle,root);
+	}
+
+	insertRecurseEntry(fileHandle,attribute, key,rid,root,newchild);
+
+	if(newChild==-1)
+		return 0;
+// if new child == some value means root has split.... make nw index node.. insert the entry in to the index node , and update root.
+
+	insertIndexNode(newRoot, fileHandle);
+	updateRoot(fileHandle,root);
+	//insert the new child entry 's first value in to the new root node.
+	newRoot= malloc(PAGE_SIZE);
+	newChildPage=malloc(PAGE_SIZE);
+	fileHandle.readPage(newRoot,newRootPage);
+	fileHandle.readPage(newChild,newChildPage);
+	keyLength=getKeyAtSlot(fileHandle,newChildPage,middleKey,0);
+
+	//now insert this new key as a record wit the newChildPage into the 0th slot in the new root.
+	// Also update the "lesser than" pointer of new root to the older root.
+
+	switch(attribute.attrType)
+	{
+	case 0:
+	case 1:
+
+		memcpy((BYTE *)middleKey+4,&newChild,4);
+		memcpy((BYTE *)newPage+getFreeOffsetV(newPage),middleKey,8);
+		memcpy(getSlotOffA(newPage,0),
+		break;
+	case 2:
+
+		INT32 length= intVal(middleKey);
+		memcpy((BYTE *)middleKey+4+length,&newChild,4);
+	}
+
+
+
+
+
+
+
+
+
+
+
 
 	return -1;
 }
