@@ -12,7 +12,7 @@
 #include<cstdlib>
 using namespace std;
 
-
+#define debugAss 1
 //#define debugFH 1
 //#define debugFHU 1
 ////#define debugPFM 1
@@ -35,6 +35,12 @@ typedef float FLOAT;
 #define modlus(a)  (((a)>0)?(a):(-a))
 
 #define maxim(a,b) a>b?a:b
+
+# ifdef debugAss
+# define dbgAssert(cond) assert(cond);
+# else
+# define dbgAssert(cond) (void)0;
+#endif
 
 # ifdef debugRBFM
 # define dbgnRBFM(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;

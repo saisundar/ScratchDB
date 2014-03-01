@@ -67,6 +67,7 @@ RC IndexManager::closeFile(FileHandle &fileHandle)
 //						  0  : 	if keyIndex = keyInput
 //						 <0  : 	if keyIndex > keyInput
 // it chekcs if arg2 > arg2, return normalised diff(irrepsective of datatype)
+
 float IndexManager::compare(void * keyIndex,void* keyInput,AttrType type)  ////
 {
 	float diff;
@@ -88,7 +89,7 @@ float IndexManager::compare(void * keyIndex,void* keyInput,AttrType type)  ////
 		if(modlus(diff)<0.000001)diff=0;
 		break;
 	case 2:
-		diff= strcmp((char *)keyInput,(char *)keyIndex);
+		diff= strcmp((char *)keyInput+4,(char *)keyIndex+4);
 		dbgnIXU("Comparing the strings here !","");
 		dbgnIXU((char*)keyInput,(char*)keyIndex);
 		break;
@@ -182,48 +183,99 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 
 }
 
-RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,INT32 newChild)
+//care should be taken to ensure that the page being pssed in does not have any changes, as they may be lost when reorganizing.
+//DOES NOT WRITE BACK THE PAGE.. caller has to do that.
+RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,INT32& newChild)
 {
 
-	INT16 freeSpace=updateFreeSpaceInHeader(virtualPgNum,0);
+	INT16 freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,0);
 	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
-	requiredSpace+=4;
+	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
+	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset;
+	requiredSpace+=4;			// only fr the pagenum
 
-	if(freeSpace>requiredSpace)
+	if(freeSpace>(requiredSpace+4))
 	{
+		// we should be able to insert without split
+		if(actualfreeSpace<(requiredSpace+4))
+		{
+			reOrganizePage(fileHandle,virtualPgNum);
+			fileHandle.readPage(virtualPgNum,page);
+			freeOffset=getFreeOffsetV(page);
+			totalSlots=getSlotNoV(page);
+		}
 
-
-
-
+		for(i=totalSlots;compare(key,(BYTE*)page+getSlotOffV(page,i-1))>0 && i >0;i--)
+			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
+		memcpy(getSlotOffA(page,i),&freeOffSet,2);
+		memcpy(getSlotLenA(page,i),&requiredSpace,2);
+		totalSlots++;
+		memcpy(getSlotNoA(page),&totalSlots,2);
+		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,requiredSpace+4);
 	}
 	else
 	{
+		//split the keys across one more index page
+		insertIndexNode(newChild,fileHandle);
+		void* newChildPage= malloc(PAGE_SIZE),middleKey=NULL;
+		fileHandle.readPage(newChild,newChildPage);
+		splitNode(page,newChildPage); /// should update the free space in the header
+		getKeyAtSlot(fileHandle,newChildPage,middleKey,0)
 
-		split ..................
-
-
+		dbgAssert(middleKey!=NULL);
+		if(compare(key,middleKey)>0)
+		insertRecordInIndex(fileHandle,attribute,newChild,newChildPage,key,0);
+		else
+		insertRecordInIndex(fileHandle,attribute,virtualPgNum,page,key,0);
+		fileHandle.writePage(newChild,newChildPage);
 	}
-
-
-
 }
 
-RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key)
+RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,INT32& newChild)
 {
+	INT16 freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,0);
+	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
+	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
+	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset;
+	requiredSpace+=4;			// only fr the pagenum
 
-	INT16 freeSpace=updateFreeSpaceInHeader(virtualPgNum,0);
-	INT16 requiredSpace =
+	if(freeSpace>(requiredSpace+4))
+	{
+		// we should be able to insert without split
+		if(actualfreeSpace<(requiredSpace+4))
+		{
+			reOrganizePage(fileHandle,virtualPgNum);
+			fileHandle.readPage(virtualPgNum,page);
+			freeOffset=getFreeOffsetV(page);
+			totalSlots=getSlotNoV(page);
+		}
+		totalSlots++;
+		memcpy(getSlotNoA(page),&totalSlots,2);
+		for(i=totalSlots;compare(key,(BYTE*)page+getSlotOffV(page,i-1))>0 && i >0;i--)
+			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
+		memcpy(getSlotOffA(page,i),&freeOffSet,2);
+		memcpy(getSlotLenA(page,i),&requiredSpace,2);
+		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,requiredSpace+4);
+	}
+	else
+	{
+		//split the keys across one more index page
+		insertIndexNode(newChild,fileHandle);
+		void* newChildPage= malloc(PAGE_SIZE),middleKey=NULL;
+		fileHandle.readPage(newChild,newChildPage);
+		splitNode(page,newChildPage); /// should update the free space in the header
+		getKeyAtSlot(fileHandle,newChildPage,middleKey,0)
 
-
-
-
-
-
-
-
-
+		dbgAssert(middleKey!=NULL);
+		if(compare(key,middleKey)>0)
+		insertRecordInIndex(fileHandle,attribute,newChild,newChildPage,key,0);
+		else
+		insertRecordInIndex(fileHandle,attribute,virtualPgNum,page,key,0);
+		fileHandle.writePage(newChild,newChildPage);
+	}
 }
-
 
 RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
@@ -263,7 +315,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 
 		memcpy((BYTE *)middleKey+4,&newChild,4);
 		memcpy((BYTE *)newPage+getFreeOffsetV(newPage),middleKey,8);
-		memcpy(getSlotOffA(newPage,0),
+		memcpy(getSlotOffA(newPage,0);
 		break;
 	case 2:
 
@@ -271,7 +323,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 		memcpy((BYTE *)middleKey+4+length,&newChild,4);
 	}
 
-
+	insertRecordInIndex(fileHandle,attribute,virtualPgNum,newRootPage,middleKey,newRoot);
 
 
 
