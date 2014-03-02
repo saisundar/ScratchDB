@@ -21,6 +21,18 @@
 #define pageType(data) (*((BYTE*)data))
 
 # ifdef debugIX
+# define dbgnIXFn() cout<<"<IX-------------------"<<__func__<<"-------------------IX>"<<endl;
+# else
+# define dbgnIXFn() (void)0;
+#endif
+
+# ifdef debugIX
+# define dbgnIXFnc() cout<<"</IX-------------------"<<__func__<<"-------------------IX>"<<endl;
+# else
+# define dbgnIXFnc() (void)0;
+#endif
+
+# ifdef debugIX
 # define dbgnIX(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
 # else
 # define dbgnIX(str1,str2) (void)0;
@@ -45,6 +57,21 @@ class IndexManager {
   RC openFile(const string &fileName, FileHandle &fileHandle);
 
   RC closeFile(FileHandle &fileHandle);
+
+  float IndexManager::compare(void * keyIndex,void* keyInput,AttrType type);
+  RC IndexManager::setPrevPointerIndex(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
+  RC IndexManager::setPrevSiblingPointerLeaf(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
+  RC IndexManager::setNextSiblingPointerLeaf(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
+  RC IndexManager::updateRoot(FileHandle &fileHandle,INT32 root);
+  INT32 IndexManager::getKeyAtSlot(FileHandle &fileHandle,void* page,void* key,INT16 slotNo);
+  RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid,INT32 nodeNum,	//
+  		void **newChildKey);
+  RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
+  		void **newChildKey  );
+  RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,//
+  		void **newChildKey);
+  RC IndexManager::reOrganizePage(INT32 virtualPgNum, void* page);
+  RC IndexManager::splitNode(INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey);
 
   // The following two functions are using the following format for the passed key value.
   //  1) data is a concatenation of values of the attributes
