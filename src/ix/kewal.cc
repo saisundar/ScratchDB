@@ -146,30 +146,33 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 
 RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
+	dbgnIXfn();
 	// INITIALIZE THE ROOT
 	INT32 root;
 	getRoot(fileHandle,root);
-	if(root == -1) return -1;
+	if(root == -1){
+		dbgnIXFnc();
+		return -1;
+	}
 	void* pageData = malloc(PAGE_SIZE); // This memory is freed within this function
 	fileHandle.readPage(root, pageData);
 
 	// SET SEARCH KEY
-	void* tempKey;
+	void* tempLowKey;
 	if(attribute.type==2){
 		int searchKeyLength = (*(INT32*)(key));
 		searchKeyLength =  searchKeyLength + 5;
-		tempKey = malloc(searchKeyLength); // This memory is freed within this function
-		memcpy(tempKey,key,searchKeyLength-2);
-		*((BYTE*)tempKey + (searchKeyLength-1)) = (BYTE)0;
-		key = tempKey;
+		tempLowKey = malloc(searchKeyLength); // This memory is freed within this function
+		memcpy(tempLowKey,key,searchKeyLength-1);
+		*((BYTE*)tempLowKey + (searchKeyLength-1)) = (BYTE)0;
 	}
 
 	// FIND THE LEAF PAGE WHERE ENTRY IS STORED
-	findLeafPage(fileHandle, pageData, root, key, attribute.type);
+	findLeafPage(fileHandle, pageData, root, tempLowKey, attribute.type);
 
 	// DELETE THAT ENTRY FROM THE LEAF PAGE
 	INT16 freeSpaceIncrease = 0;
-	deleteEntryInLeaf(fileHandle, attribute, key, rid, root, pageData, freeSpaceIncrease);
+	deleteEntryInLeaf(fileHandle, attribute, tempLowKey, rid, root, pageData, freeSpaceIncrease);
 
 	// WRITE THAT PAGE BACK
 	fileHandle.writePage(root, pageData);
@@ -179,10 +182,12 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 
 	free(pageData);
 	free(tempKey);
+	dbgnIXFnc();
 	return 0;
 }
 
 RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid, INT32 root, void* pageData, INT16& freeSpaceIncrease){
+	dbgnIXFn();
 	INT16 totalSlots = getSlotNoV(pageData);
 	if(totalSlots==0)return -1;
 
@@ -222,7 +227,9 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 				getSlotNoV(pageData) = (INT16)getSlotNoV(pageData)-reducedSlotsBy;
 			}
 			else getSlotOffV(pageData,mid) = (INT16)-1;
+
 			freeSpaceIncrease += (getSlotLenA(pageData,mid)+4);
+			dbgnIXFnc();
 			return 0;
 		}
 
@@ -237,6 +244,7 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 		mid = (start+end)/2;
 	}
 	// If reached here, returns non negative error code.
+	dbgnIXFnc();
 	return 1;
 }
 
@@ -257,6 +265,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		bool        	highKeyInclusive,
 		IX_ScanIterator &ix_ScanIterator)
 {
+	dbgnIXFn();
 	// Assign Values to ix_ScanIterator
 	ix_ScanIterator.fileHandle = fileHandle;
 	ix_ScanIterator.type = attribute.type;
@@ -281,7 +290,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		int searchKeyLength = (*(INT32*)(lowKey));
 		searchKeyLength =  searchKeyLength + 5;
 		tempLowKey = malloc(searchKeyLength); // THIS IS FREED IN THIS FUNCTION ITSELF
-		memcpy(tempLowKey,lowKey,searchKeyLength-2);
+		memcpy(tempLowKey,lowKey,searchKeyLength-1);
 		*((BYTE*)tempLowKey + (searchKeyLength-1)) = (BYTE)0;
 	}
 
@@ -295,216 +304,116 @@ RC IndexManager::scan(FileHandle &fileHandle,
 	}
 
 	// Return error if higKey < lowKey
-	if()
+	if(compare(tempLowKey,ix_ScanIterator.highKey,attribute.type)<0){
+		dbgnIXFnc();
 		return -1;
-
+	}
 	// Find Leaf Page where possible first record is present
 	findLeafPage(fileHandle, pageData, root, tempLowKey, attribute.type);
 	findLowSatisfyingEntry(fileHandle, pageData, root, tempLowKey, lowKeyInclusive, attribute.type, ix_ScanIterator.nextRid);
+	dbgnIX("RID Pagenum",ix_ScanIterator.nextRid.pageNum)
+	dbgnIX("RID SlotNum",ix_ScanIterator.nextRid.slotNum)
 	ix_ScanIterator.leafPage = pageData;
 	ix_ScanIterator.totalSlotsInCurrPage = getSlotNoV(pageData);
+	dbgnIXFnc();
 	return 0;
 }
 
 INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageData, INT32& root, void* lowKey, bool lowKeyInclusive, void* highKey, bool highKeyInclusive, AttrType type, RID& nextRid){
+	dbgnIXFn();
+	// JUST DOING A LINEAR SCAN IN THE FOUND PAGE
 	INT32 nextPage = -1;
-	INT16 totalSlots = getSlotNoV(pageData);
-	while(totalSlots==0){
-		nextPage = *((INT32*)((BYTE*)pageData+8));
-		if(nextPage == -1){
-			nextRid.pageNum = (INT32)-1;
-			nextRid.slotNum = (INT16)-1;
-			return 0;
+	INT16 start = 0;
+	INT16 startOffset;
+	do{
+		INT16 totalSlots = getSlotNoV(pageData);
+		while(totalSlots==0){
+			nextPage = *((INT32*)((BYTE*)pageData+8));
+			if(nextPage == -1){
+				nextRid.pageNum = (INT32)-1;
+				nextRid.slotNum = (INT16)-1;
+				dbgnIX("Case 1 ", "End of linked list");
+				dbgnIXFnc();
+				return 0;
+			}
+			fileHandle.readPage(nextPage,pageData);
+			totalSlots = getSlotNoV(pageData);
 		}
-		fileHandle.readPage(nextPage,pageData);
-		totalSlots = getSlotNoV(pageData);
-	}
 
-	int start = 0;
-	INT16 startOffset = getSlotOffV(pageData,start);
-	while(startOffset==-1 && start < totalSlots-1){
-		start++;
+		start = 0;
 		startOffset = getSlotOffV(pageData,start);
+		while(startOffset==-1 && start < totalSlots-1){
+			start++;
+			startOffset = getSlotOffV(pageData,start);
+		}
 	}
+	while(compare((BYTE*)pageData+startOffset,lowKey,type) < 0 );
 
 	if(lowKey == NULL){
+		dbgnIX("Case 2", "Low key is Null");
+		if(compare((BYTE*)pageData+startOffset,highKey,type) > 0 || (compare((BYTE*)pageData+startOffset,highKey,type) == 0 && highKeyInclusive == false) ){
+			dbgnIX("Case 2.1","first entry found is greater(equal) than highkey");
+			nextRid.pageNum = (INT32)-1;
+			nextRid.slotNum = (INT16)-1;
+			dbgnIXFnc();
+			return 0;
+		}
+		dbgnIX("Case 2.2","entry is less than highkey!");
 		nextRid.pageNum = (INT32)nextPage;
 		nextRid.slotNum = (INT16)start;
+		dbgnIXFnc();
 		return 0;
 	}
 
-	int end = totalSlots-1;
-	int mid = (start+end)/2;
-
-	while(start<=end){
-		// Set mid such that it is not a deleted entry
-		INT16 midOffset = getSlotOffV(pageData,mid);
-		while(midOffset == -1 && mid<end){
-			mid = mid+1;
-			midOffset = getSlotOffV(pageData,mid);
+	if(compare((BYTE*)pageData+startOffset,lowKey,type) == 0 && lowKeyInclusive == false){
+		dbgnIX("Case 3","lowkey inclusive is false, search for next entry");
+		INT16 totalSlots = getSlotNoV(pageData);
+		while(totalSlots==0){
+			nextPage = *((INT32*)((BYTE*)pageData+8));
+			if(nextPage == -1){
+				dbgnIX("case 3.1","end of linked list reached");
+				nextRid.pageNum = (INT32)-1;
+				nextRid.slotNum = (INT16)-1;
+				dbgnIXFnc();
+				return 0;
+			}
+			fileHandle.readPage(nextPage,pageData);
+			totalSlots = getSlotNoV(pageData);
+		}
+		start = 0;
+		startOffset = getSlotOffV(pageData,start);
+		while(startOffset==-1 && start < totalSlots-1){
+			start++;
+			startOffset = getSlotOffV(pageData,start);
 		}
 
-		// Compare mid with lowKey
-		// First lowest record is found when midKey>=lowKey && (mid-1)Key<lowKey
-		// First lowest record is (mid)Key
-		if(compare((BYTE*)pageData+midOffset,lowKey,type) < 0){
-			INT16 midMinusOne = mid - 1;
-			INT16 midMinusOneOffset = getSlotOffV(pageData,midMinusOne);
-			while(midMinusOneOffset == -1 && midMinusOne>start){
-				midMinusOne = midMinusOne-1;
-				midMinusOneOffset = getSlotOffV(pageData,midMinusOne);
-			}
-			// MAKE CHECK IF MIDOFFSET IS -1 !
-			// This is where record will be finally found !
-			if(compare((BYTE*)pageData+midMinusOneOffset,lowKey,type) >= 0 || mid <= start){
-
-				// If lowKeyInclusive is false and (mid)Key == lowKey required key is (mid+1)Key
-				if(compare((BYTE*)pageData+midOffset,lowKey,type) == 0 && lowKeyInclusive == false){
-					// Damn big procedure to find (mid+2) :/
-					INT16 slot = midMinusOne + 1;
-					INT16 slotOffset = getSlotOffV(pageData,slot);
-					while(slotOffset==-1 && slot < totalSlots-1){
-						slot++;
-						slotOffset = getSlotOffV(pageData,slot);
-					}
-					if(slotOffset==-1 && slot==totalSlots-1){
-						slot = 0;
-						nextPage = *((INT32*)((BYTE*)pageData+8));
-						fileHandle.readPage(nextPage,pageData);
-						totalSlots = getSlotNoV(pageData);
-						while(totalSlots==0){
-							nextPage = *((INT32*)((BYTE*)pageData+8));
-							if(nextPage == -1){
-								nextRid.pageNum = (INT32)-1;
-								nextRid.slotNum = (INT16)-1;
-								return 0;
-							}
-							fileHandle.readPage(nextPage,pageData);
-							totalSlots = getSlotNoV(pageData);
-						}
-						slotOffset = getSlotOffV(pageData,slot);
-						while(slotOffset==-1 && slot < totalSlots-1){
-							slot++;
-							slotOffset = getSlotOffV(pageData,slot);
-						}
-						if(slotOffset==-1 && slot==totalSlots-1){
-							nextRid.pageNum = (INT32)-1;
-							nextRid.slotNum = (INT16)-1;
-							return 0;
-						}
-					}
-
-					// Finally check again:
-					// if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+slotOffset,highKey,type) > 0 || (compare((BYTE*)pageData+slotOffset,highKey,type) == 0 && highKeyInclusive == false) ){
-						nextRid.pageNum = (INT32)-1;
-						nextRid.slotNum = (INT16)-1;
-						return 0;
-					}
-					nextRid.pageNum = (INT32)nextPage;
-					nextRid.slotNum = (INT16)slot;
-					return 0;
-				}
-
-				// If lowKeyInclusive is true OR lowKey != (mid)Key we return mid as required record !
-				else{
-					// Check if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+midMinusOneOffset,highKey,type) > 0 || (compare((BYTE*)pageData+midMinusOneOffset,highKey,type) == 0 && highKeyInclusive == false) ){
-						nextRid.pageNum = (INT32)-1;
-						nextRid.slotNum = (INT16)-1;
-						return 0;
-					}
-					nextRid.pageNum = (INT32)nextPage;
-					nextRid.slotNum = (INT16)mid;
-					return 0;
-				}
-			}
-			else{
-				end = mid-1;
-				halfType = 0;
-			}
+		if(compare((BYTE*)pageData+startOffset,highKey,type) < 0 || (compare((BYTE*)pageData+startOffset,highKey,type) == 0 && highKeyInclusive == false) ){
+			dbgnIX("Case 3.2","new next entry found is greater(equal) than highkey");
+			nextRid.pageNum = (INT32)-1;
+			nextRid.slotNum = (INT16)-1;
+			dbgnIXFnc();
+			return 0;
 		}
-		// First lowest record is found when midKey<lowKey && (mid+1)Key>=lowKey
-		// First lowest record is (mid+1)Key
-		else if(compare((BYTE*)pageData+midOffset,lowKey,type) < 0){
-			INT16 midPlusOne = mid + 1;
-			INT16 midPlusOneOffset = getSlotOffV(pageData,midPlusOne);
-			while(midPlusOneOffset == -1 && midPlusOne<end-1){
-				midPlusOne = midPlusOne+1;
-				midPlusOneOffset = getSlotOffV(pageData,midPlusOne);
-			}
-			// This is where record will be finally found !
-			if(compare((BYTE*)pageData+midPlusOneOffset,lowKey,type) >= 0 || mid >= end-1){
-
-				// If lowKeyInclusive is false and (mid+1)Key == lowKey required key is (mid+2)Key
-				if(compare((BYTE*)pageData+midPlusOneOffset,lowKey,type) == 0 && lowKeyInclusive==false){
-					// Damn big procedure to find (mid+2) :/
-					INT16 slot = midPlusOne + 1;
-					INT16 slotOffset = getSlotOffV(pageData,slot);
-					while(slotOffset==-1 && slot < totalSlots-1){
-						slot++;
-						slotOffset = getSlotOffV(pageData,slot);
-					}
-					if(slotOffset==-1 && slot==totalSlots-1){
-						slot = 0;
-						nextPage = *((INT32*)((BYTE*)pageData+8));
-						fileHandle.readPage(nextPage,pageData);
-						totalSlots = getSlotNoV(pageData);
-						while(totalSlots==0){
-							nextPage = *((INT32*)((BYTE*)pageData+8));
-							if(nextPage == -1){
-								nextRid.pageNum = (INT32)-1;
-								nextRid.slotNum = (INT16)-1;
-								return 0;
-							}
-							fileHandle.readPage(nextPage,pageData);
-							totalSlots = getSlotNoV(pageData);
-						}
-						slotOffset = getSlotOffV(pageData,slot);
-						while(slotOffset==-1 && slot < totalSlots-1){
-							slot++;
-							slotOffset = getSlotOffV(pageData,slot);
-						}
-						if(slotOffset==-1 && slot==totalSlots-1){
-							nextRid.pageNum = (INT32)-1;
-							nextRid.slotNum = (INT16)-1;
-							return 0;
-						}
-					}
-
-					// Finally check again:
-					// if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+slotOffset,highKey,type) > 0 || (compare((BYTE*)pageData+slotOffset,highKey,type) == 0 && highKeyInclusive == false) ){
-						nextRid.pageNum = (INT32)-1;
-						nextRid.slotNum = (INT16)-1;
-						return 0;
-					}
-					nextRid.pageNum = (INT32)nextPage;
-					nextRid.slotNum = (INT16)slot;
-					return 0;
-				}
-
-				// If lowKeyInclusive is true OR lowKey != (mid)Key we return mid as required record !
-				else{
-					// Check if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+midPlusOneOffset,highKey,type) > 0 || (compare((BYTE*)pageData+midPlusOneOffset,highKey,type) == 0 && highKeyInclusive == false) ){
-						nextRid.pageNum = (INT32)-1;
-						nextRid.slotNum = (INT16)-1;
-						return 0;
-					}
-					nextRid.pageNum = (INT32)nextPage;
-					nextRid.slotNum = (INT16)midPlusOne;
-					return 0;
-				}
-			}
-			else{
-				start = mid+1;
-				halfType = 1;
-			}
-		}
-		mid = (start+end)/2;
+		dbgnIX("Case 3.3","proper entry found when lowkey = false");
+		nextRid.pageNum = (INT32)nextPage;
+		nextRid.slotNum = (INT16)start;
+		dbgnIXFnc();
+		return 0;
 	}
-	return 1;
+
+	dbgnIX("Case 4","lowkey != null & low inclusive = true or it is false but does not matter, return 1st RID");
+	if(compare((BYTE*)pageData+startOffset,highKey,type) < 0 || (compare((BYTE*)pageData+startOffset,highKey,type) == 0 && highKeyInclusive == false) ){
+		dbgnIX("Case 4.1","first entry found is greater(equal) than highkey");
+		nextRid.pageNum = (INT32)-1;
+		nextRid.slotNum = (INT16)-1;
+		dbgnIXFnc();
+		return 0;
+	}
+	dbgnIX("Case 4.2","proper first entry found");
+	nextRid.pageNum = (INT32)nextPage;
+	nextRid.slotNum = (INT16)start;
+	dbgnIXFnc();
+	return 0;
 }
 
 IX_ScanIterator::IX_ScanIterator()
@@ -519,8 +428,19 @@ IX_ScanIterator::~IX_ScanIterator()
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 {
-	if(nextRid.pageNum == -1 && nextRid.slotNum == -1) return -1;
+	dbgnIXFn();
+	if(nextRid.pageNum == -1 && nextRid.slotNum == -1){
+		dbgnIX("Case1","No next entry");
+		dbgnIXFnc();
+		return IX_EOF;
+	}
+	// RETURN RID
 	rid = nextRid;
+
+	// SET NEXT RID
+
+
+	// SET NEXT SLOT
 	INT16 currSlot = nextRid.slotNum;
 	if(currSlot < totalSlotsInCurrPage-1){
 		currSlot++;
@@ -529,14 +449,17 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 		currSlot=0;
 		INT32 nextPage = *((INT32*)((BYTE*)leafPage+8));
 		if(nextPage == -1){
+			dbgnIX("Case 2","reached end of list while searching for next entry");
 			nextRid.pageNum = (INT32)-1;
 			nextRid.slotNum = (INT16)-1;
+			dbgnIXFnc();
 			return -1;
 		}
 		fileHandle.readPage(nextPage,leafPage);
 		totalSlotsInCurrPage = getSlotNoV(leafPage);
 	}
 
+	// SET NEXT VALID SLOT
 	while(getSlotOffV(leafPage,currSlot)==-1){
 		if(currSlot < totalSlotsInCurrPage-1){
 			currSlot++;
@@ -545,8 +468,10 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 			currSlot=0;
 			INT32 nextPage = *((INT32*)((BYTE*)leafPage+8));
 			if(nextPage == -1){
+				dbgnIX("Case 3","reached end of list while searching for next entry");
 				nextRid.pageNum = (INT32)-1;
 				nextRid.slotNum = (INT16)-1;
+				dbgnIXFnc();
 				return -1;
 			}
 			fileHandle.readPage(nextPage,leafPage);
@@ -554,22 +479,38 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 		}
 	}
 
+	// CHECK IF NEXT VALID SLOT IS LESS THAN HIGH KEY
 	INT16 recordOffset = getSlotOffV(leafPage,currSlot);
+
 	if((highKey==NULL) || compare((BYTE*)leafPage+recordOffset, highKey, type)>=0){
 		if(compare((BYTE*)leafPage+recordOffset, highKey, type)==0 && highKeyInclusive==false){
+			dbgnIX("case 4","equal to higkey and highkey inclusive is false so set nextrid to -1");
 			nextRid.pageNum = (INT32)-1;
 			nextRid.slotNum = (INT16)-1;
+			dbgnIXFnc();
 			return -1;
 		}
 
+		// VALID NEXT RID !!!!
 		INT16 inRecordOffset = 4;
 		if(type == 2){
 			INT16 inRecordKeyLength = *((INT32*)((BYTE*)leafPage+recordOffset));
 			inRecordOffset += inRecordKeyLength;
 		}
+		dbgnIX("case 6","Valid key formed");
 		nextRid.pageNum = *((INT32*)((BYTE*)leafPage+recordOffset+inRecordOffset));
 		nextRid.slotNum = *((INT16*)((BYTE*)leafPage+recordOffset+inRecordOffset+4));
+		dbgnIX("Next pagenum",nextRid.pageNum);
+		dbgnIX("Next SLotnum",nextRid.slotNum);
 	}
+	else{
+		dbgnIX("case 5","crosses higkey so set nextrid to -1");
+		nextRid.pageNum = (INT32)-1;
+		nextRid.slotNum = (INT16)-1;
+		dbgnIXFnc();
+		return -1;
+	}
+	dbgnIXFnc();
 	return 0;
 }
 
@@ -582,11 +523,14 @@ RC IX_ScanIterator::close()
 
 void IX_PrintError (RC rc)
 {
+	dbgnIXFn();
 	if(rc==1)
 		cout<<"Entry not Deleted: Not found";
+	dbgnIXFnc();
 }
 
 void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& root, void* key, AttrType type){
+	dbgnIXFn();
 	while(pageType(pageData)!=0){
 		INT16 totalSlots = getSlotNoV(pageData);
 		int start = 0;
@@ -618,6 +562,7 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 			if(compare((BYTE*)pageData+midOffset,key,type) == 0){
 				root = getIndexValueAtOffset(pageData, midOffset, type);
 				fileHandle.readPage(root, pageData);
+				dbgnIXFnc();
 				return;
 			}
 
@@ -633,10 +578,12 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 		if(compare((BYTE*)pageData+getSlotOffV(pageData,mid),key,type) < 0){
 			root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid-1), type);
 			fileHandle.readPage(root, pageData);
+			dbgnIXFnc();
 			return;
 		}
 		root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid), type);
 		fileHandle.readPage(root, pageData);
+		dbgnIXFnc();
 		return;
 	}
 }
