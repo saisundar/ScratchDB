@@ -108,6 +108,7 @@ RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
 	pageType(data) = (BYTE)1;
 	getFreeOffsetV(data) = (INT16)12;
 	getSlotNoV(data) = (INT16)0;
+	setPrevPointerIndex(data,-1);
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
 	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
@@ -124,6 +125,8 @@ RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
 	pageType(data) = (BYTE)0;
 	getFreeOffsetV(data) = (INT16)12;
 	getSlotNoV(data) = (INT16)0;
+	setNextSiblingPointerLeaf(data,-1);
+	setPrevSiblingPointerLeaf(data,-1);
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
 	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
