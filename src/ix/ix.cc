@@ -72,7 +72,6 @@ RC IndexManager::closeFile(FileHandle &fileHandle)
 float IndexManager::compare(const void * keyIndex,const void* keyInput,AttrType type)  ////
 {
 	float diff;
-	bool result=false;
 	dbgnIXFn();
 	dbgnIXU("type of attribute tobe compared",type);
 	switch(type)
@@ -111,6 +110,7 @@ RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
 	setPrevPointerIndex(data,-1);
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
+	dbgnIXU("new number of pages / or nodes after index insertion",pageNum);
 	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
 	free(data);
 	dbgnIXFnc();
@@ -129,6 +129,7 @@ RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
 	setPrevSiblingPointerLeaf(data,-1);
 	fileHandle.appendPage(data);
 	pageNum = fileHandle.getNumberOfPages()-1;
+	dbgnIXU("new number of pages / or nodes after leaf insertion",pageNum);
 	fileHandle.updateFreeSpaceInHeader(pageNum,-12);
 	free(data);
 	dbgnIXFnc();
@@ -141,6 +142,7 @@ INT32 getPrevPointerIndex(void *page)
 	INT32 virtualPgNum;
 	dbgAssert(*(BYTE *)page==1);
 	memcpy(&virtualPgNum,(BYTE *)page+8,4);
+	dbgnIXU("prev pointer of index",virtualPgNum);
 	dbgnIXFnc();
 	return virtualPgNum;
 }
@@ -149,7 +151,9 @@ RC IndexManager::setPrevPointerIndex(void *page,INT32 virtualPgNum)
 	dbgnIXFn();
 	dbgAssert(*(BYTE *)page==1);
 	memcpy((BYTE *)page+8,&virtualPgNum,4);
+	dbgnIXU("prev pointer of index set to ",virtualPgNum);
 	dbgnIXFnc();
+	return 0;
 }
 
 RC IndexManager::setPrevSiblingPointerLeaf(void *page,INT32 virtualPgNum)
@@ -157,7 +161,9 @@ RC IndexManager::setPrevSiblingPointerLeaf(void *page,INT32 virtualPgNum)
 	dbgnIXFn();
 	dbgAssert(*(BYTE *)page==0);
 	memcpy((BYTE *)page+8,&virtualPgNum,4);
+	dbgnIXU("prev pointer of Leaf set to",virtualPgNum);
 	dbgnIXFnc();
+	return 0;
 }
 
 RC IndexManager::setNextSiblingPointerLeaf(void *page,INT32 virtualPgNum)
@@ -165,7 +171,9 @@ RC IndexManager::setNextSiblingPointerLeaf(void *page,INT32 virtualPgNum)
 	dbgnIXFn();
 	dbgAssert(*(BYTE *)page==0);
 	memcpy((BYTE *)page+8,&virtualPgNum,4);
+	dbgnIXU("Next pointer of Leaf set to ",virtualPgNum);
 	dbgnIXFnc();
+	return 0;
 }
 INT32 IndexManager::getPrevSiblingPointerLeaf(void *page)
 {
@@ -173,6 +181,7 @@ INT32 IndexManager::getPrevSiblingPointerLeaf(void *page)
 	INT32 virtualPgNum;
 	dbgAssert(*(BYTE *)page==0);
 	memcpy(&virtualPgNum,(BYTE *)page+8,4);
+	dbgnIXU("prev pointer of Leaf read as",virtualPgNum);
 	dbgnIXFnc();
 	return virtualPgNum;
 
@@ -184,6 +193,7 @@ INT32 IndexManager::getNextSiblingPointerLeaf(void *page)
 	INT32 virtualPgNum;
 	dbgAssert(*(BYTE *)page==0);
 	memcpy(&virtualPgNum,(BYTE *)page+8,4);
+	dbgnIXU("Next pointer of Leaf read as",virtualPgNum);
 	dbgnIXFnc();
 	return virtualPgNum;
 }
@@ -193,6 +203,7 @@ RC IndexManager::updateRoot(FileHandle &fileHandle,INT32 root)
 	void* page=malloc(PAGE_SIZE);
 	fileHandle.readPage(0,page);
 	memcpy(page,&root,4);
+	dbgnIXU("New value of Root has been updated as ",root);
 	fileHandle.writePage(0,page);
 	free(page);
 	dbgnIXFnc();
@@ -212,6 +223,8 @@ INT32 IndexManager::getKeyAtSlot(FileHandle &fileHandle,void* page,void* key,INT
 
 	key= malloc(keyLength);
 	memcpy(key,(BYTE *)page+keyOffset,keyLength);
+	dbgnIXU("Offse of the key is",KeyOffset);
+	dbgnIXU("Offse of the key is",keyLength);
 	dbgnIXFnc();
 	return keyLength;
 
@@ -224,60 +237,77 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 	dbgnIXFn();
 	if(fileHandle.readPage(nodeNum,page)!=0)
 		dbgnIX("Oops wrong pagenum--does not exist or some error !"," ");
+	RC rc;
 	INT16 totalSlots = getSlotNoV(page);
 	INT16 start = 0;
 	INT16 end = totalSlots-1;
 	INT16 mid = (start+end)/2;
-	INT32 root;
+	INT32 root=-1;
 	if(pageType(page)==1)
 	{
-
-
-
-
+		dbgnIX("Reached a Leaf , so insert in to the leaf"," ");
+		insertRecordInLeaf(fileHandle,attribute,nodeNum,page,key,newChildKey);
+		fileHandle.writePage(nodeNum,page);
+		dbgnIXFnc();
+		return 0;
 	}
 	else
 	{
      	if(compare(getRecordAtSlot(page,start),key,attribute.type)<0)
-		{
-			root = getPrevPointerIndex(page);
-		}
+     		{
+     		    dbgnIX("key < start==>fetching prev pointer from index","");
+     			root = getPrevPointerIndex(page);
+     		}
 		else if(compare(getRecordAtSlot(page,end),key,attribute.type) >= 0)
-		{
-			root = getIndexValueAtOffset(page, getSlotOffV(page,end), attribute.type);
-		}
+			{
+			 	 dbgnIX("key > end==>fetching next pointer from end","");
+				root = getIndexValueAtOffset(page, getSlotOffV(page,end), attribute.type);
+			}
 		else{
+			 dbgnIX("starting binary search on the slots","");
 			while(start<end)
 			{
+
 				if(compare(getRecordAtSlot(page,mid),key,attribute.type) == 0)
 				{
+					 dbgnIX("key FOUND at slot",mid);
 					root = getIndexValueAtOffset(page,getSlotOffV(page,mid), attribute.type);
+					 dbgnIX("next level node",root);
 					break;
 				}
 				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) < 0)
-				{
-					if(compare(getRecordAtSlot(page,mid-1),key,attribute.type) > 0)
-					{
-						root = getIndexValueAtOffset(page, getSlotOffV(page,mid-1), attribute.type);
-						break;
-					}
 					end = mid-1;
-				}
 				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) > 0)
-				{
-					if(compare(getRecordAtSlot(page,mid+1),key,attribute.type) < 0)
-					{
-						root = getIndexValueAtOffset(page, getSlotOffV(page,mid+1), attribute.type);
-						break;
-					}
 					start = mid+1;
-				}
 				mid = (start+end)/2;
+				dbgnIX("key not found at mid, new mid=",mid);
+			}
+			if(root==-1)
+			{
+				if(compare(getRecordAtSlot(page,mid),key,attribute.type) <=0)
+					root=  getIndexValueAtOffset(page,getSlotOffV(page,mid-1), attribute.type);
+				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) > 0)
+					root = getIndexValueAtOffset(page,getSlotOffV(page,mid), attribute.type);
+				dbgnIX("next level node",root);
 			}
 		}
-     	insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey yo null afetr prcoessing
+     	rc=insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey to null after processing
 
+     	if(rc)
+     		dbgnIX("oops some error in insert recurse in index"," ");
 
+     	if(*newChildKey!=NULL)
+     	{
+     		dbgnIX("newChildkey created..handling it here","");
+     		void *middleKey=NULL;
+     		middleKey=*newChildKey;
+     		*newChildKey=NULL;
+     		insertRecordInIndex(fileHandle,attribute,nodeNum,page,middleKey,newChildKey);
+     		fileHandle.writePage(nodeNum,page);
+     		dbgnIXFnc();
+     		free(middleKey);
+     		return 0;
+     	}
 	}
 	dbgnIXFnc();
 	return 0;
@@ -290,7 +320,6 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 		dbgnIXU("Filename",fileHandle.fileName);
 		void *newPage=malloc(PAGE_SIZE);
 		INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0,newSlot=0;
-		INT32 virtualPageNum=virtualPgNum;
 		memcpy(newPage,page,PAGE_SIZE);				//copy the previous indices , isIndexByte and all other overheads
 		freeOffset=12;
 		totalSlots=getSlotNoV(page);
@@ -330,23 +359,23 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 		return 0;
 }
 
-RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,Attribute &attribute)
+RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,const Attribute &attribute)
 {
 	dbgnIXFn();
 	reOrganizePage(fileHandle,virtualPgNum,page);
 	bool isLeaf=!pageType(page);
 	INT16 oldfreeOffset=getFreeOffsetV(page),freeOffset,totalSlots=getSlotNoV(page),prevMid=-1,startSlot;
-	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset;
 	INT16 middleSlot=totalSlots/2;
 	INT16 midOffSet=getSlotOffV(page,middleSlot),midLength=getSlotLenV(page,middleSlot);
 	INT16 ridOffset=-1,origOffset,origLength;
-	INT32 prev,next,currSlot,newSlot=0;
+	INT32 next,currSlot,newSlot=0;
 	INT16 freeSpaceIncNew,freeSpaceIncOrig;
 	*newChildKey=malloc(midLength);
 	memcpy(*newChildKey,getRecordAtSlot(page,middleSlot),midLength);
 
 	if(!isLeaf)
 	{
+		dbgnIXU("Split node claled on Index ","");
 		ridOffset= (attribute.type==2)?(4+intVal(*newChildKey)):4;
 		memcpy(&prevMid,(BYTE *)(*newChildKey)+ridOffset,4);
 		setPrevPointerIndex(newChildPage,prevMid);		//{ exchange pagnums between prev f new page, and rid f middle record
@@ -355,6 +384,7 @@ RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,
 	}
 	else // its a leaf , set the doubly linked list accordingly
 	{
+		dbgnIXU("Split node claled on Leaf ","");
 		void * nextPage=malloc(PAGE_SIZE);
 		next=getNextSiblingPointerLeaf(page);
 
@@ -435,9 +465,11 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 
 	if(freeSpace>(requiredSpace+4))
 	{
+		dbgnIX("Key can be accomodated in the same inde without split","");
 		// we should be able to insert without split
 		if(actualfreeSpace<(requiredSpace+4))
 		{
+			dbgnIX("Need a Reorganize however","");
 			reOrganizePage(fileHandle,virtualPgNum,page);
 			freeOffset=getFreeOffsetV(page);
 			totalSlots=getSlotNoV(page);
@@ -446,6 +478,7 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 
 		for(i=totalSlots;compare(key,getRecordAtSlot(page,i-1),attribute.type)>0 && i >0;i--)
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+		dbgnIX("inserting record in slot",i);
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
@@ -456,15 +489,16 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 	else
 	{
 		INT32 newChild;
+		dbgnIX("Key accomodation mandates a SPLIT","");
 		//split the keys across one more index page
 		insertIndexNode(newChild,fileHandle);
 		void* newChildPage= malloc(PAGE_SIZE),*middleKey=NULL;
 		fileHandle.readPage(newChild,newChildPage);
-		splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
+		splitNode(fileHandle, virtualPgNum, page, newChild, newChildPage, newChildKey, attribute); /// should update the free space in the header
 		middleKey=*newChildKey;
 
 		dbgAssert(middleKey!=NULL);
-		if(compare(key,middleKey)>0)
+		if(compare(key,middleKey,attribute.type)>0)
 		insertRecordInIndex(fileHandle,attribute,newChild,newChildPage,key,0);
 		else
 		insertRecordInIndex(fileHandle,attribute,virtualPgNum,page,key,0);
@@ -475,24 +509,27 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 }
 
 // the page passed in here is written by the caller, it is NOT written to disk here..
-RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,//
-		void **newChildKey)
+RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
+		void **newChildKey  )
 {
+
 	INT16 freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,0);
 	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
 	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
 	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset,i;
-	requiredSpace+=6;			// for entire rid
+	requiredSpace+=6;			// only fr the pagenum
 	dbgnIXFn();
 
-	dbgAssert(page==NULL);
+	dbgAssert(page!=NULL);
 
 	if(freeSpace>(requiredSpace+4))
 	{
+		dbgnIX("Key can be accomodated in the same Leaf without split","");
 		// we should be able to insert without split
 		if(actualfreeSpace<(requiredSpace+4))
 		{
-			reOrganizePage(virtualPgNum,page);
+			dbgnIX("Need a Reorganize however","");
+			reOrganizePage(fileHandle,virtualPgNum,page);
 			freeOffset=getFreeOffsetV(page);
 			totalSlots=getSlotNoV(page);
 		}
@@ -500,8 +537,9 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 
 		for(i=totalSlots;compare(key,getRecordAtSlot(page,i-1),attribute.type)>0 && i >0;i--)
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+		dbgnIX("inserting record in slot",i);
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
-		memcpy(getSlotOffA(page,i),&freeOffSet,2);
+		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
 		totalSlots++;
 		memcpy(getSlotNoA(page),&totalSlots,2);
@@ -510,15 +548,16 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 	else
 	{
 		INT32 newChild;
+		dbgnIX("Key accomodation mandates a SPLIT","");
 		//split the keys across one more index page
 		insertIndexNode(newChild,fileHandle);
 		void* newChildPage= malloc(PAGE_SIZE),*middleKey=NULL;
 		fileHandle.readPage(newChild,newChildPage);
-		splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
+    	splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
 		middleKey=*newChildKey;
 
 		dbgAssert(middleKey!=NULL);
-		if(compare(key,middleKey)>0)
+		if(compare(key,middleKey,attribute.type)>0)
 		insertRecordInLeaf(fileHandle,attribute,newChild,newChildPage,key,0);
 		else
 		insertRecordInLeaf(fileHandle,attribute,virtualPgNum,page,key,0);
@@ -531,15 +570,16 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
 	INT32 root,newRoot;
-	INT16 keyLength=0;
-	void *newRootPage,*middleKey,*newChildPage;
+	void *newRootPage,*middleKey;
 	void **newChildKey=NULL;
 	newChildKey= (void **)malloc(sizeof(void*));
 	*newChildKey=NULL;
+	dbgnIX("inserting entry","");
 	getRoot(fileHandle,root);
 	dbgnIXFn();
 	if(root==-1)
 	{
+		dbgnIX("Cross your fingers , here begins the insertions!!!!!!!! Adding Root","");
 		insertLeafNode(root, fileHandle);
 		updateRoot(fileHandle,root);
 	}
@@ -547,9 +587,15 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);
 
 	if(*newChildKey==NULL)
+		{
+
+		dbgnIX("new child key is not found, so no split occurred","");
 		return 0;
+		}
 // if new childKey == some value means root has split.... make nw index node.. insert the entry in to the index node , and update root.
 	middleKey=*newChildKey;
+	dbgnIX("new child key IS FOUND, so split occurred","");
+	dbgnIX("we are levelling up BOYS!!!!!!Tree becomes one level taller :)","");
 	insertIndexNode(newRoot, fileHandle);
 	updateRoot(fileHandle,newRoot);
 	//insert the new child entry 's first value in to the new root node.

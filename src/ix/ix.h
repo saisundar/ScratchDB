@@ -72,7 +72,7 @@ class IndexManager {
   RC insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,//
   		void **newChildKey);
   RC reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void* page);
-  RC splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,Attribute &attribute);
+  RC splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,const Attribute &attribute);
   INT32 getPrevSiblingPointerLeaf(void *page);
   INT32 getNextSiblingPointerLeaf(void *page);
 
