@@ -148,7 +148,7 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 {
 	// INITIALIZE THE ROOT
 	INT32 root;
-	// getRoot(fileHandle,root);
+	getRoot(fileHandle,root);
 	if(root == -1) return -1;
 	void* pageData = malloc(PAGE_SIZE); // This memory is freed within this function
 	fileHandle.readPage(root, pageData);
@@ -197,7 +197,6 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 		startOffset = getSlotOffV(pageData,start);
 	}
 
-	int halfType = 0; // This variable tracks which kind of halving was done in the previous iteration so you don't end in infinite loop.
 	int end = totalSlots-1; // Will Always EXIST !
 	int mid = (start+end)/2;
 
@@ -205,19 +204,9 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 	while(start<=end){
 		// Find EXISTING mid value
 		INT16 midOffset = getSlotOffV(pageData,mid);
-		if(midOffset==-1){
-			if(halfType==0){
-				while(midOffset == -1){
-					mid = mid-1;
-					midOffset = getSlotOffV(pageData,mid);
-				}
-			}
-			else{
-				while(midOffset == -1){
-					mid = mid+1;
-					midOffset = getSlotOffV(pageData,mid);
-				}
-			}
+		while(midOffset == -1 && mid<end){
+			mid = mid+1;
+			midOffset = getSlotOffV(pageData,mid);
 		}
 
 		// Check for equality
@@ -230,21 +219,19 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 					mid = mid-1;
 					if(getSlotOffV(pageData,mid)==-1)break;
 				}
-				getSlotNoV(pageData) = getSlotNoV(pageData)-reducedSlotsBy;
+				getSlotNoV(pageData) = (INT16)getSlotNoV(pageData)-reducedSlotsBy;
 			}
 			else getSlotOffV(pageData,mid) = (INT16)-1;
-			freeSpaceIncrease += (getSlotLenA(pageData,mid)+(4*reducedSlotsBy));
+			freeSpaceIncrease += (getSlotLenA(pageData,mid)+4);
 			return 0;
 		}
 
 		// Other checks
 		if(compare((BYTE*)pageData+midOffset,key,attribute.type) < 0){
 			end = mid-1;
-			halfType = 0;
 		}
 		else{
 			start = mid+1;
-			halfType = 1;
 		}
 		// Update mid
 		mid = (start+end)/2;
@@ -353,20 +340,11 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 	while(start<=end){
 		// Set mid such that it is not a deleted entry
 		INT16 midOffset = getSlotOffV(pageData,mid);
-		if(midOffset==-1){
-			if(halfType==0){
-				while(midOffset == -1){
-					mid = mid-1;
-					midOffset = getSlotOffV(pageData,mid);
-				}
-			}
-			else{
-				while(midOffset == -1){
-					mid = mid+1;
-					midOffset = getSlotOffV(pageData,mid);
-				}
-			}
+		while(midOffset == -1 && midOffset<end){
+			mid = mid+1;
+			midOffset = getSlotOffV(pageData,mid);
 		}
+
 		// Compare mid with lowKey
 		// First lowest record is found when midKey>=lowKey && (mid-1)Key<lowKey
 		// First lowest record is (mid)Key
@@ -640,29 +618,25 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 			if(compare((BYTE*)pageData+midOffset,key,type) == 0){
 				root = getIndexValueAtOffset(pageData, midOffset, type);
 				fileHandle.readPage(root, pageData);
-				break;
+				return;
 			}
 
 			if(compare((BYTE*)pageData+midOffset,key,type) < 0){
-				INT16 midOffsetminusone = getSlotOffV(pageData,mid-1);
-				if(compare((BYTE*)pageData+midOffsetminusone,key,type) > 0){
-					root = getIndexValueAtOffset(pageData, midOffsetminusone, type);
-					fileHandle.readPage(root, pageData);
-					break;
-				}
 				end = mid-1;
 			}
 
 			if(compare((BYTE*)pageData+midOffset,key,type) > 0){
-				INT16 midOffsetplusone = getSlotOffV(pageData,mid+1);
-				if(compare((BYTE*)pageData+midOffsetplusone,key,type) < 0){
-					root = getIndexValueAtOffset(pageData, midOffsetplusone, type);
-					fileHandle.readPage(root, pageData);
-					break;
-				}
 				start = mid+1;
 			}
 			mid = (start+end)/2;
 		}
+		if(compare((BYTE*)pageData+getSlotOffV(pageData,mid),key,type) < 0){
+			root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid-1), type);
+			fileHandle.readPage(root, pageData);
+			return;
+		}
+		root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid), type);
+		fileHandle.readPage(root, pageData);
+		return;
 	}
 }

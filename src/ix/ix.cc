@@ -249,6 +249,7 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 				if(compare(getRecordAtSlot(page,mid),key,attribute.type) == 0)
 				{
 					root = getIndexValueAtOffset(page,getSlotOffV(page,mid), attribute.type);
+					break;
 				}
 				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) < 0)
 				{
@@ -271,6 +272,9 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 				mid = (start+end)/2;
 			}
 		}
+     	insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey yo null afetr prcoessing
+
+
 	}
 	dbgnIXFnc();
 	return 0;
@@ -348,10 +352,19 @@ RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,
 	}
 	else // its a leaf , set the doubly linked list accordingly
 	{
+		void * nextPage=malloc(PAGE_SIZE);
 		next=getNextSiblingPointerLeaf(page);
+
 		setNextSiblingPointerLeaf(page,newChild);
 		setPrevSiblingPointerLeaf(newChildPage,virtualPgNum);
 		setNextSiblingPointerLeaf(newChildPage,next);
+		if(next!=-1)
+		{
+		fileHandle.readPage(next,nextPage);
+		setPrevSiblingPointerLeaf(nextPage,newChild);
+		fileHandle.writePage(next,nextPage);
+		free(nextPage);
+		}
 		memcpy((BYTE *)(*newChildKey)+ridOffset,&newChild,4);
 		startSlot=middleSlot;
 	}
@@ -466,7 +479,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
 	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
 	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset,i;
-	requiredSpace+=6;			// only fr the pagenum
+	requiredSpace+=6;			// for entire rid
 	dbgnIXFn();
 
 	dbgAssert(page==NULL);
@@ -544,12 +557,13 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	// Also update the "lesser than" pointer of new root to the older root.
 	*newChildKey=NULL;
 	insertRecordInIndex(fileHandle,attribute,newRoot,newRootPage,middleKey,newChildKey);
-	dbgAssert(newChildKey==NULL);
+	dbgAssert(*newChildKey==NULL);
 	setPrevPointerIndex(newRootPage,root);
 	fileHandle.writePage(newRoot,newRootPage);
 	dbgnIXFnc();
 	free(newRootPage);
 	free(middleKey);
+	free(newChildKey);
 	return 0;
 }
 
