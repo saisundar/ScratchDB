@@ -58,20 +58,23 @@ class IndexManager {
 
   RC closeFile(FileHandle &fileHandle);
 
-  float IndexManager::compare(void * keyIndex,void* keyInput,AttrType type);
-  RC IndexManager::setPrevPointerIndex(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
-  RC IndexManager::setPrevSiblingPointerLeaf(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
-  RC IndexManager::setNextSiblingPointerLeaf(FileHandle &fileHandle,void *page,INT32 virtualPgNum);
-  RC IndexManager::updateRoot(FileHandle &fileHandle,INT32 root);
-  INT32 IndexManager::getKeyAtSlot(FileHandle &fileHandle,void* page,void* key,INT16 slotNo);
-  RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid,INT32 nodeNum,	//
+  float compare(const void * keyIndex,const void* keyInput,AttrType type);
+  INT32 getPrevPointerIndex(void *page);
+  RC setPrevPointerIndex(void *page,INT32 virtualPgNum);
+  RC setPrevSiblingPointerLeaf(void *page,INT32 virtualPgNum);
+  RC setNextSiblingPointerLeaf(void *page,INT32 virtualPgNum);
+  RC updateRoot(FileHandle &fileHandle,INT32 root);
+  INT32 getKeyAtSlot(FileHandle &fileHandle,void* page,void* key,INT16 slotNo);
+  RC insertRecurseEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid,INT32 nodeNum,	//
   		void **newChildKey);
-  RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
+  RC insertRecordInIndex(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
   		void **newChildKey  );
-  RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,//
+  RC insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key,//
   		void **newChildKey);
-  RC IndexManager::reOrganizePage(INT32 virtualPgNum, void* page);
-  RC IndexManager::splitNode(INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey);
+  RC reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void* page);
+  RC splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,Attribute &attribute);
+  INT32 getPrevSiblingPointerLeaf(void *page);
+  INT32 getNextSiblingPointerLeaf(void *page);
 
   // The following two functions are using the following format for the passed key value.
   //  1) data is a concatenation of values of the attributes
