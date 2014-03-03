@@ -222,9 +222,18 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 
 		// Check for equality
 		if(compare((BYTE*)pageData+midOffset,key,attribute.type) == 0){
-			if(mid == totalSlots-1)getSlotNoV(pageData) = getSlotNoV(pageData)-1; // Handles the case where last slot is deleted, so reduce total slots in page by 1
+			// Handles the case where last slot is deleted, In this case it makes the last slot existant or reduces the total number of slots to 0
+			INT16 reducedSlotsBy = 0;
+			if(mid == totalSlots-1){
+				while(true){
+					reducedSlotsBy++;
+					mid = mid-1;
+					if(getSlotOffV(pageData,mid)==-1)break;
+				}
+				getSlotNoV(pageData) = getSlotNoV(pageData)-reducedSlotsBy;
+			}
 			else getSlotOffV(pageData,mid) = (INT16)-1;
-			freeSpaceIncrease += (getSlotLenA(pageData,mid)+4);
+			freeSpaceIncrease += (getSlotLenA(pageData,mid)+(4*reducedSlotsBy));
 			return 0;
 		}
 
@@ -373,13 +382,56 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 
 				// If lowKeyInclusive is false and (mid)Key == lowKey required key is (mid+1)Key
 				if(compare((BYTE*)pageData+midOffset,lowKey,type) == 0 && lowKeyInclusive == false){
+					// Damn big procedure to find (mid+2) :/
+					INT16 slot = midMinusOne + 1;
+					INT16 slotOffset = getSlotOffV(pageData,slot);
+					while(slotOffset==-1 && slot < totalSlots-1){
+						slot++;
+						slotOffset = getSlotOffV(pageData,slot);
+					}
+					if(slotOffset==-1 && slot==totalSlots-1){
+						slot = 0;
+						nextPage = *((INT32*)((BYTE*)pageData+8));
+						fileHandle.readPage(nextPage,pageData);
+						totalSlots = getSlotNoV(pageData);
+						while(totalSlots==0){
+							nextPage = *((INT32*)((BYTE*)pageData+8));
+							if(nextPage == -1){
+								nextRid.pageNum = (INT32)-1;
+								nextRid.slotNum = (INT16)-1;
+								return 0;
+							}
+							fileHandle.readPage(nextPage,pageData);
+							totalSlots = getSlotNoV(pageData);
+						}
+						slotOffset = getSlotOffV(pageData,slot);
+						while(slotOffset==-1 && slot < totalSlots-1){
+							slot++;
+							slotOffset = getSlotOffV(pageData,slot);
+						}
+						if(slotOffset==-1 && slot==totalSlots-1){
+							nextRid.pageNum = (INT32)-1;
+							nextRid.slotNum = (INT16)-1;
+							return 0;
+						}
+					}
 
+					// Finally check again:
+					// if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
+					if(compare((BYTE*)pageData+slotOffset,highKey,type) > 0 || (compare((BYTE*)pageData+slotOffset,highKey,type) == 0 && highKeyInclusive == false) ){
+						nextRid.pageNum = (INT32)-1;
+						nextRid.slotNum = (INT16)-1;
+						return 0;
+					}
+					nextRid.pageNum = (INT32)nextPage;
+					nextRid.slotNum = (INT16)slot;
+					return 0;
 				}
 
 				// If lowKeyInclusive is true OR lowKey != (mid)Key we return mid as required record !
 				else{
-					// Check if our first record is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+midOffsetPlusOne,highKey,type) > 0 || (compare((BYTE*)pageData+midOffsetPlusOne,highKey,type) == 0 && highKeyInclusive == false) ){
+					// Check if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
+					if(compare((BYTE*)pageData+midMinusOneOffset,highKey,type) > 0 || (compare((BYTE*)pageData+midMinusOneOffset,highKey,type) == 0 && highKeyInclusive == false) ){
 						nextRid.pageNum = (INT32)-1;
 						nextRid.slotNum = (INT16)-1;
 						return 0;
@@ -408,6 +460,7 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 
 				// If lowKeyInclusive is false and (mid+1)Key == lowKey required key is (mid+2)Key
 				if(compare((BYTE*)pageData+midPlusOneOffset,lowKey,type) == 0 && lowKeyInclusive==false){
+					// Damn big procedure to find (mid+2) :/
 					INT16 slot = midPlusOne + 1;
 					INT16 slotOffset = getSlotOffV(pageData,slot);
 					while(slotOffset==-1 && slot < totalSlots-1){
@@ -440,12 +493,23 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 							return 0;
 						}
 					}
+
+					// Finally check again:
+					// if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
+					if(compare((BYTE*)pageData+slotOffset,highKey,type) > 0 || (compare((BYTE*)pageData+slotOffset,highKey,type) == 0 && highKeyInclusive == false) ){
+						nextRid.pageNum = (INT32)-1;
+						nextRid.slotNum = (INT16)-1;
+						return 0;
+					}
+					nextRid.pageNum = (INT32)nextPage;
+					nextRid.slotNum = (INT16)slot;
+					return 0;
 				}
 
 				// If lowKeyInclusive is true OR lowKey != (mid)Key we return mid as required record !
 				else{
-					// Check if our first record is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
-					if(compare((BYTE*)pageData+midOffsetPlusOne,highKey,type) > 0 || (compare((BYTE*)pageData+midOffsetPlusOne,highKey,type) == 0 && highKeyInclusive == false) ){
+					// Check if our 'first record' is not greater than highKey if highKeyInclusive == true and is not greater than equal to highKey if highKeyInclusive = false
+					if(compare((BYTE*)pageData+midPlusOneOffset,highKey,type) > 0 || (compare((BYTE*)pageData+midPlusOneOffset,highKey,type) == 0 && highKeyInclusive == false) ){
 						nextRid.pageNum = (INT32)-1;
 						nextRid.slotNum = (INT16)-1;
 						return 0;
