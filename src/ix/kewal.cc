@@ -158,13 +158,16 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 	fileHandle.readPage(root, pageData);
 
 	// SET SEARCH KEY
+
 	void* tempLowKey;
 	if(attribute.type==2){
 		int searchKeyLength = (*(INT32*)(key));
-		searchKeyLength =  searchKeyLength + 5;
-		tempLowKey = malloc(searchKeyLength); // This memory is freed within this function
-		memcpy(tempLowKey,key,searchKeyLength-1);
-		*((BYTE*)tempLowKey + (searchKeyLength-1)) = (BYTE)0;
+		INT32 newKeyLength = searchKeyLength + 1;
+		tempLowKey = malloc(searchKeyLength+5); // THIS IS FREED IN THIS FUNCTION ITSELF
+		BYTE* temp = tempLowKey;
+		memcpy(temp,& newKeyLength, 4);
+		memcpy(temp + 4,key,searchKeyLength);
+		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 
 	// FIND THE LEAF PAGE WHERE ENTRY IS STORED
@@ -288,19 +291,23 @@ RC IndexManager::scan(FileHandle &fileHandle,
 	void* tempLowKey;
 	if(attribute.type==2){
 		int searchKeyLength = (*(INT32*)(lowKey));
-		searchKeyLength =  searchKeyLength + 5;
-		tempLowKey = malloc(searchKeyLength); // THIS IS FREED IN THIS FUNCTION ITSELF
-		memcpy(tempLowKey,lowKey,searchKeyLength-1);
-		*((BYTE*)tempLowKey + (searchKeyLength-1)) = (BYTE)0;
+		INT32 newKeyLength = searchKeyLength + 1;
+		tempLowKey = malloc(searchKeyLength+5); // THIS IS FREED IN THIS FUNCTION ITSELF
+		BYTE* temp = tempLowKey;
+		memcpy(temp,& newKeyLength, 4);
+		memcpy(temp + 4,lowKey,searchKeyLength);
+		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 
 	// Make new format for High Key Value
 	if(attribute.type==2){
 		int searchKeyLength = (*(INT32*)(highKey));
-		searchKeyLength =  searchKeyLength + 5;
-		ix_ScanIterator.highKey = malloc(searchKeyLength); // THIS WILL BE FREED BY SCANITERATOR !
-		memcpy(ix_ScanIterator.highKey,highKey,searchKeyLength-1);
-		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength-1)) = (BYTE)0;
+		INT32 newKeyLength = searchKeyLength + 1;
+		ix_ScanIterator.highKey = malloc(searchKeyLength+5); // THIS WILL BE FREED BY SCANITERATOR !
+		BYTE* temp = ix_ScanIterator.highKey;
+		memcpy(temp,& newKeyLength, 4);
+		memcpy(temp + 4,highKey,searchKeyLength);
+		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 
 	// Return error if higKey < lowKey
