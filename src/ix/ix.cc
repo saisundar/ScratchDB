@@ -569,9 +569,14 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 
 RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid)
 {
-	INT32 root,newRoot;
+	INT32 root,newRoot,strLen;
+	INT32 searchKeyLength;
 	void *newRootPage,*middleKey;
 	void **newChildKey=NULL;
+	INT32 pagNum=rid.pageNum;
+	INT16 slotNo=rid.slotNum;
+	void* tempKey;
+
 	newChildKey= (void **)malloc(sizeof(void*));
 	*newChildKey=NULL;
 	dbgnIX("inserting entry","");
@@ -584,15 +589,37 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 		updateRoot(fileHandle,root);
 	}
 
-	insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);
+	if(attribute.type==2)
+	{
+		strLen=(*(INT32*)(key));
+		strLen++;
+		searchKeyLength = strLen+4;
+		tempKey = malloc(searchKeyLength+6);
+		memcpy(tempKey,key,searchKeyLength-1);
+		memcpy(tempKey,&strLen,4);
+		*((BYTE*)tempKey + (searchKeyLength-1)) = (BYTE)0;
+		memcpy((BYTE*)tempKey +searchKeyLength,&pagNum,4);
+		memcpy((BYTE*)tempKey +searchKeyLength+4,&slotNo,2);
+
+	}
+	else
+	{
+		searchKeyLength=4;
+		tempKey = malloc(searchKeyLength+6);
+		memcpy(tempKey,key,searchKeyLength);
+		memcpy((BYTE*)tempKey +searchKeyLength,&pagNum,4);
+		memcpy((BYTE*)tempKey +searchKeyLength+4,&slotNo,2);
+	}
+
+	insertRecurseEntry(fileHandle,attribute, tempKey,rid,root,newChildKey);
 
 	if(*newChildKey==NULL)
-		{
+	{
 
 		dbgnIX("new child key is not found, so no split occurred","");
 		return 0;
-		}
-// if new childKey == some value means root has split.... make nw index node.. insert the entry in to the index node , and update root.
+	}
+	// if new childKey == some value means root has split.... make nw index node.. insert the entry in to the index node , and update root.
 	middleKey=*newChildKey;
 	dbgnIX("new child key IS FOUND, so split occurred","");
 	dbgnIX("we are levelling up BOYS!!!!!!Tree becomes one level taller :)","");
@@ -613,6 +640,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	free(newRootPage);
 	free(middleKey);
 	free(newChildKey);
+	free(tempKey);
 	return 0;
 }
 
