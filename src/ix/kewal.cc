@@ -333,14 +333,13 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 		return 0;
 	}
 
-	int halfType = 0;
 	int end = totalSlots-1;
 	int mid = (start+end)/2;
 
 	while(start<=end){
 		// Set mid such that it is not a deleted entry
 		INT16 midOffset = getSlotOffV(pageData,mid);
-		while(midOffset == -1 && midOffset<end){
+		while(midOffset == -1 && mid<end){
 			mid = mid+1;
 			midOffset = getSlotOffV(pageData,mid);
 		}
@@ -348,15 +347,16 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 		// Compare mid with lowKey
 		// First lowest record is found when midKey>=lowKey && (mid-1)Key<lowKey
 		// First lowest record is (mid)Key
-		if(compare((BYTE*)pageData+midOffset,lowKey,type) >= 0){
+		if(compare((BYTE*)pageData+midOffset,lowKey,type) < 0){
 			INT16 midMinusOne = mid - 1;
 			INT16 midMinusOneOffset = getSlotOffV(pageData,midMinusOne);
-			while(midMinusOneOffset == -1 && midMinusOne>0){
+			while(midMinusOneOffset == -1 && midMinusOne>start){
 				midMinusOne = midMinusOne-1;
 				midMinusOneOffset = getSlotOffV(pageData,midMinusOne);
 			}
+			// MAKE CHECK IF MIDOFFSET IS -1 !
 			// This is where record will be finally found !
-			if(compare((BYTE*)pageData+midMinusOneOffset,lowKey,type) < 0 || mid <= start){
+			if(compare((BYTE*)pageData+midMinusOneOffset,lowKey,type) >= 0 || mid <= start){
 
 				// If lowKeyInclusive is false and (mid)Key == lowKey required key is (mid+1)Key
 				if(compare((BYTE*)pageData+midOffset,lowKey,type) == 0 && lowKeyInclusive == false){
