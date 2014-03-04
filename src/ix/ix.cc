@@ -162,7 +162,7 @@ RC IndexManager::setPrevSiblingPointerLeaf(void *page,INT32 virtualPgNum)
 {
 	dbgnIXFn();
 	dbgAssert(*(BYTE *)page==0);
-	memcpy((BYTE *)page+8,&virtualPgNum,4);
+	memcpy((BYTE *)page+4,&virtualPgNum,4);
 	dbgnIXU("prev pointer of Leaf set to",virtualPgNum);
 	dbgnIXFnc();
 	return 0;
@@ -182,7 +182,7 @@ INT32 IndexManager::getPrevSiblingPointerLeaf(void *page)
 	dbgnIXFn();
 	INT32 virtualPgNum;
 	dbgAssert(*(BYTE *)page==0);
-	memcpy(&virtualPgNum,(BYTE *)page+8,4);
+	memcpy(&virtualPgNum,(BYTE *)page+4,4);
 	dbgnIXU("prev pointer of Leaf read as",virtualPgNum);
 	dbgnIXFnc();
 	return virtualPgNum;
@@ -549,17 +549,25 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 			totalSlots=getSlotNoV(page);
 		}
 		dbgAssert((4092-(totalSlots*4)-freeOffset)>=requiredSpace+4);
-		dbgnIX("Total number f slots",totalSlots);
-		for(i=totalSlots; i>0 && compare(key,(BYTE *)page+getSlotOffV(page,i-1),attribute.type)>0;i--)
+		dbgnIX("Total number of slots",totalSlots);
+		INT16 slotOff=-1,j;
+		void *addr=NULL;
+		//handle deleted slots here
+		for(i=totalSlots;i>0;i--)
 		{
+			if(getSlotOffV(page,i-1)==-1)
+				continue;
+			slotOff=getSlotOffV(page,i-1);
+			dbgnIX("Slot offset",slotOff);
+			addr=(BYTE *)page+slotOff;
+			if(compare(key,addr,attribute.type)<=0)
+				break;
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
 			memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
 		}
-		dbgnIX("inserting record in slot",i);
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
-		dbgnIX("value inserted is ",intVal((BYTE *)page+getSlotOffV(page,i)));
 		freeOffset+=requiredSpace;
 		memcpy(getFreeOffsetA(page),&freeOffset,2);
 		totalSlots++;
@@ -571,7 +579,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		INT32 newChild;
 		dbgnIX("Key accomodation mandates a SPLIT","");
 		//split the keys across one more index page
-		insertIndexNode(newChild,fileHandle);
+		insertLeafNode(newChild,fileHandle);
 		void* newChildPage= malloc(PAGE_SIZE),*middleKey=NULL;
 		fileHandle.readPage(newChild,newChildPage);
 		splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
@@ -601,8 +609,8 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	newChildKey= (void **)malloc(sizeof(void*));
 	*newChildKey=NULL;
 	dbgnIX("inserting entry","");
-	getRoot(fileHandle,root);
 	dbgnIXFn();
+	getRoot(fileHandle,root);
 	if(root==-1)
 	{
 		dbgnIX("Cross your fingers , here begins the insertions!!!!!!!! Adding Root","");
@@ -639,6 +647,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	{
 
 		dbgnIX("new child key is not found, so no split occurred","");
+		free(tempKey);
 		return 0;
 	}
 	// if new childKey == some value means root has split.... make nw index node.. insert the entry in to the index node , and update root.
@@ -660,7 +669,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	fileHandle.writePage(newRoot,newRootPage);
 	dbgnIXFnc();
 	free(newRootPage);
-	free(middleKey);
+	free(*newChildKey);
 	free(newChildKey);
 	free(tempKey);
 	return 0;

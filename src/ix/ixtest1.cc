@@ -339,9 +339,9 @@ void test()
 	attrAge.name = "Age";
 	attrAge.type = TypeInt;
 
-    testCase_1(indexAgeFileName);
-    testCase_2(indexAgeFileName, attrAge);
-    testCase_3(indexAgeFileName, attrAge);
+//    testCase_1(indexAgeFileName);
+//    testCase_2(indexAgeFileName, attrAge);
+//    testCase_3(indexAgeFileName, attrAge);
     testCase_4A(indexAgeFileName, attrAge);
     return;
 }

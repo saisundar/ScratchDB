@@ -34,7 +34,7 @@ typedef float FLOAT;
 #define TOMBSIZE 6
 #define isNull(num) (num==1346458179)
 #define isNullA(addr) (*(INT32 *)addr==1346458179)
-#define intVal(addr) (*(INT32 *)addr)
+#define intVal(addr) (*(INT32 *)(addr))
 #define modlus(a)  (((a)>0)?(a):(-a))
 
 #define maxim(a,b) a>b?a:b
@@ -93,15 +93,15 @@ typedef float FLOAT;
 # define dbgn2(str1,str2) (void)0;
 #endif
 
-# define getSlotOffA(page,i) ((BYTE *)page+4088-(i*4)) 				// gives the address of slot offset
-# define getSlotLenA(page,i) ((BYTE *)page+4090-(i*4)) 				// gives the address of slot length
-# define getSlotOffV(page,i) (*(INT16 *)((BYTE *)page+4088-(i*4)))  // gives the address of slot offset Value
-# define getSlotLenV(page,i) (*(INT16 *)((BYTE *)page+4090-(i*4)))  // gives the address of slot length Value
-# define getFreeOffsetA(page) ((BYTE *)page+4094)					// gives the address of within the page
-# define getSlotNoA(page) ((BYTE *)page+4092)					    // gives the adress of "num of slots" field within the page
-# define getFreeOffsetV(page) *(INT16 *)((BYTE *)page+4094)			// gives the freeoffset value within the page
-# define getSlotNoV(page) *(INT16 *)((BYTE *)page+4092)				// gives the num of slots value within the page
-# define getRecordAtSlot(page,i) ((BYTE*)page+getSlotOffV(page,i))//gives the starting adress of the record at slot i
+# define getSlotOffA(page,i) ((BYTE *)(page)+4088-((i)*4)) 				// gives the address of slot offset
+# define getSlotLenA(page,i) ((BYTE *)(page)+4090-((i)*4)) 				// gives the address of slot length
+# define getSlotOffV(page,i) (*(INT16 *)((BYTE *)(page)+4088-((i)*4)))  // gives the address of slot offset Value
+# define getSlotLenV(page,i) (*(INT16 *)((BYTE *)(page)+4090-((i)*4)))  // gives the address of slot length Value
+# define getFreeOffsetA(page) ((BYTE *)(page)+4094)					// gives the address of within the page
+# define getSlotNoA(page) ((BYTE *)(page)+4092)					    // gives the adress of "num of slots" field within the page
+# define getFreeOffsetV(page) *(INT16 *)((BYTE *)(page)+4094)			// gives the freeoffset value within the page
+# define getSlotNoV(page) *(INT16 *)((BYTE *)(page)+4092)				// gives the num of slots value within the page
+# define getRecordAtSlot(page,i) ((BYTE*)(page)+getSlotOffV(page,(i)))//gives the starting adress of the record at slot i
 
 typedef INT32 RC;
 typedef unsigned PageNum;
