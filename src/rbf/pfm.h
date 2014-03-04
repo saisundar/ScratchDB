@@ -101,7 +101,7 @@ typedef float FLOAT;
 # define getSlotNoA(page) ((BYTE *)page+4092)					    // gives the adress of "num of slots" field within the page
 # define getFreeOffsetV(page) *(INT16 *)((BYTE *)page+4094)			// gives the freeoffset value within the page
 # define getSlotNoV(page) *(INT16 *)((BYTE *)page+4092)				// gives the num of slots value within the page
-# define getRecordAtSlot(page,i) ((BYTE*)page+getSlotOffV(page,i-1))//gives the starting adress of the record at slot i
+# define getRecordAtSlot(page,i) ((BYTE*)page+getSlotOffV(page,i))//gives the starting adress of the record at slot i
 
 typedef INT32 RC;
 typedef unsigned PageNum;

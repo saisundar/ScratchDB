@@ -549,8 +549,8 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 			totalSlots=getSlotNoV(page);
 		}
 		dbgAssert((4092-(totalSlots*4)-freeOffset)>=requiredSpace+4);
-
-		for(i=totalSlots;compare(key,getRecordAtSlot(page,i-1),attribute.type)>0 && i >0;i--)
+		dbgnIX("Total number f slots",totalSlots);
+		for(i=totalSlots; i>0 && compare(key,(BYTE *)page+getSlotOffV(page,i-1),attribute.type)>0;i--)
 		{
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
 			memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
@@ -559,6 +559,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
+		dbgnIX("value inserted is ",intVal((BYTE *)page+getSlotOffV(page,i)));
 		freeOffset+=requiredSpace;
 		memcpy(getFreeOffsetA(page),&freeOffset,2);
 		totalSlots++;
