@@ -488,7 +488,10 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 		dbgAssert((4092-(totalSlots*4)-freeOffset)>=requiredSpace+4);
 
 		for(i=totalSlots;compare(key,getRecordAtSlot(page,i-1),attribute.type)>0 && i >0;i--)
+			{
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+			memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
+			}
 		dbgnIX("inserting record in slot",i);
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
