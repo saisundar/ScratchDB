@@ -5,10 +5,10 @@ IndexManager* IndexManager::_index_manager = 0;
 
 IndexManager* IndexManager::instance()
 {
-    if(!_index_manager)
-        _index_manager = new IndexManager();
+	if(!_index_manager)
+		_index_manager = new IndexManager();
 
-    return _index_manager;
+	return _index_manager;
 }
 
 IndexManager::IndexManager()
@@ -257,26 +257,26 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 	}
 	else
 	{
-     	if(compare(getRecordAtSlot(page,start),key,attribute.type)<0)
-     		{
-     		    dbgnIX("key < start==>fetching prev pointer from index","");
-     			root = getPrevPointerIndex(page);
-     		}
+		if(compare(getRecordAtSlot(page,start),key,attribute.type)<0)
+		{
+			dbgnIX("key < start==>fetching prev pointer from index","");
+			root = getPrevPointerIndex(page);
+		}
 		else if(compare(getRecordAtSlot(page,end),key,attribute.type) >= 0)
-			{
-			 	 dbgnIX("key > end==>fetching next pointer from end","");
-				root = getIndexValueAtOffset(page, getSlotOffV(page,end), attribute.type);
-			}
+		{
+			dbgnIX("key > end==>fetching next pointer from end","");
+			root = getIndexValueAtOffset(page, getSlotOffV(page,end), attribute.type);
+		}
 		else{
-			 dbgnIX("starting binary search on the slots","");
+			dbgnIX("starting binary search on the slots","");
 			while(start<end)
 			{
 
 				if(compare(getRecordAtSlot(page,mid),key,attribute.type) == 0)
 				{
-					 dbgnIX("key FOUND at slot",mid);
+					dbgnIX("key FOUND at slot",mid);
 					root = getIndexValueAtOffset(page,getSlotOffV(page,mid), attribute.type);
-					 dbgnIX("next level node",root);
+					dbgnIX("next level node",root);
 					break;
 				}
 				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) < 0)
@@ -295,23 +295,23 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 				dbgnIX("next level node",root);
 			}
 		}
-     	rc=insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey to null after processing
+		rc=insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey to null after processing
 
-     	if(rc)
-     		dbgnIX("oops some error in insert recurse in index"," ");
+		if(rc)
+			dbgnIX("oops some error in insert recurse in index"," ");
 
-     	if(*newChildKey!=NULL)
-     	{
-     		dbgnIX("newChildkey created..handling it here","");
-     		void *middleKey=NULL;
-     		middleKey=*newChildKey;
-     		*newChildKey=NULL;
-     		insertRecordInIndex(fileHandle,attribute,nodeNum,page,middleKey,newChildKey);
-     		fileHandle.writePage(nodeNum,page);
-     		dbgnIXFnc();
-     		free(middleKey);
-     		return 0;
-     	}
+		if(*newChildKey!=NULL)
+		{
+			dbgnIX("newChildkey created..handling it here","");
+			void *middleKey=NULL;
+			middleKey=*newChildKey;
+			*newChildKey=NULL;
+			insertRecordInIndex(fileHandle,attribute,nodeNum,page,middleKey,newChildKey);
+			fileHandle.writePage(nodeNum,page);
+			dbgnIXFnc();
+			free(middleKey);
+			return 0;
+		}
 	}
 	dbgnIXFnc();
 	return 0;
@@ -320,47 +320,47 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 //aLL in mmeory operations --- NO I/O at all here....
 RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void* page)
 {
-		dbgnIXFn();
-		dbgnIXU("Filename",fileHandle.fileName);
-		void *newPage=malloc(PAGE_SIZE);
-		INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0,newSlot=0;
-		memcpy(newPage,page,PAGE_SIZE);				//copy the previous indices , isIndexByte and all other overheads
-		freeOffset=12;
-		totalSlots=getSlotNoV(page);
-		origOffset=getFreeOffsetV(page);
-		dbgnIXU("Total no of slots",totalSlots);
-		dbgnIXU("Original free offset",origOffset);
-		for(currSlot=0;currSlot<totalSlots;currSlot++)
+	dbgnIXFn();
+	dbgnIXU("Filename",fileHandle.fileName);
+	void *newPage=malloc(PAGE_SIZE);
+	INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0,newSlot=0;
+	memcpy(newPage,page,PAGE_SIZE);				//copy the previous indices , isIndexByte and all other overheads
+	freeOffset=12;
+	totalSlots=getSlotNoV(page);
+	origOffset=getFreeOffsetV(page);
+	dbgnIXU("Total no of slots",totalSlots);
+	dbgnIXU("Original free offset",origOffset);
+	for(currSlot=0;currSlot<totalSlots;currSlot++)
+	{
+		origOffset=getSlotOffV(page,currSlot);
+		origLength=getSlotLenV(page,currSlot);
+		dbgnIXU("Current slot no",currSlot);
+		dbgnIXU("Original offset",origOffset);
+		dbgnIXU("Original length",origLength);
+		// Empty slot
+		if( origOffset == -1)
+			continue;
+		// Original Record
+		if(origLength >= 0)
 		{
-			origOffset=getSlotOffV(page,currSlot);
-			origLength=getSlotLenV(page,currSlot);
-			dbgnIXU("Current slot no",currSlot);
-			dbgnIXU("Original offset",origOffset);
-			dbgnIXU("Original length",origLength);
-			// Empty slot
-			if( origOffset == -1)
-				continue;
-			// Original Record
-			if(origLength >= 0)
-			{
-				memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,origLength);   //copy the record
-				memcpy(getSlotOffA(newPage,newSlot),&freeOffset,2);			 		 //copy new offset
-				memcpy(getSlotLenA(newPage,newSlot),&origLength,2);
-				newSlot++;
-				freeOffset+=origLength;
-				dbgnIXU("old slot moved to slot",newSlot);
-				dbgnIXU("New freeOffset",freeOffset);
-			}
+			memcpy((BYTE *)newPage+freeOffset,(BYTE *)page+origOffset,origLength);   //copy the record
+			memcpy(getSlotOffA(newPage,newSlot),&freeOffset,2);			 		 //copy new offset
+			memcpy(getSlotLenA(newPage,newSlot),&origLength,2);
+			newSlot++;
+			freeOffset+=origLength;
+			dbgnIXU("old slot moved to slot",newSlot);
+			dbgnIXU("New freeOffset",freeOffset);
 		}
-		memcpy(getFreeOffsetA(newPage),&freeOffset,2);
-		dbgnIXU("The new free offset after reorganizing is ",getFreeOffsetV(newPage));
-		memcpy(getSlotNoA(newPage),&newSlot,2);
-		dbgnIXU("The new no of Slots after reorganizing is ",getSlotNoV(newPage));
-		memcpy(page,newPage,PAGE_SIZE);					//copy  new page back to old page and overwrite evrything
-		dbgAssert((4092-(newSlot*4)-freeOffset)==fileHandle.updateFreeSpaceInHeader(virtualPgNum,0));		//shuld be equal
-		free(newPage);
-		dbgnIXFnc();
-		return 0;
+	}
+	memcpy(getFreeOffsetA(newPage),&freeOffset,2);
+	dbgnIXU("The new free offset after reorganizing is ",getFreeOffsetV(newPage));
+	memcpy(getSlotNoA(newPage),&newSlot,2);
+	dbgnIXU("The new no of Slots after reorganizing is ",getSlotNoV(newPage));
+	memcpy(page,newPage,PAGE_SIZE);					//copy  new page back to old page and overwrite evrything
+	dbgAssert((4092-(newSlot*4)-freeOffset)==fileHandle.updateFreeSpaceInHeader(virtualPgNum,0));		//shuld be equal
+	free(newPage);
+	dbgnIXFnc();
+	return 0;
 }
 
 RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,const Attribute &attribute)
@@ -397,10 +397,10 @@ RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,
 		setNextSiblingPointerLeaf(newChildPage,next);
 		if(next!=-1)
 		{
-		fileHandle.readPage(next,nextPage);
-		setPrevSiblingPointerLeaf(nextPage,newChild);
-		fileHandle.writePage(next,nextPage);
-		free(nextPage);
+			fileHandle.readPage(next,nextPage);
+			setPrevSiblingPointerLeaf(nextPage,newChild);
+			fileHandle.writePage(next,nextPage);
+			free(nextPage);
 		}
 		memcpy((BYTE *)(*newChildKey)+ridOffset,&newChild,4);
 		startSlot=middleSlot;
@@ -503,9 +503,9 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 
 		dbgAssert(middleKey!=NULL);
 		if(compare(key,middleKey,attribute.type)>0)
-		insertRecordInIndex(fileHandle,attribute,newChild,newChildPage,key,0);
+			insertRecordInIndex(fileHandle,attribute,newChild,newChildPage,key,0);
 		else
-		insertRecordInIndex(fileHandle,attribute,virtualPgNum,page,key,0);
+			insertRecordInIndex(fileHandle,attribute,virtualPgNum,page,key,0);
 		fileHandle.writePage(newChild,newChildPage);
 	}
 	dbgnIXFnc();
@@ -559,14 +559,14 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		insertIndexNode(newChild,fileHandle);
 		void* newChildPage= malloc(PAGE_SIZE),*middleKey=NULL;
 		fileHandle.readPage(newChild,newChildPage);
-    	splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
+		splitNode(fileHandle,virtualPgNum,page,newChild,newChildPage,newChildKey,attribute); /// should update the free space in the header
 		middleKey=*newChildKey;
 
 		dbgAssert(middleKey!=NULL);
 		if(compare(key,middleKey,attribute.type)>0)
-		insertRecordInLeaf(fileHandle,attribute,newChild,newChildPage,key,0);
+			insertRecordInLeaf(fileHandle,attribute,newChild,newChildPage,key,0);
 		else
-		insertRecordInLeaf(fileHandle,attribute,virtualPgNum,page,key,0);
+			insertRecordInLeaf(fileHandle,attribute,virtualPgNum,page,key,0);
 		fileHandle.writePage(newChild,newChildPage);
 	}
 	dbgnIXFnc();
@@ -804,7 +804,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 
 	// Initialize Root and read root
 	INT32 root;
-	// getRoot(fileHandle,root);
+	getRoot(fileHandle,root);
 	if(root == -1) return -1;
 	void* pageData = malloc(PAGE_SIZE); // THIS WILL BE FREED BY SCANITERATOR
 	fileHandle.readPage(root, pageData);
@@ -832,11 +832,17 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 
-	// Return error if higKey < lowKey
-	if(compare(tempLowKey,ix_ScanIterator.highKey,attribute.type)<0){
-		dbgnIXFnc();
-		return -1;
+	if(highKey!=NULL && lowKey !=NULL){
+		// Return error if higKey < lowKey
+		float compare = compare(tempLowKey,ix_ScanIterator.highKey,attribute.type);
+		dbgnIX("Comparing high and low key","");
+		if(compare<0){
+			dbgnIX("High key is less than low key","");
+			dbgnIXFnc();
+			return -1;
+		}
 	}
+
 	// Find Leaf Page where possible first record is present
 	findLeafPage(fileHandle, pageData, root, tempLowKey, attribute.type);
 	findLowSatisfyingEntry(fileHandle, pageData, root, tempLowKey, lowKeyInclusive, ix_ScanIterator.highKey, highKeyInclusive, attribute.type, ix_ScanIterator.nextRid);
@@ -953,7 +959,7 @@ IX_ScanIterator::IX_ScanIterator()
 
 IX_ScanIterator::~IX_ScanIterator()
 {
-fileHandle.stream=0;
+	fileHandle.stream=0;
 }
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
