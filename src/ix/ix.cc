@@ -867,6 +867,11 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		memcpy(temp + 4,lowKey,searchKeyLength);
 		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
+	else
+	{
+		tempLowKey=malloc(4);
+		memcpy(tempLowKey,lowKey,4);
+	}
 
 	// Make new format for High Key Value
 	ix_ScanIterator.highKey = NULL;
@@ -878,6 +883,11 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		memcpy(temp,& newKeyLength, 4);
 		memcpy(temp + 4,highKey,searchKeyLength);
 		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength+4)) = (BYTE)0;
+	}
+	else
+	{
+		ix_ScanIterator.highKey=malloc(4);
+		memcpy(ix_ScanIterator.highKey,highKey,4);
 	}
 
 	if(highKey!=NULL && lowKey !=NULL){

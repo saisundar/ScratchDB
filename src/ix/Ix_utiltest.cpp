@@ -31,16 +31,16 @@ void testInc()
 void testDisp()
 {
 
-for(int i=1;i<4 && i< testG;i++)
+for(int i=1;i<4 && i<=testG;i++)
 	cout<<"test number "<<i<<((testLog[i]=='P')?" passed":" failed")<<endl;
-for(int i=4;i<6 && i< testG;i++)
+for(int i=4;i<6 && i<=testG;i++)
 	cout<<"test number 4"<<(i==4?"A":"B")<<((testLog[i]=='P')?" passed":" failed")<<endl;
-for(int i=6;i<15 && i< testG;i++)
+for(int i=6;i<15 && i<=testG;i++)
 	cout<<"test number "<<i-1<<((testLog[i]=='P')?" passed":" failed")<<endl;
 }
 void signalHandler( int signum )
  {
-     cout << "Crash occurred (" << signum << "debug carefully.....\n";
+     cout << "Crash occurred while executing testcase "<<testG<<"leading to" << signum << "error..debug carefully.....\n";
      // cleanup and close up stuff here
      // terminate program
      testDisp();
