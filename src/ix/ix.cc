@@ -702,7 +702,19 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 		memcpy(temp + 4,key,searchKeyLength);
 		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
+	else
+	{
+		tempLowKey=malloc(4);
+		memcpy(tempLowKey,key,4);
 
+	}
+	if(attribute.type!=2)
+	{
+		dbgnIX("Looking for elemnt .",intVal(key));
+	}
+	else{
+		dbgnIX("Looking for elemnt with string wih Length=",intVal(key));
+	}
 	// FIND THE LEAF PAGE WHERE ENTRY IS STORED
 	findLeafPage(fileHandle, pageData, root, tempLowKey, attribute.type);
 
@@ -737,18 +749,24 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 
 	// Setup for Binary Search
 	int start = 0;
-
+	dbgnIX("Binary searching through the array...","");
 	// Find lowest record in page which is not deleted, i.e (offset != -1)
 	// No need to do same for highest record, because highest record will always EXIST ! (Nature of delete)
 	INT16 startOffset = getSlotOffV(pageData,start);
-	while(startOffset==-1){
+	while(startOffset==-1 && start<totalSlots){
 		start++;
 		startOffset = getSlotOffV(pageData,start);
 	}
 
 	int end = totalSlots-1; // Will Always EXIST !
 	int mid = (start+end)/2;
-
+	if(attribute.type!=2)
+	{
+		dbgnIX("Looking for elemnt .",intVal(key));
+	}
+	else{
+		dbgnIX("Looking for elemnt with string wih Length=",intVal(key));
+	}
 
 	// BINARY SEARCH STARTS
 	while(start<=end){

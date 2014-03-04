@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
+#include <csignal>
 
 #include "ix.h"
 #include "ixtest_util.h"
@@ -14,7 +15,48 @@ int g_nGradExtraPoint;
 int g_nUndergradPoint;
 int g_nUndergradExtraPoint;
 
-#define TestSucc() cout<<"****"<<__func__<<" passed!!!****"<<endl;
+char testLog[16];
+int testG=0;
+void incT()
+{
+	testG++;
+}
+void testInc()
+{
+	testLog[testG]='P';
+
+}
+#define TestSucc() {cout<<"****"<<__func__<<" passed!!!****"<<endl;testInc();}
+
+void testDisp()
+{
+
+for(int i=1;i<4 && i< testG;i++)
+	cout<<"test number "<<i<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=4;i<6 && i< testG;i++)
+	cout<<"test number 4"<<(i==4?"A":"B")<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=6;i<15 && i< testG;i++)
+	cout<<"test number "<<i-1<<((testLog[i]=='P')?" passed":" failed")<<endl;
+}
+void signalHandler( int signum )
+ {
+     cout << "Crash occurred (" << signum << "debug carefully.....\n";
+     // cleanup and close up stuff here
+     // terminate program
+     testDisp();
+    exit(signum);
+
+ }
+void testInit()
+{
+	signal (SIGINT, signalHandler);
+	signal (SIGABRT, signalHandler);
+	signal (SIGILL, signalHandler);
+	signal (SIGSEGV, signalHandler);
+	signal (SIGINT, signalHandler);
+	signal (SIGTERM, signalHandler);
+
+}
 
 int testCase_1(const string &indexFileName)
 {
@@ -25,6 +67,7 @@ int testCase_1(const string &indexFileName)
     // 4. Close Index File **
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 1****" << endl;
+    incT();
 
     RC rc;
     FileHandle fileHandle;
@@ -95,6 +138,7 @@ int testCase_2(const string &indexFileName, const Attribute &attribute)
     // 5. Close Index file
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 2****" << endl;
+    incT();
 
     RID rid;
     RC rc;
@@ -176,6 +220,7 @@ int testCase_3(const string &indexFileName, const Attribute &attribute)
     // 2. Open Index File -- should fail
     // 3. Scan  -- should fail
     cout << endl << "****In Test Case 3****" << endl;
+    incT();
 
     RC rc;
     FileHandle fileHandle;
@@ -226,6 +271,7 @@ int testCase_4A(const string &indexFileName, const Attribute &attribute)
     // 6. Close Index File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 4A****" << endl;
+    incT();
 
     RID rid;
     RC rc;
@@ -348,6 +394,7 @@ int testCase_4B(const string &indexFileName, const Attribute &attribute)
     // 7. Destroy Index File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 4B****" << endl;
+    incT();
 
     RID rid;
     RC rc;
@@ -470,6 +517,7 @@ int testCase_5(const string &indexFileName, const Attribute &attribute)
     // 7. Destroy Index File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 5****" << endl;
+    incT();
 
     RID rid;
     RC rc;
@@ -631,6 +679,7 @@ int testCase_6(const string &indexFileName, const Attribute &attribute)
     // 7. Destroy Index File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 6****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -801,6 +850,7 @@ int testCase_7(const string &indexFileName, const Attribute &attribute)
     // 7. DestroyIndex File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 7****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -980,6 +1030,7 @@ int testCase_8(const string &indexFileName, const Attribute &attribute)
     // 9. DestroyIndex File
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 8****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -1180,6 +1231,7 @@ int testCase_9(const string &indexFileName, const Attribute &attribute)
     // 9. DestroyIndex
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 9****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -1405,6 +1457,7 @@ int testCase_10(const string &indexFileName, const Attribute &attribute)
     // 9. DestroyIndex
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Test Case 10****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -1630,6 +1683,7 @@ int testCase_extra_1(const string &indexFileName, const Attribute &attribute)
     // 7. DestroyIndex
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Extra Test Case 1****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -1790,6 +1844,7 @@ int testCase_extra_2(const string &indexFileName, const Attribute &attribute)
     // 7. DestroyIndex
     // NOTE: "**" signifies the new functions being tested in this test case.
     cout << endl << "****In Extra Test Case 2****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -1949,6 +2004,7 @@ int testCase_extra_3(const string &indexFileName, const Attribute &attribute)
     // 6. Close Index
     // 7. Destroy Index
     cout << endl << "****In Extra Test Case 3****" << endl;
+    incT();
 
     RC rc;
     RID rid;
@@ -2132,7 +2188,9 @@ int main()
     g_nGradExtraPoint = 0;
     g_nUndergradPoint = 0;
     g_nUndergradExtraPoint = 0;
+    testInit();
     test();
+    testDisp();
     cout << "grad-point: " << g_nGradPoint << "\t grad-extra-point: " << g_nGradExtraPoint << endl;
     cout << "undergrad-point: " << g_nUndergradPoint << "\t undergrad-extra-point: " << g_nUndergradExtraPoint << endl;
     return 0;
