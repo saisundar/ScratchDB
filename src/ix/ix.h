@@ -78,7 +78,7 @@ class IndexManager {
 		  INT16& freeSpaceIncrease);
   INT32 getIndexValueAtOffset(void* pageData, INT16 offset, AttrType type);
   INT32 findLowSatisfyingEntry(FileHandle& fileHandle, void* pageData, INT32& root, void* lowKey, bool lowKeyInclusive, void* highKey, bool highKeyInclusive,//
-  		AttrType type, RID& nextRid);
+  		AttrType type, RID& nextRid, IX_ScanIterator& ix_ScanIterator);
   void findLeafPage(FileHandle& fileHandle, void* pageData, INT32& root, void* key, AttrType type);
 
   // The following two functions are using the following format for the passed key value.
@@ -125,6 +125,7 @@ public:
 	bool highKeyInclusive;
 	void *highKey;
 	AttrType type;
+	INT16 storedSlot;
 
 	IX_ScanIterator();  							// Constructor
 	~IX_ScanIterator(); 							// Destructor
