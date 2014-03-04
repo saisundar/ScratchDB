@@ -787,6 +787,10 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		IX_ScanIterator &ix_ScanIterator)
 {
 	dbgnIXFn();
+	if(fileHandle.stream==0){
+		dbgnIX("File does not exist","");
+		return -1;
+	}
 	// Assign Values to ix_ScanIterator
 	ix_ScanIterator.fileHandle = fileHandle;
 	ix_ScanIterator.type = attribute.type;
