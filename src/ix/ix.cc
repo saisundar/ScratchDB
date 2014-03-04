@@ -383,11 +383,10 @@ RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,
 	INT16 freeSpaceIncNew,freeSpaceIncOrig;
 	*newChildKey=malloc(midLength);
 	memcpy(*newChildKey,getRecordAtSlot(page,middleSlot),midLength);
-
+	ridOffset= (attribute.type==2)?(4+intVal(*newChildKey)):4;
 	if(!isLeaf)
 	{
 		dbgnIXU("Split node claled on Index ","");
-		ridOffset= (attribute.type==2)?(4+intVal(*newChildKey)):4;
 		memcpy(&prevMid,(BYTE *)(*newChildKey)+ridOffset,4);
 		setPrevPointerIndex(newChildPage,prevMid);		//{ exchange pagnums between prev f new page, and rid f middle record
 		memcpy((BYTE *)(*newChildKey)+ridOffset,&newChild,4);		//}
@@ -402,6 +401,7 @@ RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,
 		setNextSiblingPointerLeaf(page,newChild);
 		setPrevSiblingPointerLeaf(newChildPage,virtualPgNum);
 		setNextSiblingPointerLeaf(newChildPage,next);
+		memcpy((BYTE *)(*newChildKey)+ridOffset,&newChild,4);
 		if(next!=-1)
 		{
 			fileHandle.readPage(next,nextPage);
