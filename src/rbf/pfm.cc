@@ -141,6 +141,7 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 //Initializes the stream and mode
 FileHandle::FileHandle()
 {
+	dbgnFHU("<FHu----filehanld opened----FHu>","");
 	stream = 0;
 	mode = false;
 }
@@ -148,6 +149,8 @@ FileHandle::FileHandle()
 //Make sure stream is deallocated
 FileHandle::~FileHandle()
 {
+	dbgnFHU("<FHu----filehanld eclosed----FHu>","");
+
 	//no freeing required
 	if(stream!=0)
 		fclose(stream);
@@ -199,7 +202,7 @@ INT32 FileHandle::translatePageNum(INT32 pageNum)
 
 	if(headPageNum==-1)return -1;
 
-	INT32 actualPgNum;
+	INT32 actualPgNum=-1;
 	fseek(stream,(headPageNum*PAGE_SIZE)+((offset+1)*PES),SEEK_SET);
 	fread(&actualPgNum, 1, 4, stream);
 	dbgnFHU("Actual page no ",actualPgNum);

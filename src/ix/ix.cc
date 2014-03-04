@@ -101,7 +101,7 @@ float compare(const void * keyIndex,const void* keyInput,AttrType type)  ////
 
 // Inserts a new page of INDEX TYPE and updates the pageNum to contain the Virtual Page Number of the new Page added
 // Also updates the header page to contain the correct amount of freeSpace
-RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
+RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle &fileHandle){
 	dbgnIXFn();
 	void* data = malloc(PAGE_SIZE);
 	pageType(data) = (BYTE)1;
@@ -120,7 +120,7 @@ RC IndexManager::insertIndexNode(INT32& pageNum, FileHandle fileHandle){
 
 // Inserts a new page of LEAF TYPE and updates the pageNum to contain the Virtual Page Number of the new Page added
 // Also updates the header page to contain the correct amount of freeSpace
-RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle fileHandle){
+RC IndexManager::insertLeafNode(INT32& pageNum, FileHandle &fileHandle){
 	dbgnIXFn();
 	void* data = malloc(PAGE_SIZE);
 	pageType(data) = (BYTE)0;
@@ -516,16 +516,18 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
 		void **newChildKey  )
 {
-
+	dbgnIXFn();
 	INT16 freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,0);
 	INT16 requiredSpace = (attribute.type==2)?(4+intVal(key)):4;
 	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
 	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset,i;
 	requiredSpace+=6;			// only fr the pagenum
-	dbgnIXFn();
+
 
 	dbgAssert(page!=NULL);
 
+	dbgnIX("free spacein the page",freeSpace);
+	dbgnIX(" space required for th record",requiredSpace);
 	if(freeSpace>(requiredSpace+4))
 	{
 		dbgnIX("Key can be accomodated in the same Leaf without split","");
@@ -934,7 +936,7 @@ IX_ScanIterator::IX_ScanIterator()
 
 IX_ScanIterator::~IX_ScanIterator()
 {
-
+fileHandle.stream=0;
 }
 
 RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
@@ -1029,6 +1031,7 @@ RC IX_ScanIterator::close()
 {
 	free(leafPage);
 	free(highKey);
+	fileHandle.stream=0;
 	return 0;
 }
 
