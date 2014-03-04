@@ -250,6 +250,7 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 	if(!(pageType(page)==1))
 	{
 		dbgnIX("Reached a Leaf , so insert in to the leaf"," ");
+		dbgnIX("value to be isnerted",intVal(key));
 		insertRecordInLeaf(fileHandle,attribute,nodeNum,page,key,newChildKey);
 		fileHandle.writePage(nodeNum,page);
 		dbgnIXFnc();
@@ -357,7 +358,13 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 	memcpy(getSlotNoA(newPage),&newSlot,2);
 	dbgnIXU("The new no of Slots after reorganizing is ",getSlotNoV(newPage));
 	memcpy(page,newPage,PAGE_SIZE);					//copy  new page back to old page and overwrite evrything
-	dbgAssert((4092-(newSlot*4)-freeOffset)==fileHandle.updateFreeSpaceInHeader(virtualPgNum,0));		//shuld be equal
+
+	//everything after this is just for the logging purposes
+	freeOffset=(4092-(newSlot*4)-freeOffset);
+	dbgnIXU("new free space agt the end of the file ",freeOffset);
+	origOffset=fileHandle.updateFreeSpaceInHeader(virtualPgNum,0);
+	dbgnIXU("free space in header is ",origOffset);
+	dbgAssert(freeOffset==origOffset);		//shuld be equal
 	free(newPage);
 	dbgnIXFnc();
 	return 0;
@@ -487,8 +494,10 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
 		totalSlots++;
+		freeOffset+=requiredSpace;
+		memcpy(getFreeOffsetA(page),&freeOffset,2);
 		memcpy(getSlotNoA(page),&totalSlots,2);
-		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,requiredSpace+4);
+		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,-(requiredSpace+4));
 	}
 	else
 	{
@@ -525,7 +534,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 
 
 	dbgAssert(page!=NULL);
-
+	dbgnIX("value to be isnerted",intVal(key));
 	dbgnIX("free spacein the page",freeSpace);
 	dbgnIX(" space required for th record",requiredSpace);
 	if(freeSpace>(requiredSpace+4))
@@ -542,14 +551,19 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		dbgAssert((4092-(totalSlots*4)-freeOffset)>=requiredSpace+4);
 
 		for(i=totalSlots;compare(key,getRecordAtSlot(page,i-1),attribute.type)>0 && i >0;i--)
+		{
 			memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+			memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
+		}
 		dbgnIX("inserting record in slot",i);
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
+		freeOffset+=requiredSpace;
+		memcpy(getFreeOffsetA(page),&freeOffset,2);
 		totalSlots++;
 		memcpy(getSlotNoA(page),&totalSlots,2);
-		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,requiredSpace+4);
+		freeSpace=fileHandle.updateFreeSpaceInHeader(virtualPgNum,-(requiredSpace+4));
 	}
 	else
 	{
@@ -615,6 +629,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 		memcpy(tempKey,key,searchKeyLength);
 		memcpy((BYTE*)tempKey +searchKeyLength,&pagNum,4);
 		memcpy((BYTE*)tempKey +searchKeyLength+4,&slotNo,2);
+		compare(tempKey,key,attribute.type);
 	}
 
 	insertRecurseEntry(fileHandle,attribute, tempKey,rid,root,newChildKey);
@@ -834,9 +849,9 @@ RC IndexManager::scan(FileHandle &fileHandle,
 
 	if(highKey!=NULL && lowKey !=NULL){
 		// Return error if higKey < lowKey
-		float compare = compare(tempLowKey,ix_ScanIterator.highKey,attribute.type);
+		float comp = compare(tempLowKey,ix_ScanIterator.highKey,attribute.type);
 		dbgnIX("Comparing high and low key","");
-		if(compare<0){
+		if(comp<0){
 			dbgnIX("High key is less than low key","");
 			dbgnIXFnc();
 			return -1;
@@ -1081,7 +1096,9 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 			startOffset = getSlotOffV(pageData,start);
 		}
 		if((key==NULL) || compare((BYTE*)pageData+startOffset,key,type)<0){
+			dbgnIX("either key is null or start>key","");
 			root = *((INT32*)((BYTE*)pageData + 8));
+			dbgnIX("new vallue of root",root);
 			fileHandle.readPage(root, pageData);
 			continue;
 		}
@@ -1089,16 +1106,20 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 		// Check if keyInput is larger than last entry
 		INT16 endOffset = getSlotOffV(pageData,end);
 		if(compare((BYTE*)pageData+endOffset,key,type) >= 0){
+			dbgnIX("start>key","");
 			root = getIndexValueAtOffset(pageData, endOffset, type);
+			dbgnIX("new vallue of root",root);
 			fileHandle.readPage(root, pageData);
 			continue;
 		}
-
+		dbgnIX("Binary search starts.....","");;
 		while(start<end){
 			INT16 midOffset = getSlotOffV(pageData,mid);
 			if(compare((BYTE*)pageData+midOffset,key,type) == 0){
+				dbgnIX("equal case FOUND....","");;
 				root = getIndexValueAtOffset(pageData, midOffset, type);
 				fileHandle.readPage(root, pageData);
+				dbgnIX("new vallue of root",root);
 				dbgnIXFnc();
 				return;
 			}
@@ -1112,15 +1133,22 @@ void IndexManager::findLeafPage(FileHandle& fileHandle, void* pageData, INT32& r
 			}
 			mid = (start+end)/2;
 		}
+		dbgnIX("Binary search ends.....","");
+		dbgnIX("value of mid",mid);
 		if(compare((BYTE*)pageData+getSlotOffV(pageData,mid),key,type) < 0){
+			dbgnIX("key is greater than final converegd node===> take the > pointer down","");;
 			root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid-1), type);
+			dbgnIX("new vallue of root",root);
 			fileHandle.readPage(root, pageData);
 			dbgnIXFnc();
 			return;
 		}
+		dbgnIX("key is lesser than or equal to final converegd node===> take the < pointer down","");;
 		root = getIndexValueAtOffset(pageData, getSlotOffV(pageData,mid), type);
+		dbgnIX("new vallue of root",root);
 		fileHandle.readPage(root, pageData);
 		dbgnIXFnc();
 		return;
 	}
+	dbgnIXFnc();
 }
