@@ -45,7 +45,7 @@
 #endif
 
 class IX_ScanIterator;
-
+float compare(const void * keyIndex,const void* keyInput,AttrType type);
 class IndexManager {
  public:
   static IndexManager* instance();
@@ -58,7 +58,6 @@ class IndexManager {
 
   RC closeFile(FileHandle &fileHandle);
 
-  float compare(const void * keyIndex,const void* keyInput,AttrType type);
   INT32 getPrevPointerIndex(void *page);
   RC setPrevPointerIndex(void *page,INT32 virtualPgNum);
   RC setPrevSiblingPointerLeaf(void *page,INT32 virtualPgNum);
@@ -75,6 +74,12 @@ class IndexManager {
   RC splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,const Attribute &attribute);
   INT32 getPrevSiblingPointerLeaf(void *page);
   INT32 getNextSiblingPointerLeaf(void *page);
+  RC deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid, INT32 root, void* pageData,//
+		  INT16& freeSpaceIncrease);
+  INT32 getIndexValueAtOffset(void* pageData, INT16 offset, AttrType type);
+  INT32 findLowSatisfyingEntry(FileHandle& fileHandle, void* pageData, INT32& root, void* lowKey, bool lowKeyInclusive, void* highKey, bool highKeyInclusive,//
+  		AttrType type, RID& nextRid);
+  void findLeafPage(FileHandle& fileHandle, void* pageData, INT32& root, void* key, AttrType type);
 
   // The following two functions are using the following format for the passed key value.
   //  1) data is a concatenation of values of the attributes
@@ -110,12 +115,22 @@ class IndexManager {
 };
 
 class IX_ScanIterator {
- public:
-  IX_ScanIterator();  							// Constructor
-  ~IX_ScanIterator(); 							// Destructor
 
-  RC getNextEntry(RID &rid, void *key);  		// Get next matching entry
-  RC close();             						// Terminate index scan
+public:
+
+	FileHandle fileHandle;
+	RID nextRid;
+	INT16 totalSlotsInCurrPage;
+	void* leafPage;
+	bool highKeyInclusive;
+	void *highKey;
+	AttrType type;
+
+	IX_ScanIterator();  							// Constructor
+	~IX_ScanIterator(); 							// Destructor
+
+	RC getNextEntry(RID &rid, void *key);  		// Get next matching entry
+	RC close();             						// Terminate index scan
 };
 
 // print out the error message for a given return code

@@ -14,6 +14,8 @@
 using namespace std;
 
 #define debugAss 1
+#define debugIX 1
+#define debugIXU 1
 //#define debugFH 1
 //#define debugFHU 1
 ////#define debugPFM 1
