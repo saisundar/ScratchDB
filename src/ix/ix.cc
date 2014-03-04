@@ -697,7 +697,10 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attribute, const void *key, const RID &rid, INT32 root, void* pageData, INT16& freeSpaceIncrease){
 	dbgnIXFn();
 	INT16 totalSlots = getSlotNoV(pageData);
-	if(totalSlots==0)return -1;
+	if(totalSlots==0){
+		dbgnIX("Zero slots in this page","return not found ")
+		return 1;
+	}
 
 	// Setup for Binary Search
 	int start = 0;
@@ -724,6 +727,7 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 
 		// Check for equality
 		if(compare((BYTE*)pageData+midOffset,key,attribute.type) == 0){
+			dbgnIX("Slot to be deleted found","");
 			// Handles the case where last slot is deleted, In this case it makes the last slot existant or reduces the total number of slots to 0
 			INT16 reducedSlotsBy = 0;
 			if(mid == totalSlots-1){
@@ -735,8 +739,9 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 				getSlotNoV(pageData) = (INT16)getSlotNoV(pageData)-reducedSlotsBy;
 			}
 			else getSlotOffV(pageData,mid) = (INT16)-1;
-
-			freeSpaceIncrease += (getSlotLenV(pageData,mid)+4);
+			dbgnIX("Slots reduce by",reducedSlotsBy);
+			freeSpaceIncrease = (getSlotLenV(pageData,mid)+4);
+			dbgnIX("Free Space Increases by",freeSpaceIncrease);
 			dbgnIXFnc();
 			return 0;
 		}
@@ -752,6 +757,7 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 		mid = (start+end)/2;
 	}
 	// If reached here, returns non negative error code.
+	dbgnIX("Entry not found","");
 	dbgnIXFnc();
 	return 1;
 }
