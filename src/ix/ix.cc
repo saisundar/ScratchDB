@@ -683,7 +683,7 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 	// INITIALIZE THE ROOT
 	INT32 root;
 	getRoot(fileHandle,root);
-	if(root == -1){
+	if(root == -1 ||key==NULL){
 		dbgnIXFnc();
 		return -1;
 	}
@@ -867,7 +867,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		memcpy(temp + 4,lowKey,searchKeyLength);
 		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
-	else
+	else if(lowKey!=NULL)
 	{
 		tempLowKey=malloc(4);
 		memcpy(tempLowKey,lowKey,4);
@@ -884,7 +884,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		memcpy(temp + 4,highKey,searchKeyLength);
 		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength+4)) = (BYTE)0;
 	}
-	else
+	else if(highKey!=NULL)
 	{
 		ix_ScanIterator.highKey=malloc(4);
 		memcpy(ix_ScanIterator.highKey,highKey,4);
@@ -971,9 +971,14 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 		return 0;
 	}
 // nonzero page,non zeeo slot, and low key-matching slot may or not not be the start slot..
-	do{
-		INT16 totalSlots = getSlotNoV(pageData);
-		while(totalSlots==0){
+	INT16 totalSlots = getSlotNoV(pageData);
+	start=-1;
+	do
+	{
+		start++;
+		startOffset = getSlotOffV(pageData,start);
+
+		while(totalSlots==0 || totalSlots==start){
 			nextPage = *((INT32*)((BYTE*)pageData+8));
 			if(nextPage == -1){
 				nextRid.pageNum = (INT32)-1;
@@ -984,16 +989,17 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 			}
 			fileHandle.readPage(nextPage,pageData);
 			totalSlots = getSlotNoV(pageData);
+			start = 0;
+			startOffset = getSlotOffV(pageData,start);
 		}
 
-		start = 0;
-		startOffset = getSlotOffV(pageData,start);
 		while(startOffset==-1 && start < totalSlots){
 			start++;
 			startOffset = getSlotOffV(pageData,start);
 		}
-	}
-	while(compare((BYTE*)pageData+startOffset,lowKey,type) > 0 );
+
+	}while(compare((BYTE*)pageData+startOffset,lowKey,type) > 0 );
+
 
 //nonzero page, non zero slot, and guaranteed to be greater than or equal to  lowkey
 	////////////////////////////////////////////
