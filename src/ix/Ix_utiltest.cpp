@@ -14,6 +14,8 @@ int g_nGradExtraPoint;
 int g_nUndergradPoint;
 int g_nUndergradExtraPoint;
 
+#define TestSucc() cout<<"****"<<__func__<<" passed!!!****"<<endl;
+
 int testCase_1(const string &indexFileName)
 {
     // Functions tested
@@ -76,6 +78,7 @@ int testCase_1(const string &indexFileName)
     }
     g_nGradPoint += 2;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_return:
@@ -155,6 +158,7 @@ int testCase_2(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 3;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_index: //close index file
@@ -205,6 +209,7 @@ int testCase_3(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 error_return:
 	return fail;
@@ -320,6 +325,7 @@ int testCase_4A(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 2;
     g_nUndergradPoint += 2;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan;
@@ -436,6 +442,7 @@ int testCase_4B(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 3;
     g_nUndergradPoint += 3;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan;
@@ -596,6 +603,7 @@ int testCase_5(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -764,6 +772,7 @@ int testCase_6(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -941,6 +950,7 @@ int testCase_7(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -1139,6 +1149,7 @@ int testCase_8(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -1363,6 +1374,7 @@ int testCase_9(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -1589,6 +1601,7 @@ int testCase_10(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -1748,6 +1761,7 @@ int testCase_extra_1(const string &indexFileName, const Attribute &attribute)
 
     g_nGradExtraPoint += 5;
     g_nUndergradExtraPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -1907,6 +1921,7 @@ int testCase_extra_2(const string &indexFileName, const Attribute &attribute)
 
     g_nGradExtraPoint += 5;
     g_nUndergradExtraPoint += 5;
+    TestSucc();
     return success;
 
 error_close_scan: //close scan
@@ -2054,6 +2069,7 @@ int testCase_extra_3(const string &indexFileName, const Attribute &attribute)
 
     g_nGradPoint += 5;
     g_nUndergradExtraPoint += 5;
+    TestSucc();
     return success;
 
 error_close_index: //close index file
