@@ -680,8 +680,13 @@ RC IndexManager::deleteEntry(FileHandle &fileHandle, const Attribute &attribute,
 
 	// DELETE THAT ENTRY FROM THE LEAF PAGE
 	INT16 freeSpaceIncrease = 0;
-	deleteEntryInLeaf(fileHandle, attribute, tempLowKey, rid, root, pageData, freeSpaceIncrease);
-
+	RC rc = deleteEntryInLeaf(fileHandle, attribute, tempLowKey, rid, root, pageData, freeSpaceIncrease);
+	if(rc==1){
+		free(pageData);
+		free(tempLowKey);
+		dbgnIXFnc();
+		return 1;
+	}
 	// WRITE THAT PAGE BACK
 	fileHandle.writePage(root, pageData);
 
@@ -698,7 +703,7 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 	dbgnIXFn();
 	INT16 totalSlots = getSlotNoV(pageData);
 	if(totalSlots==0){
-		dbgnIX("Zero slots in this page","return not found ")
+		dbgnIX("Zero slots in this page","return not found ");
 		return 1;
 	}
 
@@ -715,6 +720,7 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 
 	int end = totalSlots-1; // Will Always EXIST !
 	int mid = (start+end)/2;
+
 
 	// BINARY SEARCH STARTS
 	while(start<=end){
