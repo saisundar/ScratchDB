@@ -727,14 +727,15 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 
 		// Check for equality
 		if(compare((BYTE*)pageData+midOffset,key,attribute.type) == 0){
-			dbgnIX("Slot to be deleted found","");
+			dbgnIX("Slot to be deleted found",mid);
 			// Handles the case where last slot is deleted, In this case it makes the last slot existant or reduces the total number of slots to 0
 			INT16 reducedSlotsBy = 0;
 			if(mid == totalSlots-1){
 				while(true){
 					reducedSlotsBy++;
 					mid = mid-1;
-					if(getSlotOffV(pageData,mid)==-1)break;
+					if(mid<0)break;
+					if(getSlotOffV(pageData,mid)!=-1)break;
 				}
 				getSlotNoV(pageData) = (INT16)getSlotNoV(pageData)-reducedSlotsBy;
 			}
