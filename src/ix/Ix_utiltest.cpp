@@ -40,7 +40,8 @@ for(int i=6;i<15 && i<=testG;i++)
 }
 void signalHandler( int signum )
  {
-     cout << "Crash occurred while executing testcase "<<testG<<"leading to" << signum << "error..debug carefully.....\n";
+    cout.flush();
+	cout << "Crash occurred while executing testcase "<<testG<<"leading to" << signum << "error..debug carefully....."<<endl;
      // cleanup and close up stuff here
      // terminate program
      testDisp();
@@ -768,7 +769,7 @@ int testCase_6(const string &indexFileName, const Attribute &attribute)
     // iterate
     while(ix_ScanIterator.getNextEntry(rid, &key) == success)
     {
-        if(rid.pageNum % 500 == 0)
+      //  if(rid.pageNum % 500 == 0)
             cout << rid.pageNum << " " << rid.slotNum << endl;
         if ((rid.pageNum > 2000 && rid.pageNum < 6000) || rid.pageNum >= 6500)
         {
@@ -780,6 +781,7 @@ int testCase_6(const string &indexFileName, const Attribute &attribute)
 
     if (inRidPageNumSum != outRidPageNumSum)
     {
+        cout<<"in rid sum"<<inRidPageNumSum<<":  Outrid sum"<<outRidPageNumSum<<endl;
         cout << "Wrong entries output...failure" << endl;
         goto error_close_scan;
     }
@@ -2159,16 +2161,16 @@ void test()
 	attrEmpName.name = "EmpName";
 	attrEmpName.type = TypeVarChar;
 
-	testCase_1(indexAgeFileName);
-	testCase_2(indexAgeFileName, attrAge);
-	testCase_3(indexAgeFileName, attrAge);
-	testCase_4A(indexAgeFileName, attrAge);
-	testCase_4B(indexAgeFileName, attrAge);
-    testCase_5(indexAgeFileName, attrAge);
-	//    testCase_6(indexHeightFileName, attrHeight);
+//	testCase_1(indexAgeFileName);
+//	testCase_2(indexAgeFileName, attrAge);
+//	testCase_3(indexAgeFileName, attrAge);
+//	testCase_4A(indexAgeFileName, attrAge);
+//	testCase_4B(indexAgeFileName, attrAge);
+//    testCase_5(indexAgeFileName, attrAge);
+//    testCase_6(indexHeightFileName, attrHeight);
 //    testCase_7(indexHeightFileName, attrHeight);
 //    testCase_8(indexHeightFileName, attrHeight);
-//    testCase_9(indexAgeFileName, attrAge);
+    testCase_9(indexAgeFileName, attrAge);
 //    testCase_10(indexHeightFileName, attrHeight);
 //
 //    // Extra Credit Work

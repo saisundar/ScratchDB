@@ -79,10 +79,12 @@ float compare(const void * keyIndex,const void* keyInput,AttrType type)  ////
 	case 0:
 		diff=intVal(keyInput)-intVal(keyIndex);
 		dbgnIXU("Comparing the integers here !","");
+		dbgnIXU("inputKey","keyFrom Disk");
 		dbgnIXU(intVal(keyInput),intVal(keyIndex));
 		break;
 	case 1:
 		dbgnIXU("Comparing the floats here !","");
+		dbgnIXU("inputKey","keyFrom Disk");
 		dbgnIXU((*((float *)keyInput)),(*((float *)keyIndex)));
 		diff=*((float *)keyInput)-*((float *)keyIndex);
 
@@ -90,7 +92,8 @@ float compare(const void * keyIndex,const void* keyInput,AttrType type)  ////
 		break;
 	case 2:
 		diff= strcmp((char *)keyInput+4,(char *)keyIndex+4);
-		dbgnIXU("Comparing the strings here !","");
+		dbgnIXU("inputKey","keyFrom Disk");
+		dbgnIXU(intVal(keyInput),intVal(keyIndex));
 		dbgnIXU((char*)keyInput,(char*)keyIndex);
 		break;
 	}
@@ -324,7 +327,7 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 	dbgnIXFn();
 	dbgnIXU("Filename",fileHandle.fileName);
 	void *newPage=malloc(PAGE_SIZE);
-	INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0,newSlot=0;
+	INT16 freeOffset,origOffset,origLength=0,totalSlots,currSlot=0,newSlot=0,nonEmpty=0;
 	memcpy(newPage,page,PAGE_SIZE);				//copy the previous indices , isIndexByte and all other overheads
 	freeOffset=12;
 	totalSlots=getSlotNoV(page);
@@ -339,8 +342,9 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 		dbgnIXU("Original offset",origOffset);
 		dbgnIXU("Original length",origLength);
 		// Empty slot
-		if( origOffset == -1)
+		if( origOffset == (INT16)(-1))
 			continue;
+		nonEmpty++;
 		// Original Record
 		if(origLength >= 0)
 		{
@@ -358,6 +362,8 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 	memcpy(getSlotNoA(newPage),&newSlot,2);
 	dbgnIXU("The new no of Slots after reorganizing is ",getSlotNoV(newPage));
 	memcpy(page,newPage,PAGE_SIZE);					//copy  new page back to old page and overwrite evrything
+	dbgAssert(nonEmpty==newSlot);
+	dbgnIXU("the total number of slot s originally was",totalSlots);
 
 	//everything after this is just for the logging purposes
 	freeOffset=(4092-(newSlot*4)-freeOffset);
@@ -559,7 +565,11 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		for(i=totalSlots;i>0;i--)
 		{
 			if(getSlotOffV(page,i-1)==-1)
+			{
+				memcpy(getSlotOffA(page,i),getSlotOffA(page,i-1),2);
+				memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
 				continue;
+			}
 			slotOff=getSlotOffV(page,i-1);
 			dbgnIX("Slot offset",slotOff);
 			addr=(BYTE *)page+slotOff;
@@ -569,6 +579,11 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 			memcpy(getSlotLenA(page,i),getSlotLenA(page,i-1),2);
 		}
 		memcpy((BYTE*)page+freeOffset,key,requiredSpace);
+		INT32 pageNum;INT16 slot;
+		memcpy(&pageNum,(BYTE*)page+freeOffset+4,4);
+		memcpy(&slot,(BYTE*)page+freeOffset+8,2);
+		dbgnIX("RID page of record inserted in leaf",pageNum);
+		dbgnIX("RID slot of record inserted in leaf",slot);
 		memcpy(getSlotOffA(page,i),&freeOffset,2);
 		memcpy(getSlotLenA(page,i),&requiredSpace,2);
 		freeOffset+=requiredSpace;
@@ -589,7 +604,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		middleKey=*newChildKey;
 
 		dbgAssert(middleKey!=NULL);
-		if(compare(key,middleKey,attribute.type)>0)
+		if(compare(key,middleKey,attribute.type)<=0)
 			insertRecordInLeaf(fileHandle,attribute,newChild,newChildPage,key,0);
 		else
 			insertRecordInLeaf(fileHandle,attribute,virtualPgNum,page,key,0);
@@ -790,11 +805,15 @@ RC IndexManager::deleteEntryInLeaf(FileHandle &fileHandle, const Attribute &attr
 					if(getSlotOffV(pageData,mid)!=-1)break;
 				}
 				getSlotNoV(pageData) = (INT16)getSlotNoV(pageData)-reducedSlotsBy;
+				freeSpaceIncrease = (getSlotLenV(pageData,(totalSlots-1))+4);
 			}
-			else getSlotOffV(pageData,mid) = (INT16)-1;
+			else{
+				getSlotOffV(pageData,mid) = (INT16)-1;
+				freeSpaceIncrease = (getSlotLenV(pageData,mid)+4);
+			}
 			dbgnIX("Slots reduce by",reducedSlotsBy);
-			freeSpaceIncrease = (getSlotLenV(pageData,mid)+4);
 			dbgnIX("Free Space Increases by",freeSpaceIncrease);
+			dbgnIX("slot offset after deletion",getSlotOffV(pageData,mid));
 			dbgnIXFnc();
 			return 0;
 		}
@@ -970,7 +989,7 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 		dbgnIXFnc();
 		return 0;
 	}
-// nonzero page,non zeeo slot, and low key-matching slot may or not not be the start slot..
+	// nonzero page,non zeeo slot, and low key-matching slot may or not not be the start slot..
 	INT16 totalSlots = getSlotNoV(pageData);
 	start=-1;
 	do
@@ -1001,9 +1020,21 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 	}while(compare((BYTE*)pageData+startOffset,lowKey,type) > 0 );
 
 
-//nonzero page, non zero slot, and guaranteed to be greater than or equal to  lowkey
+	//nonzero page, non zero slot, and guaranteed to be greater than or equal to  lowkey
 	////////////////////////////////////////////
 	if(compare((BYTE*)pageData+startOffset,lowKey,type) == 0 && lowKeyInclusive == false){
+		start = start+1;
+		if(start==totalSlots){
+			nextPage = *((INT32*)((BYTE*)pageData+8));
+			if(nextPage == -1){
+				dbgnIX("case 3.1","end of linked list reached");
+				nextRid.pageNum = (INT32)-1;
+				nextRid.slotNum = (INT16)-1;
+				dbgnIXFnc();
+				return 0;
+			}
+			fileHandle.readPage(nextPage,pageData);
+		}
 		dbgnIX("Case 3","lowkey inclusive is false, search for next entry");
 		INT16 totalSlots = getSlotNoV(pageData);
 		while(totalSlots==0){
@@ -1064,18 +1095,18 @@ INT32 IndexManager::findLowSatisfyingEntry(FileHandle& fileHandle, void* pageDat
 	}
 	dbgnIX("Case 4.2","proper first entry found");
 	INT16 inRecordOffset = 4;
-		INT16 recordOffset = getSlotOffV(pageData,start);
-		if(type == 2)
-		{
-			INT16 inRecordKeyLength = *((INT32*)((BYTE*)pageData+recordOffset));
-			inRecordOffset += inRecordKeyLength;
-		}
-		ix_scaniterator.storedSlot = start;
-		nextRid.pageNum = *((INT32*)((BYTE*)pageData+recordOffset+inRecordOffset));
-		nextRid.slotNum = *((INT16*)((BYTE*)pageData+recordOffset+inRecordOffset+4));
-		dbgnIX("First satisfying Pagenum",nextRid.pageNum);
-		dbgnIX("First satisfying SlotNum",nextRid.slotNum);
-		dbgnIXFnc();
+	INT16 recordOffset = getSlotOffV(pageData,start);
+	if(type == 2)
+	{
+		INT16 inRecordKeyLength = *((INT32*)((BYTE*)pageData+recordOffset));
+		inRecordOffset += inRecordKeyLength;
+	}
+	ix_scaniterator.storedSlot = start;
+	nextRid.pageNum = *((INT32*)((BYTE*)pageData+recordOffset+inRecordOffset));
+	nextRid.slotNum = *((INT16*)((BYTE*)pageData+recordOffset+inRecordOffset+4));
+	dbgnIX("First satisfying Pagenum",nextRid.pageNum);
+	dbgnIX("First satisfying SlotNum",nextRid.slotNum);
+	dbgnIXFnc();
 
 	return 0;
 }
@@ -1128,6 +1159,7 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 			}
 			fileHandle.readPage(nextPage,leafPage);
 			totalSlotsInCurrPage = getSlotNoV(leafPage);
+			dbgnIX("total no of slots",totalSlotsInCurrPage);
 		}
 	}while(currSlot==totalSlotsInCurrPage||getSlotOffV(leafPage,currSlot)==-1);
 
