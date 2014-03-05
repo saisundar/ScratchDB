@@ -56,7 +56,11 @@ RC PagedFileManager::createFile(const char *fileName)
 	dbgnPFM("<PFM---------createFile---------PFM>","");
 	dbgnPFM("Filename",fileName);
 	if(FileExists(fileName))
+	{
+		dbgnPFM(fileName,"already exists");
+		dbgnPFM("</PFM--------createFile--------PFM/>","");
 		return -1;
+	}
 
 	FILE *file;
 	file = fopen(fileName,"wb");
@@ -78,12 +82,23 @@ RC PagedFileManager::destroyFile(const char *fileName)
 		return -1;
 	if(files.find(fileName)!=files.end())
 		dbgnPFM("Reference count for file",files[fileName]);
-	remove(fileName);
-	dbgnPFM("File destroyed ","");
-	if(files.find(fileName)!=files.end())
-		files.erase(files.find(fileName));
-	dbgnPFM("</PFM-------destroyFile-------PFM/>","");
-	return 0;
+	RC rc=remove(fileName);
+	if(rc==0)
+	{
+		dbgnPFM("File destroyed ","");
+		if(FileExists(fileName))
+		{
+			dbgnPFM(fileName,"oops still exists----some problem dude..destroy is  not working");
+			dbgnPFM("</PFM--------createFile--------PFM/>","");
+			return -1;
+		}
+		if(files.find(fileName)!=files.end())
+			files.erase(files.find(fileName));
+		dbgnPFM("</PFM-------destroyFile-------PFM/>","");
+		return 0;
+	}
+	dbgnPFM("File not destroyed ","some filsystem problem presumably");
+	return rc;
 }
 
 //	<openFile> open a file which is already created by the program and associate it with a fileHandle

@@ -13,7 +13,7 @@
 #include<cstdlib>
 using namespace std;
 
-#define debugAss 1
+//#define debugAss 1
 //#define debugIX 1
 //#define debugIXU 1
 //#define debugFH 1

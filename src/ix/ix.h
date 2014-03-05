@@ -130,6 +130,8 @@ public:
 	void *highKey;
 	AttrType type;
 	INT16 storedSlot;
+	void *nextKey;
+	INT32 copyLength;
 
 	IX_ScanIterator();  							// Constructor
 	~IX_ScanIterator(); 							// Destructor
