@@ -174,6 +174,16 @@ int testCase_2(const string &indexFileName, const Attribute &attribute)
         }
     }
 
+    rid.slotNum = key+1;
+    for(unsigned i = 0; i < numOfTuples; i++)
+      {
+          rc = indexManager->insertEntry(fileHandle, attribute, &age, rid);
+          if(rc != success)
+          {
+              cout << "Failed Inserting Entry..." << endl;
+          }
+      }
+
     // delete entry
     rc = indexManager->deleteEntry(fileHandle, attribute, &age, rid);
     if(rc != success)
@@ -2161,24 +2171,24 @@ void test()
 	attrEmpName.name = "EmpName";
 	attrEmpName.type = TypeVarChar;
 
-//	testCase_1(indexAgeFileName);
-//	testCase_2(indexAgeFileName, attrAge);
-//	testCase_3(indexAgeFileName, attrAge);
-//	testCase_4A(indexAgeFileName, attrAge);
-//	testCase_4B(indexAgeFileName, attrAge);
-//    testCase_5(indexAgeFileName, attrAge);
-//    testCase_6(indexHeightFileName, attrHeight);
-//    testCase_7(indexHeightFileName, attrHeight);
-//    testCase_8(indexHeightFileName, attrHeight);
-//    testCase_9(indexAgeFileName, attrAge);
+	testCase_1(indexAgeFileName);
+	testCase_2(indexAgeFileName, attrAge);
+	testCase_3(indexAgeFileName, attrAge);
+	testCase_4A(indexAgeFileName, attrAge);
+	testCase_4B(indexAgeFileName, attrAge);
+    testCase_5(indexAgeFileName, attrAge);
+    testCase_6(indexHeightFileName, attrHeight);
+    testCase_7(indexHeightFileName, attrHeight);
+    testCase_8(indexHeightFileName, attrHeight);
+    testCase_9(indexAgeFileName, attrAge);
     testCase_10(indexHeightFileName, attrHeight);
 //
 //    // Extra Credit Work
 //    // Duplicat Entries
-//    testCase_extra_1(indexAgeFileName, attrAge);
-//    testCase_extra_2(indexAgeFileName, attrAge);
-//    // TypeVarChar - mandatory for graduate students
-//    testCase_extra_3(indexEmpNameFileName, attrEmpName);
+    testCase_extra_1(indexAgeFileName, attrAge);
+    testCase_extra_2(indexAgeFileName, attrAge);
+    // TypeVarChar - mandatory for graduate students
+    testCase_extra_3(indexEmpNameFileName, attrEmpName);
     return;
 }
 

@@ -18,6 +18,8 @@
 		}							\
 }									\
 
+# define RECORD_EXISTS_ALREADY 2
+
 #define pageType(data) (*((BYTE*)data))
 
 # ifdef debugIX
@@ -46,6 +48,7 @@
 
 class IX_ScanIterator;
 float compare(const void * keyIndex,const void* keyInput,AttrType type);
+bool compRID(const void * keyIndex,const void* keyInput,AttrType type) ;
 class IndexManager {
  public:
   static IndexManager* instance();
@@ -80,6 +83,7 @@ class IndexManager {
   INT32 findLowSatisfyingEntry(FileHandle& fileHandle, void* pageData, INT32& root, void* lowKey, bool lowKeyInclusive, void* highKey, bool highKeyInclusive,//
   		AttrType type, RID& nextRid, IX_ScanIterator& ix_ScanIterator);
   void findLeafPage(FileHandle& fileHandle, void* pageData, INT32& root, void* key, AttrType type);
+  INT16 firstBatchDupSlot(INT32 virtualPgNum,void *page,const Attribute &attribute);
 
   // The following two functions are using the following format for the passed key value.
   //  1) data is a concatenation of values of the attributes

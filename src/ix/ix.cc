@@ -64,6 +64,30 @@ RC IndexManager::closeFile(FileHandle &fileHandle)
 	return 0;
 }
 
+bool compRID(const void * keyIndex,const void* keyInput,AttrType type)  ////
+{
+	dbgnIXFn();
+	dbgnIXU("type of attribute tobe compared",type);
+	INT32 diff=-1;
+	switch(type)
+	{
+	case 0:
+	case 1:
+		diff=memcmp((BYTE*)keyIndex+4,(BYTE*)keyInput+4,6);
+		break;
+	case 2:
+		INT32 len=intVal(keyIndex);
+		diff=memcmp((BYTE*)keyIndex+4+len,(BYTE*)keyInput+4+len,6);
+		break;
+	}
+
+	dbgnIXU("result of comparison",diff);
+	if(diff==0)
+		return true;
+	return false;
+
+}
+
 ///this routine will give >0 :    if keyIndex < keyInput
 //						  0  : 	if keyIndex = keyInput
 //						 <0  : 	if keyIndex > keyInput
@@ -94,11 +118,12 @@ float compare(const void * keyIndex,const void* keyInput,AttrType type)  ////
 		diff= strcmp((char *)keyInput+4,(char *)keyIndex+4);
 		dbgnIXU("inputKey","keyFrom Disk");
 		dbgnIXU(intVal(keyInput),intVal(keyIndex));
-		dbgnIXU((char*)keyInput,(char*)keyIndex);
+		dbgnIXU((char*)keyInput+4,(char*)keyIndex+4);
 		break;
 	}
 
 	dbgnIXU("result of comparison",diff);
+	dbgnIXFnc();
 	return(diff);
 }
 
@@ -254,7 +279,14 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 	{
 		dbgnIX("Reached a Leaf , so insert in to the leaf"," ");
 		dbgnIX("value to be isnerted",intVal(key));
-		insertRecordInLeaf(fileHandle,attribute,nodeNum,page,key,newChildKey);
+		rc=insertRecordInLeaf(fileHandle,attribute,nodeNum,page,key,newChildKey);
+		if(rc==RECORD_EXISTS_ALREADY)
+		{
+			dbgnIX("record already present..","");
+			free (page);
+			dbgnIXFnc();
+			return rc;
+		}
 		fileHandle.writePage(nodeNum,page);
 		dbgnIXFnc();
 		return 0;
@@ -292,9 +324,9 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 			}
 			if(root==-1)
 			{
-				if(compare(getRecordAtSlot(page,mid),key,attribute.type) <=0)
+				if(compare(getRecordAtSlot(page,mid),key,attribute.type) <0)
 					root=  getIndexValueAtOffset(page,getSlotOffV(page,mid-1), attribute.type);
-				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) > 0)
+				else if(compare(getRecordAtSlot(page,mid),key,attribute.type) >=0)
 					root = getIndexValueAtOffset(page,getSlotOffV(page,mid), attribute.type);
 				dbgnIX("next level node",root);
 			}
@@ -302,7 +334,19 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 		rc=insertRecurseEntry(fileHandle,attribute, key,rid,root,newChildKey);// i will need to explicitly set newcildkey to null after processing
 
 		if(rc)
-			dbgnIX("oops some error in insert recurse in index"," ");
+		{
+			if(rc==RECORD_EXISTS_ALREADY)
+			{
+				dbgnIX("record already present..","");
+			}
+			else
+			{
+				dbgnIX("newChildkey created..handling it here","");
+			}
+			free(page);
+			dbgnIXFnc();
+			return rc;
+		}
 
 		if(*newChildKey!=NULL)
 		{
@@ -312,8 +356,10 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 			*newChildKey=NULL;
 			insertRecordInIndex(fileHandle,attribute,nodeNum,page,middleKey,newChildKey);
 			fileHandle.writePage(nodeNum,page);
-			dbgnIXFnc();
+
+			free(page);
 			free(middleKey);
+			dbgnIXFnc();
 			return 0;
 		}
 	}
@@ -376,13 +422,44 @@ RC IndexManager::reOrganizePage(FileHandle &fileHandle,INT32 virtualPgNum, void*
 	return 0;
 }
 
+INT16 IndexManager::firstBatchDupSlot(INT32 virtualPgNum,void *page,const Attribute &attribute)
+{
+
+	INT16 freeOffset,totalSlots=getSlotNoV(page),prevMid=-1,currSlot=-1,prevOff,currOff;
+	INT16 middleSlot=totalSlots/2;
+	dbgnIXFn();
+
+	for(currSlot=middleSlot;currSlot>0;currSlot--)
+	{
+		prevOff=getSlotOffV(page,(currSlot-1));
+		currOff=getSlotOffV(page,currSlot);
+		if(compare((BYTE *)page+prevOff,(BYTE *)page+currOff,attribute.type)!=0)
+			break;
+	}
+
+	if(currSlot==0)
+	{
+		for(currSlot=middleSlot;currSlot<totalSlots;currSlot++)
+			{
+			prevOff=getSlotOffV(page,currSlot);
+			currOff=getSlotOffV(page,(currSlot+1));
+			if(compare((BYTE *)page+prevOff,(BYTE *)page+currOff,attribute.type)!=0)
+				break;
+			}
+	}
+
+	dbgnIXU("value of the middle slot being returned is ",currSlot);
+	dbgnIXFnc();
+	return currSlot;
+}
+
 RC IndexManager::splitNode(FileHandle &fileHandle,INT32 virtualPgNum,void *page,INT32 newChild,void* newChildPage,void **newChildKey,const Attribute &attribute)
 {
 	dbgnIXFn();
 	reOrganizePage(fileHandle,virtualPgNum,page);
 	bool isLeaf=!pageType(page);
 	INT16 oldfreeOffset=getFreeOffsetV(page),freeOffset,totalSlots=getSlotNoV(page),prevMid=-1,startSlot;
-	INT16 middleSlot=totalSlots/2;
+	INT16 middleSlot=firstBatchDupSlot(virtualPgNum,page,attribute);
 	INT16 midOffSet=getSlotOffV(page,middleSlot),midLength=getSlotLenV(page,middleSlot);
 	INT16 ridOffset=-1,origOffset,origLength;
 	INT32 next,currSlot,newSlot=0;
@@ -530,6 +607,24 @@ RC IndexManager::insertRecordInIndex(FileHandle &fileHandle, const Attribute &at
 	return 0;
 }
 
+INT16 returnLeftMid(void *page,INT16 mid,INT16 start)
+{
+	dbgnIXFn();
+	for(;mid>=start;mid--)
+	{
+		if(getSlotOffV(page,mid)==-1)
+			continue;
+		break;
+	}
+
+	if(mid<start)return (INT16)(-1);
+
+	dbgnIX("left most non zero offfset mid=",mid);
+	dbgnIXFnc();
+	return mid;
+
+}
+
 // the page passed in here is written by the caller, it is NOT written to disk here..
 RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &attribute,INT32 virtualPgNum, void* page,const void *key, //
 		void **newChildKey  )
@@ -540,12 +635,69 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 	INT16 freeOffset=getFreeOffsetV(page),totalSlots=getSlotNoV(page);
 	INT16 actualfreeSpace=4092-(totalSlots*4)-freeOffset,i;
 	requiredSpace+=6;			// only fr the pagenum
-
+	bool found=false;
 
 	dbgAssert(page!=NULL);
 	dbgnIX("value to be isnerted",intVal(key));
-	dbgnIX("free spacein the page",freeSpace);
-	dbgnIX(" space required for th record",requiredSpace);
+	dbgnIX("free space in the page",freeSpace);
+	dbgnIX(" space required for the record",requiredSpace);
+
+	//do a search for the record first...only if it does not exist,insert...
+
+	INT16 start=0,end=totalSlots-1,mid=(start+end)/2,midOff,currSlot;
+	float comp;
+
+	for(mid=(start+end)/2;start<end;mid=(start+end)/2)
+	{
+		mid=returnLeftMid(page,mid,start);
+		if(mid==-1){
+			start=mid+1;
+			continue;
+		}
+		midOff=getSlotOffV(page,mid);
+		comp=compare((const void*)key,(const void*)((BYTE *)page+midOff),attribute.type);
+		if(comp==0)
+		{
+			end=mid;
+		}
+		else if(comp>0) //mid >key
+		{
+			start=mid+1;
+		}
+		else //comp<0 mid<key
+		{
+			end=mid-1;
+		}
+	}
+	midOff=getSlotOffV(page,mid);
+
+	if(compare((const void*)key,(const void*)((BYTE *)page+midOff),attribute.type)==0)
+	{
+		dbgnIX("record with same key is already present at slot",mid);
+		dbgnIX("now checking whether the same record has also been inserted","");
+	    found=false;
+		for(currSlot=mid;currSlot<totalSlots;currSlot++)
+		{
+			midOff=getSlotOffV(page,currSlot);
+			if(midOff==-1)continue;
+			if(compare((const void*)key,(const void*)((BYTE *)page+midOff),attribute.type)==0)
+			{
+				if(compRID((const void*)key,(const void*)((BYTE *)page+midOff),attribute.type))
+				{
+					found=true;
+					break;
+				}
+			}
+			else
+				break;
+		}
+	}
+	if(found)
+	{
+		dbgnIX("the exact key with same RID is found..","return error");
+		return 2;
+	}
+
 	if(freeSpace>(requiredSpace+4))
 	{
 		dbgnIX("Key can be accomodated in the same Leaf without split","");
@@ -559,7 +711,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 		}
 		dbgAssert((4092-(totalSlots*4)-freeOffset)>=requiredSpace+4);
 		dbgnIX("Total number of slots",totalSlots);
-		INT16 slotOff=-1,j;
+		INT16 slotOff=-1;
 		void *addr=NULL;
 		//handle deleted slots here
 		for(i=totalSlots;i>0;i--)
@@ -623,6 +775,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	INT32 pagNum=rid.pageNum;
 	INT16 slotNo=rid.slotNum;
 	void* tempKey;
+	RC rc;
 
 	newChildKey= (void **)malloc(sizeof(void*));
 	*newChildKey=NULL;
@@ -656,10 +809,17 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 		memcpy(tempKey,key,searchKeyLength);
 		memcpy((BYTE*)tempKey +searchKeyLength,&pagNum,4);
 		memcpy((BYTE*)tempKey +searchKeyLength+4,&slotNo,2);
-		compare(tempKey,key,attribute.type);
 	}
 
-	insertRecurseEntry(fileHandle,attribute, tempKey,rid,root,newChildKey);
+	rc=insertRecurseEntry(fileHandle,attribute, tempKey,rid,root,newChildKey);
+	if(rc==RECORD_EXISTS_ALREADY)
+	{
+		dbgnIX("record exists already..","");
+		dbgnIXFnc();
+		free(newChildKey);
+		free(tempKey);
+		return rc;
+	}
 
 	if(*newChildKey==NULL)
 	{
@@ -685,6 +845,7 @@ RC IndexManager::insertEntry(FileHandle &fileHandle, const Attribute &attribute,
 	dbgAssert(*newChildKey==NULL);
 	setPrevPointerIndex(newRootPage,root);
 	fileHandle.writePage(newRoot,newRootPage);
+
 	dbgnIXFnc();
 	free(newRootPage);
 	free(*newChildKey);
