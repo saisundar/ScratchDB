@@ -2170,8 +2170,8 @@ void test()
 //    testCase_6(indexHeightFileName, attrHeight);
 //    testCase_7(indexHeightFileName, attrHeight);
 //    testCase_8(indexHeightFileName, attrHeight);
-    testCase_9(indexAgeFileName, attrAge);
-//    testCase_10(indexHeightFileName, attrHeight);
+//    testCase_9(indexAgeFileName, attrAge);
+    testCase_10(indexHeightFileName, attrHeight);
 //
 //    // Extra Credit Work
 //    // Duplicat Entries
