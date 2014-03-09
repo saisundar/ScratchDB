@@ -76,6 +76,8 @@ class RelationManager
 
 public:
 	static RelationManager* instance();
+	RC RelationManager::getIndexName(const string &tableName, const string &attributeName,char* indexName);
+	RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
 
 	RC createTable(const string &tableName, const vector<Attribute> &attrs);
 

@@ -22,6 +22,8 @@ using namespace std;
 //#define debugPFMU 1
 //#define debugRBFM 1
 //#define debugRBFMU 1
+//#define debugRM 1
+//#define debugRMU 1
 //#define debug1 1
 //#define debug2 1
 ////#define debug3 1
@@ -39,10 +41,24 @@ typedef float FLOAT;
 
 #define maxim(a,b) a>b?a:b
 
+# ifdef debugRM
+# define dbgnRMFn() cout<<"<RM-------------------"<<__func__<<"-------------------RM>"<<endl;
+# define dbgnRMFnx() cout<<"</RM-------------------"<<__func__<<"-------------------RM>"<<endl;
+# else
+# define dbgnRMFn() (void)0;
+# define dbgnRMFnc() (void)0;
+#endif
+
 # ifdef debugAss
 # define dbgAssert(cond) assert(cond);
 # else
 # define dbgAssert(cond) (void)0;
+#endif
+
+# ifdef debugRM
+# define dbgnRM(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnRM(str1,str2) (void)0;
 #endif
 
 # ifdef debugRBFM

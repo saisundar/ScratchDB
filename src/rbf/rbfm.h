@@ -27,6 +27,7 @@ struct Attribute {
 	string   name;     // attribute name
 	AttrType type;     // attribute type
 	AttrLength length; // attribute length
+	bool hasIndex;
 
 	Attribute(){
 		type= TypeInt;

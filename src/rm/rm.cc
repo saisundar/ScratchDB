@@ -9,8 +9,109 @@ RelationManager* RelationManager::instance()
 
 	return _rm;
 }
+
+//update attribute datatye first to have one boolean hasIndex.
+RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr)
+{
+		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+		bool found=false;
+		dbgnRBFM("num of attributes",recordDescriptor.size());
+		while(it != recordDescriptor.end() && !found)
+		{
+			if((it->name).compare(attributeName)==0)
+			{
+				found=true;
+				attr.hasIndex=it->hasIndex;
+				attr.name=it->name;
+				attr.type=it->type;
+				attr.hasIndex=it->hasIndex;
+			}
+			++it;
+		}
+
+		if(found)
+		return 0;
+		return -1;
+}
+
+RC RelationManager::getIndexName(const string &tableName, const string &attributeName,char* indexName)
+{
+	dbgnRMFn();
+
+	strcpy(idxName,tableName.c_str());
+	strcat(idxName,"_idx_");
+	strcat(idxName,attributeName.c_str());
+	idxName[len]=0;
+
+	return 0;
+	dbgnRMFnc();
+}
+
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
+//    1) check if table exists, if not return error.if index already created on attribute dont allow it
+//	  2) i will need to update the hasIndex attribute in cat_relation.
+//	  3) i will need to create a new file called relation_index_attributename
+//	  4) once file is made, i need to iterate over all existing records in the file and load them in the index.0
+		dbgnRMFn();
+		if(!FileExists(systemCatalog))
+		{
+			dbgnRM("no system catalog","");
+			return -1;
+		}
+
+		vector<Attribute> recordDescriptor;
+		Attribute attr;
+		if(getAttributes(tableName, recordDescriptor)==-1){
+			dbgnRM("could not create Record descriptor","");
+			return -1;
+		}
+
+		if(getAttributeObj(attributeName,recordDescriptor,attr)==-1)
+		{
+			dbgnRM("no such attribute","");
+			return -1;
+		}
+
+		if(attr.hasIndex==true)
+		{
+			dbgnRM("Index already exists for the attribute","");
+			return -1;
+		}
+		int len=strlen(tableName.c_str())+4+strlen(attributeName.c_str());
+		char* idxName=malloc(len+1);
+
+		// Create new file for the index
+		if(im->createFile(idxName)==-1){
+			dbgnRM("Create Index file  Failed","(in createTable)");
+			return -1;
+		}
+
+		RM_ScanIterator rmsi;
+		RID rid;
+		vector<string> attributes;
+		void *returnedData = malloc(attr.length);
+		FileHandle indexHandle;
+		rc = im->openFile(indexName, indexHandle);
+		attributes.push_back(attributeName);
+		RC rc = rm->scan(tableName,"", NO_OP, NULL, attributes, rmsi);
+		if(rc != 0) {
+			dbgnRM("Create Index file  Failed","(in createTable)");
+			free(idxName);
+			return -1;
+		}
+
+
+	    while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
+	    {
+
+	    }
+	    rmsi.close();
+
+	    free(returnedData);
+
+		free(idxName);
+		dbgnRMFnc();
 	return -1;
 }
 
@@ -439,6 +540,7 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 		}
 		return -1;
 	}
+
 	if(rbfm->closeFile(tableHandle)==-1){
 		dbgn2("could close the file","");
 		return -1;
