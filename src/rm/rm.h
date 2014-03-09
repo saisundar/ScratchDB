@@ -91,6 +91,8 @@ class RelationManager
 
 public:
 	static RelationManager* instance();
+	RC updateTableCatalogIndex(const string &tableName,INT32 temp,const string &attributeName);
+	RC updateMemDescriptor(const string &tableName,Attribute attr,INT32 loc);
 	RC RelationManager::getIndexName(const string &tableName, const string &attributeName,char* indexName);
 	RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
 

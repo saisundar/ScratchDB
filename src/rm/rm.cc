@@ -14,24 +14,27 @@ RelationManager* RelationManager::instance()
 RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr)
 {
 		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
-		bool found=false;
+     	INT32 count=0;
 		dbgnRBFM("num of attributes",recordDescriptor.size());
-		while(it != recordDescriptor.end() && !found)
+		while(it != recordDescriptor.end() )
 		{
+
 			if((it->name).compare(attributeName)==0)
 			{
-				found=true;
+
 				attr.hasIndex=it->hasIndex;
 				attr.name=it->name;
 				attr.type=it->type;
 				attr.hasIndex=it->hasIndex;
+				break;
 			}
 			++it;
+			count++;
 		}
 
-		if(found)
-		return 0;
+		if(count==recordDescriptor.size())
 		return -1;
+		return count;
 }
 
 RC RelationManager::getIndexName(const string &tableName, const string &attributeName,char* indexName)
@@ -47,6 +50,117 @@ RC RelationManager::getIndexName(const string &tableName, const string &attribut
 	dbgnRMFnc();
 }
 
+RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 temp,const string &attributeName)
+{
+	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
+	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
+	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
+	FileHandle tableCatalogHandle;
+	dbgnRMFn();
+	if(rbfm->openFile(tableCatalogName, tableCatalogHandle)==-1)
+	{
+		dbgnRM("Failed to open",tableCatalogName);
+		return -1;
+	}
+
+	// Create attributes necessary for scan iterator
+	string conditionAttr ="columnName";
+	INT32 i=0;
+	vector<string> projectedAttributes;
+	RBFM_ScanIterator rbfmsi;
+	RID dummyRid;
+	//	Attribute attr;
+	void* data = malloc(100);
+
+	projectedAttributes.push("tableName");
+	projectedAttributes.push("columnName");
+	projectedAttributes.push("columnType");
+	projectedAttributes.push("columnPosition");
+	projectedAttributes.push("maxSize");
+	projectedAttributes.push("hasIndex");
+	bool found;
+
+	// Create Projected attributes to retrieve relevant attributes for catalog table
+
+	// Scan through the table catalog file to create the record descriptor
+	while(true){
+		RBFM_ScanIterator rbfmsi;
+		rbfm->scan(tableCatalogHandle, tableDescriptor, conditionAttr, EQ_OP, attributeName, projectedAttributes, rbfmsi);
+		if(rbfmsi.getNextRecord(dummyRid, data)==RBFM_EOF)break; // If no record found break, since we have scanned through all the records in the file
+		dbgnRM("the ro for the attribute has been found","");
+		dbgnRM("now updating hasIndex attribte to true","");
+		BYTE * iterData=(BYTE *)data;
+		std::vector<Attribute>::const_iterator it = tableDescriptor.begin();
+		for(;it != tableDescriptor.end();it++)
+		{
+			dbgnRBFMU("type",it->type);
+			switch(it->type){
+			case 0:
+				if((it->name).compare("hasIndex")==0)
+				{
+					found=true;
+					memcpy(iterData,&temp,4);
+				}
+				length=length+4;
+				iterData=iterData+4;
+				break;
+
+			case 1:
+				length=length+4;
+				iterData=iterData+4;
+				break;
+
+			case 2:
+				num = *((INT32 *)iterData);
+				length=length+num;
+				iterData=iterData+4+num;
+				break;
+
+			default:
+				break;
+
+			}
+		}
+		dbgnRM("breaking as the record has been updated.","now need to insert it";)
+		break;
+	}
+	dbgnRM("Length of recordDescriptor: ",columnPosition);
+	if(rbfm->updateRecord(tableCatalogHandle,tableDescriptor,data,dummyRid)==-1)
+	{
+		dbgnRM("oops unable to insert the new attrbute info into the table catalog","");
+		free(tableCatalogName);
+		free(data);
+		return -1;
+	}
+
+	if(rbfm->closeFile(tableCatalogHandle)==-1){
+		dbgnRM("could close the Table catalog file","");
+		free(tableCatalogName);
+		free(data);
+		return -1;
+	}
+	free(tableCatalogName);
+	free(data);
+	dbgnRMFnc();
+	return 0;
+}
+RC RelationManager::updateMemDescriptor(const string &tableName,Attribute attr,INT32 loc)
+{
+	vector<Attribute> attrs;
+
+	if(descriptors.find(tableName)==descriptors.end()){
+			dbgnRM("no descriptor in memory===error","cannot be true");
+			attrs = (vector<Attribute>)descriptors[tableName];
+			return 0;
+		}
+
+	attrs=descriptors[tableName];
+	attrs[loc]=attr;
+	descriptors[tableName]=attrs;
+	dbgnRM("updated the in memory record descriptor","");
+	return 0;
+
+}
 RC RelationManager::createIndex(const string &tableName, const string &attributeName)
 {
 //    1) check if table exists, if not return error.if index already created on attribute dont allow it
@@ -66,8 +180,8 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 			dbgnRM("could not create Record descriptor","");
 			return -1;
 		}
-
-		if(getAttributeObj(attributeName,recordDescriptor,attr)==-1)
+		INT32 loc=getAttributeObj(attributeName,recordDescriptor,attr);
+		if(loc==-1)
 		{
 			dbgnRM("no such attribute","");
 			return -1;
@@ -80,6 +194,7 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 		}
 		int len=strlen(tableName.c_str())+4+strlen(attributeName.c_str());
 		char* idxName=malloc(len+1);
+		getIndexName(tableName,attributeName,idxName);
 
 		// Create new file for the index
 		if(im->createFile(idxName)==-1){
@@ -87,12 +202,24 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 			return -1;
 		}
 
+		//update the hasIndex attribute in the catalog
+		updateTableCatalogIndex(tableName,1,attributeName);
+		attr.hasIndex=true;
+		updateMemDescriptor(tableName,attr,loc);
+
 		RM_ScanIterator rmsi;
 		RID rid;
 		vector<string> attributes;
-		void *returnedData = malloc(attr.length);
 		FileHandle indexHandle;
-		rc = im->openFile(indexName, indexHandle);
+		rc = im->openFile(idxName, indexHandle);
+		if(rc != 0)
+		{
+			dbgnRM("open Index file  Failed","(in createTable)");
+			free(idxName);
+			return -1;
+		}
+
+		void *returnedData = malloc(attr.length);
 		attributes.push_back(attributeName);
 		RC rc = rm->scan(tableName,"", NO_OP, NULL, attributes, rmsi);
 		if(rc != 0) {
@@ -101,15 +228,19 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 			return -1;
 		}
 
-
 	    while(rmsi.getNextTuple(rid, returnedData) != RM_EOF)
 	    {
-
+	    	rc=im->insertEntry(indexHandle,attr,returnedData,rid);
+	    	if(rc != 0) {
+				dbgnRM("inserting into the  Index file  Failed","(in createTable)");
+				free(idxName);
+				free(returnedData);
+				return -1;
+			}
 	    }
 	    rmsi.close();
 
 	    free(returnedData);
-
 		free(idxName);
 		dbgnRMFnc();
 	return -1;
@@ -185,6 +316,11 @@ RelationManager::RelationManager()
 	attr.type = TypeInt;
 	attr.length = (AttrLength)4;
 	tableDescriptor.push_back(attr);
+
+	attr.name = "hasIndex";
+	attr.type = TypeInt;
+	attr.length = (AttrLength)4;
+	tableDescriptor.push_back(attr);
 }
 
 RelationManager::~RelationManager()
@@ -196,12 +332,13 @@ RelationManager::~RelationManager()
 	free(tableCatalogConcat);
 }
 
-RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, const string &tableName, const string &columnName, INT32 columnType, INT32 columnPosition, INT32 maxSize)
+RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, const string &tableName, const string &columnName,\\
+		INT32 columnType,INT32 columnPosition, INT32 maxSize,bool hasIndex)
 {
 	dbgn2("<----------------------------In Insert Entry For Table Catalog------------------------->","");
 	INT32 l1 = strlen(tableName.c_str());
 	INT32 l2 = strlen(columnName.c_str());
-	INT32 dataLength = 20 + l1 + l2;
+	INT32 dataLength = 24 + l1 + l2;
 	void* data = malloc(dataLength);
 	BYTE* tableData = (BYTE*)data;
 	//Copy length of tableName
@@ -234,6 +371,10 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 
 	//copy maxSize
 	temp = maxSize;
+	memcpy(tableData, &temp, 4);
+	tableData+=4;
+
+	temp=(hasIndex)?1:0;
 	memcpy(tableData, &temp, 4);
 	tableData+=4;
 
@@ -341,7 +482,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	// Insert Records in Table Catalog
 	for(INT32 i=0;i<attrs.size();i++){
 		Attribute tableAttr = attrs[i];
-		insertEntryForTableCatalog(tableCatalogHandle, tableName, tableAttr.name, tableAttr.type, i, tableAttr.length);
+		insertEntryForTableCatalog(tableCatalogHandle, tableName, tableAttr.name, tableAttr.type, i, tableAttr.length,false);
 	}
 	if(rbfm->closeFile(tableCatalogHandle)==-1){
 		dbgn2("Close Table Catalog Failed","");
@@ -445,12 +586,12 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 {
 	dbgn2("<----------------------------getAttributes------------------------->","");
 	if(descriptors.find(tableName)!=descriptors.end()){
-		dbgn2("Descriptor is already Created",", returning stored value");
+		dbgnRM("Descriptor is already Created",", returning stored value");
 		attrs = (vector<Attribute>)descriptors[tableName];
 		return 0;
 	}
 
-	dbgn2("Descriptor is being Created","");
+	dbgnRM("Descriptor is being Created","");
 	// ELse create Record Descriptor for that table
 	// ********************************************* Left to Implement ******************************
 	// Insert Record Descriptor in Map
@@ -460,7 +601,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	FileHandle tableCatalogHandle;
 	if(rbfm->openFile(tableCatalogName, tableCatalogHandle)==-1)
 	{
-		dbgn2("Failed to open",tableCatalogName);
+		dbgnRM("Failed to open",tableCatalogName);
 		return -1;
 	}
 
@@ -477,6 +618,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	projectedAttributes.push_back("columnName");
 	projectedAttributes.push_back("columnType");
 	projectedAttributes.push_back("maxSize");
+	projectedAttributes.push_back("hasIndex");
 
 	// Scan through the table catalog file to create the record descriptor
 	while(true){
@@ -490,7 +632,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		INT32 nameLength = *((INT32*)iterData);
 		iterData += 4;
 		attr.name.resize(nameLength,0);
-		dbgn1("attr namebefore copy",attr.name);
+		dbgnRM("attr namebefore copy",attr.name);
 		//memcpy(attr.name,iterData,nameLength);
 
 		for(i=0;i<nameLength;i++,iterData++)attr.name[i]=*(char *)iterData;
@@ -498,19 +640,24 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 		attr.type = *((AttrType*)iterData);
 		iterData  +=sizeof(INT32);
 		attr.length = *((AttrLength*)iterData);
-		dbgn1("attr name",attr.name);
-		dbgn1("attr length",attr.length);
-		dbgn1("attr type",attr.type);
+		iterData  +=sizeof(INT32);
+		INT32 temp;
+		memcpy(&temp,iterData,4);
+		attr.hasIndex=(temp==1)?true:false;
+		dbgnRM("attr name",attr.name);
+		dbgnRM("attr length",attr.length);
+		dbgnRM("attr type",attr.type);
+		dbgnRM("attr hasIndex",attr.hasIndex);
 		//Add attribute to record descriptor vector
 		attrs.push_back(attr);
 		columnPosition++;
 		rbfmsi.close();
 	}
-	dbgn2("Length of recordDescriptor: ",columnPosition);
+	dbgnRM("Length of recordDescriptor: ",columnPosition);
 
 	descriptors.insert(std::pair< string ,vector<Attribute> >(tableName, attrs));
 	if(rbfm->closeFile(tableCatalogHandle)==-1){
-		dbgn2("could close the Table catalog file","");
+		dbgnRM("could close the Table catalog file","");
 		return -1;
 	}
 
