@@ -1,5 +1,33 @@
 #include "rm.h"
 
+RC RelationManager::destroyIndex(const string &tableName, const string &attributeName){
+	dbgnRMFn();
+	// Create Record Descriptor
+	vector<Attribute> recordDescriptor;
+	if(getAttributes(tableName, recordDescriptor)==-1){
+		dbgnRM("could not create Record descriptor","In index scan (RM)");
+		return -1;
+	}
+
+	// Check if Index for file has been created
+	Attribute attr;
+	if(getAttributeObj(attributeName, recordDescriptor, attr) == -1){
+		dbgnRM("Index for file is not present","In index scan (RM)");
+		return -1;
+	}
+
+	// Decide Index File Name which has to exist !
+	int len=strlen(tableName.c_str())+4+strlen(attributeName.c_str());
+	char* indexName = (char *) malloc(len+1);
+	getIndexName(tableName, attributeName, indexName);
+	remove(indexName);
+
+
+
+	free(indexName);
+	dbgnRMFnc();
+	return 0;
+}
 
 RC RelationManager::indexScan(const string &tableName,
 		const string &attributeName,
@@ -24,10 +52,16 @@ RC RelationManager::indexScan(const string &tableName,
 		return -1;
 	}
 
+	// Decide Index File Name
+	int len=strlen(tableName.c_str())+4+strlen(attributeName.c_str());
+	char* indexName= (char*) malloc(len+1);
+	getIndexName(tableName, attributeName, indexName);
+
 	// Create a fileHandle for the index file
 	FileHandle indexHandle;
+
 	// Fill value for index file name
-	if(im->openFile("",indexHandle)==-1){
+	if(im->openFile(indexName,indexHandle)==-1){
 		dbgnRM("could not associate index handle","In index scan (RM)");
 		return -1;
 	}
@@ -42,7 +76,9 @@ RC RelationManager::indexScan(const string &tableName,
 		return -1;
 	}
 
+	free(indexName);
 	dbgnRMFnc();
+	return 0;
 }
 
 RelationManager::RelationManager()

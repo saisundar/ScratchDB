@@ -153,6 +153,8 @@ public:
 
 	RC getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
 
+	RC getIndexName(const string &tableName, const string &attributeName,char* indexName)
+
 protected:
 	RelationManager();
 	~RelationManager();
