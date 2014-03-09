@@ -267,11 +267,11 @@ RC IndexManager::insertRecurseEntry(FileHandle &fileHandle, const Attribute &att
 	dbgnIXFn();
 	dbgnIX("Node number",nodeNum);
 	if(fileHandle.readPage(nodeNum,page)!=0)
-		{
-			dbgnIX("Oops wrong pagenum--does not exist or some error !"," ");
-			free(page);
-			return -1;
-		}
+	{
+		dbgnIX("Oops wrong pagenum--does not exist or some error !"," ");
+		free(page);
+		return -1;
+	}
 	RC rc;
 	INT16 totalSlots = getSlotNoV(page);
 	INT16 start = 0;
@@ -445,12 +445,12 @@ INT16 IndexManager::firstBatchDupSlot(INT32 virtualPgNum,void *page,const Attrib
 	if(currSlot==0)
 	{
 		for(currSlot=middleSlot;currSlot<totalSlots-1;currSlot++)
-			{
+		{
 			prevOff=getSlotOffV(page,currSlot);
 			currOff=getSlotOffV(page,(currSlot+1));
 			if(compare((BYTE *)page+prevOff,(BYTE *)page+currOff,attribute.type)!=0)
 				break;
-			}
+		}
 	}
 
 	dbgnIXU("value of the middle slot being returned is ",currSlot);
@@ -681,7 +681,7 @@ RC IndexManager::insertRecordInLeaf(FileHandle &fileHandle, const Attribute &att
 	{
 		dbgnIX("record with same key is already present at slot",mid);
 		dbgnIX("now checking whether the same record has also been inserted","");
-	    found=false;
+		found=false;
 		for(currSlot=mid;currSlot<totalSlots;currSlot++)
 		{
 			midOff=getSlotOffV(page,currSlot);
@@ -1377,10 +1377,12 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 		}
 		// VALID NEXT RID !!!!
 		INT16 inRecordOffset = 4;
-		INT32 outputLength = 0;
+		INT32 outputLength = 4;
+		INT16 nextKeyLength;
 		if(type == 2){
 			INT16 inRecordKeyLength = *((INT32*)((BYTE*)leafPage+recordOffset));
 			inRecordOffset += inRecordKeyLength;
+			nextKeyLength = inRecordKeyLength-1;
 			outputLength = inRecordOffset-1;
 			nextKey = malloc(outputLength); // will be freed when get next entry is called again
 			copyLength = outputLength;
@@ -1390,9 +1392,9 @@ RC IX_ScanIterator::getNextEntry(RID &rid, void *key)
 		dbgnIX("storedSlot",storedSlot);
 		nextRid.pageNum = *((INT32*)((BYTE*)leafPage+recordOffset+inRecordOffset));
 		nextRid.slotNum = *((INT16*)((BYTE*)leafPage+recordOffset+inRecordOffset+4));
-		if(outputLength !=0)
-			memcpy(nextKey,(BYTE*)leafPage+recordOffset,outputLength);
-		memcpy(nextKey,&outputLength,4);
+		memcpy(nextKey,(BYTE*)leafPage+recordOffset,outputLength);
+		if(type == 2)
+			memcpy(nextKey,&nextKeyLength,4);
 		dbgnIX("Next pagenum",nextRid.pageNum);
 		dbgnIX("Next SLotnum",nextRid.slotNum);
 	}

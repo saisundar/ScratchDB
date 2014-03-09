@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "../ix/ix.h"
 #include "../rbf/rbfm.h"
 
 using namespace std;
@@ -54,13 +55,26 @@ public:
 };
 
 class RM_IndexScanIterator {
- public:
-  RM_IndexScanIterator() {};  	// Constructor
-  ~RM_IndexScanIterator() {}; 	// Destructor
+public:
+	IX_ScanIterator* ix_scaniterator = NULL;
 
-  // "key" follows the same format as in IndexManager::insertEntry()
-  RC getNextEntry(RID &rid, void *key) {return RM_EOF;};  	// Get next matching entry
-  RC close() {return -1;};             			// Terminate index scan
+	RM_IndexScanIterator() {
+		ix_scaniterator = new IX_ScanIterator();
+	};
+
+	~RM_IndexScanIterator() {
+		free(ix_scaniterator);
+	};
+
+	// "key" follows the same format as in IndexManager::insertEntry()
+	RC getNextEntry(RID &rid, void *key) {
+		if((ix_scaniterator->getNextEntry(rid, key)) == IX_EOF)return RM_EOF;
+		return 0;
+	};
+
+	RC close() {
+		return 0;
+	};
 };
 
 // Relation Manager
@@ -70,6 +84,7 @@ class RelationManager
 	vector<Attribute> tableDescriptor;
 	FileHandle systemHandle;
 	RecordBasedFileManager * rbfm; // To test the functionality of the record-based file manager
+	IndexManager* im;
 	map< string ,vector<Attribute> > descriptors;	   // Maintain RecordDescriptors
 	string systemCatalog;
 	char* tableCatalogConcat;
@@ -107,18 +122,18 @@ public:
 			const void *value,                    // used in the comparison
 			const vector<string> &attributeNames, // a list of projected attributes
 			RM_ScanIterator &rm_ScanIterator);
-	 RC createIndex(const string &tableName, const string &attributeName);
+	RC createIndex(const string &tableName, const string &attributeName);
 
-	 RC destroyIndex(const string &tableName, const string &attributeName);
+	RC destroyIndex(const string &tableName, const string &attributeName);
 
-	 // indexScan returns an iterator to allow the caller to go through qualified entries in index
-	 RC indexScan(const string &tableName,
-	                        const string &attributeName,
-	                        const void *lowKey,
-	                        const void *highKey,
-	                        bool lowKeyInclusive,
-	                        bool highKeyInclusive,
-	                        RM_IndexScanIterator &rm_IndexScanIterator);
+	// indexScan returns an iterator to allow the caller to go through qualified entries in index
+	RC indexScan(const string &tableName,
+			const string &attributeName,
+			const void *lowKey,
+			const void *highKey,
+			bool lowKeyInclusive,
+			bool highKeyInclusive,
+			RM_IndexScanIterator &rm_IndexScanIterator);
 
 
 	// Extra credit
@@ -133,6 +148,8 @@ public:
 	RC insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols);
 
 	RC insertEntryForTableCatalog(FileHandle &fileHandle, const string &tableName, const string &columnName, INT32 columnType, INT32 columnPosition, INT32 maxSize);
+
+	RC getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
 
 protected:
 	RelationManager();
