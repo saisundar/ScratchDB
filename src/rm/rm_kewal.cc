@@ -5,24 +5,39 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 	// Create Record Descriptor
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgnRM("could not create Record descriptor","In index scan (RM)");
+		dbgnRM("could not create Record descriptor","In destroy index (RM)");
+		return -1;
+	}
+
+	// Check if Attribute name is contained in record descriptor
+	Attribute attr;
+	int loc;
+	if((loc = getAttributeObj(attributeName, recordDescriptor, attr)) == -1){
+		dbgnRM("Index for file is not present","In destroy index (RM)");
 		return -1;
 	}
 
 	// Check if Index for file has been created
-	Attribute attr;
-	if(getAttributeObj(attributeName, recordDescriptor, attr) == -1){
-		dbgnRM("Index for file is not present","In index scan (RM)");
-		return -1;
+	if(attr.hasIndex==0){
+		dbgnRM("Index for this attribute is not present","In destroy index (RM)");
+		????????????????? return 0 or -1 ?
+		return 0;
 	}
 
 	// Decide Index File Name which has to exist !
 	int len=strlen(tableName.c_str())+4+strlen(attributeName.c_str());
 	char* indexName = (char *) malloc(len+1);
 	getIndexName(tableName, attributeName, indexName);
+
+	// Actual delete happens here
 	remove(indexName);
 
+	// Update catalog for that relation
+	updateTableCatalogIndex(tableName,0,attributeName);
 
+	// Update record descriptor if it is in memory
+	attr.hasIndex = 0;
+	updateMemDescriptor(tableName,attr,loc);
 
 	free(indexName);
 	dbgnRMFnc();
@@ -45,10 +60,16 @@ RC RelationManager::indexScan(const string &tableName,
 		return -1;
 	}
 
-	// Check if Index for file has been created
+	// Check if attribute name is present
 	Attribute attr;
 	if(getAttributeObj(attributeName, recordDescriptor, attr) == -1){
-		dbgnRM("Index for file is not present","In index scan (RM)");
+		dbgnRM("Attribute name is not valid","In index scan (RM)");
+		return -1;
+	}
+
+	// Check if Index for file has been created
+	if(attr.hasIndex==0){
+		dbgnRM("Index for this attribute is not present","In index scan (RM)");
 		return -1;
 	}
 
@@ -60,17 +81,19 @@ RC RelationManager::indexScan(const string &tableName,
 	// Create a fileHandle for the index file
 	FileHandle indexHandle;
 
-	// Fill value for index file name
+	// FileHandle association for index file name
 	if(im->openFile(indexName,indexHandle)==-1){
 		dbgnRM("could not associate index handle","In index scan (RM)");
 		return -1;
 	}
 
+	// Scan starts here
 	if(im->scan(indexHandle,attr,lowKey,highKey,lowKeyInclusive,highKeyInclusive,*(rm_IndexScanIterator.ix_scaniterator))==-1){
 		dbgnRM("could not start scan","In index scan (RM)");
 		return -1;
 	}
 
+	// Close fileHandle
 	if(im->closeFile(indexHandle)==-1){
 		dbgnRM("could not close index handle","In index scan (RM)");
 		return -1;
