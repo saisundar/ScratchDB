@@ -90,7 +90,9 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 hasInd
 	INT32 len=strlen(attributeName.c_str());
 	memcpy(attributeNameForm,&len,4);
 	memcpy((BYTE *)attributeNameForm+4,attributeName.c_str(),len);
-	rbfm->scan(tableCatalogHandle, tableDescriptor, conditionAttr, EQ_OP, attributeName.c_str(), projectedAttributes, rbfmsi);
+	dbgnRM("the scan being done to find this attribute",attributeName);
+
+	rbfm->scan(tableCatalogHandle, tableDescriptor, conditionAttr, EQ_OP,attributeNameForm, projectedAttributes, rbfmsi);
 	dbgAssert(rbfmsi.getNextRecord(dummyRid, data)!=RBFM_EOF);
 	free(attributeNameForm);
 	dbgnRM("the row for the attribute has been found","");
