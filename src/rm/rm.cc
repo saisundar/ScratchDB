@@ -98,21 +98,18 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 temp,c
 			case 0:
 				if((it->name).compare("hasIndex")==0)
 				{
-					found=true;
-					memcpy(iterData,&temp,4);
+				memcpy(iterData,&temp,4);
 				}
-				length=length+4;
+
 				iterData=iterData+4;
 				break;
 
 			case 1:
-				length=length+4;
 				iterData=iterData+4;
 				break;
 
 			case 2:
-				num = *((INT32 *)iterData);
-				length=length+num;
+				INT32 num = *((INT32 *)iterData);
 				iterData=iterData+4+num;
 				break;
 
@@ -666,6 +663,77 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 	return 0;
 }
 
+RC RelationManager::updateIndexIfRequired(const string &tableName,vector<Attribute> recordDescriptor, //
+		const void *data, RID &rid,bool isInsert)
+{
+
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	BYTE* iterData = (BYTE *) data;
+	void* temp4=malloc(4),*temp;
+	char* idxName;
+	INT32 len;
+	FileHandle tempHandle;
+	RC rc;
+	for(;it != recordDescriptor.end();it++)
+	{
+		dbgnRBFMU("type",it->type);
+		switch(it->type){
+		case 0:
+		case 1:
+			if(it->hasIndex)
+			{
+				dbgnRM("Index modification happening for 4byte attribute",it->name);
+				memcpy(temp4,iterData,4);
+				len=strlen(tableName.c_str())+4+strlen(it->name.c_str());
+				idxName=malloc(len+1);
+				getIndexName(tableName,it->name,idxName);
+				rc=im->openFile(idxName,tempHandle);
+				if(rc==0)
+				{
+					if(isInsert)
+						im->insertEntry(tempHandle,*it,temp4,rid);
+					else
+						im->deleteEntry(tempHandle,*it,temp4,rid);
+				}
+				im->closeFile(tempHandle);
+				free(idxName);
+			}
+			iterData=iterData+4;
+			break;
+		case 2:
+			INT32 num = *((INT32 *)iterData);
+			if(it->hasIndex)
+			{
+				temp=malloc(num+4);
+				dbgnRM("Index modification happening for string  attribute",it->name);
+				memcpy(temp,iterData,4+num);
+				len=strlen(tableName.c_str())+4+strlen(it->name.c_str());
+				idxName=malloc(len+1);
+				getIndexName(tableName,it->name,idxName);
+				rc=im->openFile(idxName,tempHandle);
+				if(rc==0)
+				{
+					if(isInsert)
+						im->insertEntry(tempHandle,*it,temp,rid);
+					else
+						im->deleteEntry(tempHandle,*it,temp,rid);
+				}
+				im->closeFile(tempHandle);
+				free(idxName);
+				free(temp);
+			}
+			iterData=iterData+4+num;
+			break;
+
+		default:
+			break;
+
+		}
+	}
+	free(temp4);
+	return 0;
+}
+
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
 	dbgn2("<----------------------------In Insert Tuple (RM)------------------------->","");
@@ -687,6 +755,8 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 		}
 		return -1;
 	}
+
+	updateIndexIfRequired(tableName,recordDescriptor,data,rid,true);
 
 	if(rbfm->closeFile(tableHandle)==-1){
 		dbgn2("could close the file","");
@@ -717,6 +787,8 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 	dbgn2("<----------------------------In Delete Tuple (RM)------------------------->","");
 	FileHandle tableHandle;
 	vector<Attribute> dummy;
+	void* data=malloc(2000);
+	rc=readTuple(tableName,rid,data);
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)
 	{
 		dbgn2("open file failed","ooops");
@@ -732,6 +804,14 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 		}
 		return -1;
 	}
+	vector<Attribute> recordDescriptor;
+	if(getAttributes(tableName, recordDescriptor)==-1){
+			dbgn2("could not create Record descriptor","");
+			return -1;
+	}
+	updateIndexIfRequired(tableName,recordDescriptor,data,rid,false);
+	free(data);
+
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
 	return 0;
 
