@@ -20,8 +20,8 @@ using namespace std;
 //#define debugFHU 1
 //#define debugPFM 1
 //#define debugPFMU 1
-//#define debugRBFM 1
-//#define debugRBFMU 1
+#define debugRBFM 1
+#define debugRBFMU 1
 #define debugRM 1
 #define debugRMU 1
 //#define debug1 1

@@ -33,7 +33,7 @@ RC IndexManager::createFile(const string &fileName)
 	fileHandle.appendPage(data);
 	if(pfm->closeFile(fileHandle)==-1)return -1;
 	free(data);
-	dbgnIXFn();
+	dbgnIXFnc();
 	return 0;
 }
 

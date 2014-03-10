@@ -33,19 +33,21 @@ struct Attribute {
 		type= TypeInt;
 		length=0;
 		name="";
+		hasIndex=false;
 
 	}
 	~Attribute(){
 			type= TypeInt;
 			length=0;
 			name="";
+			hasIndex=false;
 		}
 	Attribute(const Attribute &obj)
 	{
 		type= obj.type;
 		length=obj.length;
 		name=obj.name;
-
+		hasIndex=obj.hasIndex;
 	}
 };
 

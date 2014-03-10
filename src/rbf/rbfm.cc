@@ -953,7 +953,6 @@ RC RBFM_ScanIterator::setValues(FileHandle &fileHandle,							//
 	numOfSlots=getSlotNoV(curDataPage);
 	currRid.pageNum=0;
 	currRid.slotNum=0;
-
 	return(isValid=(numOfPages>0));
 
 }

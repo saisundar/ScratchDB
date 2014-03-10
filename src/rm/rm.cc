@@ -74,6 +74,7 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 hasInd
 
 	//	Attribute attr;
 	void* data = malloc(100);
+	void* attributeNameForm=malloc(100);
 	projectedAttributes.push_back("tableName");
 	projectedAttributes.push_back("columnName");
 	projectedAttributes.push_back("columnType");
@@ -86,9 +87,12 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 hasInd
 	// Scan through the table catalog file to create the record descriptor
 
 	RBFM_ScanIterator rbfmsi;
+	INT32 len=strlen(attributeName.c_str());
+	memcpy(attributeNameForm,&len,4);
+	memcpy((BYTE *)attributeNameForm+4,attributeName.c_str(),len);
 	rbfm->scan(tableCatalogHandle, tableDescriptor, conditionAttr, EQ_OP, attributeName.c_str(), projectedAttributes, rbfmsi);
 	dbgAssert(rbfmsi.getNextRecord(dummyRid, data)!=RBFM_EOF);
-
+	free(attributeNameForm);
 	dbgnRM("the row for the attribute has been found","");
 	dbgnRM("now updating hasIndex attribute to true","");
 
