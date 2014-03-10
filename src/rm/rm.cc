@@ -251,7 +251,7 @@ RC RelationManager::createIndex(const string &tableName, const string &attribute
 	free(returnedData);
 	free(idxName);
 	dbgnRMFnc();
-	return -1;
+	return 0;
 }
 
 RC RelationManager::destroyIndex(const string &tableName, const string &attributeName){
