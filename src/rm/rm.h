@@ -91,13 +91,24 @@ class RelationManager
 
 public:
 	static RelationManager* instance();
-	RC updateTableCatalogIndex(const string &tableName,INT32 temp,const string &attributeName);
-	RC updateMemDescriptor(const string &tableName,Attribute attr,INT32 loc);
-	RC updateIndexIfRequired(const string &tableName,vector<Attribute> recordDescriptor, //
-			const void *data, RID &rid,bool isInsert);
-	RC RelationManager::getIndexName(const string &tableName, const string &attributeName,char* indexName);
-	RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
+	// Our Functions
+	RC updateTableCatalogIndex(const string &tableName,INT32 hasIndexValue,const string &attributeName);
 
+	RC updateMemDescriptor(const string &tableName,Attribute attr,INT32 loc);
+
+	RC updateIndexIfRequired(const string &tableName,vector<Attribute> recordDescriptor, const void *data, RID rid,bool isInsert);
+
+	RC getIndexName(const string &tableName, const string &attributeName,char* indexName, INT32 len);
+
+	RC getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
+
+	RC insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols);
+
+	RC insertEntryForTableCatalog(FileHandle &fileHandle, const string &tableName, const string &columnName, INT32 columnType, INT32 columnPosition, INT32 maxSize, bool hasIndex);
+
+
+
+	// Main Structure
 	RC createTable(const string &tableName, const vector<Attribute> &attrs);
 
 	RC deleteTable(const string &tableName);
@@ -147,15 +158,6 @@ public:
 	RC addAttribute(const string &tableName, const Attribute &attr);
 
 	RC reorganizeTable(const string &tableName);
-
-	// Created By US
-	RC insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols);
-
-	RC insertEntryForTableCatalog(FileHandle &fileHandle, const string &tableName, const string &columnName, INT32 columnType, INT32 columnPosition, INT32 maxSize);
-
-	RC getAttributeObj(const string &attributeName,vector<Attribute> recordDescriptor,Attribute &attr);
-
-	RC getIndexName(const string &tableName, const string &attributeName,char* indexName)
 
 protected:
 	RelationManager();
