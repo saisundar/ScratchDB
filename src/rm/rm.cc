@@ -15,6 +15,7 @@ RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute
 {
 		std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
      	INT32 count=0;
+     	dbgnRMFn();
 		dbgnRBFM("num of attributes",recordDescriptor.size());
 		while(it != recordDescriptor.end() )
 		{
@@ -32,6 +33,7 @@ RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute
 			count++;
 		}
 
+		dbgnRMFnc();
 		if(count==recordDescriptor.size())
 		return -1;
 		return count;
@@ -144,7 +146,7 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 temp,c
 RC RelationManager::updateMemDescriptor(const string &tableName,Attribute attr,INT32 loc)
 {
 	vector<Attribute> attrs;
-
+	dbgnRMFn();
 	if(descriptors.find(tableName)==descriptors.end()){
 			dbgnRM("no descriptor in memory===error","cannot be true");
 			attrs = (vector<Attribute>)descriptors[tableName];
@@ -155,6 +157,7 @@ RC RelationManager::updateMemDescriptor(const string &tableName,Attribute attr,I
 	attrs[loc]=attr;
 	descriptors[tableName]=attrs;
 	dbgnRM("updated the in memory record descriptor","");
+	dbgnRMFnc();
 	return 0;
 
 }
@@ -262,6 +265,7 @@ RC RelationManager::indexScan(const string &tableName,
 RelationManager::RelationManager()
 {
 	rbfm = RecordBasedFileManager::instance();
+	dbgnRMFn();
 	systemCatalog = "System_Catalog";
 	tableCatalogConcat = new char[5];
 	*(tableCatalogConcat) = 'c';
@@ -318,21 +322,24 @@ RelationManager::RelationManager()
 	attr.type = TypeInt;
 	attr.length = (AttrLength)4;
 	tableDescriptor.push_back(attr);
+	dbgnRMFnc();
 }
 
 RelationManager::~RelationManager()
 {
 
+	dbgnRMFn();
 	rbfm->closeFile(systemHandle);
 	// ********* ???
 	free(rbfm);
 	free(tableCatalogConcat);
+	dbgnRMFnc();
 }
 
 RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, const string &tableName, const string &columnName,\\
 		INT32 columnType,INT32 columnPosition, INT32 maxSize,bool hasIndex)
 {
-	dbgn2("<----------------------------In Insert Entry For Table Catalog------------------------->","");
+	dbgnRMFn();
 	INT32 l1 = strlen(tableName.c_str());
 	INT32 l2 = strlen(columnName.c_str());
 	INT32 dataLength = 24 + l1 + l2;
@@ -377,20 +384,21 @@ RC RelationManager::insertEntryForTableCatalog(FileHandle &tableCatalogHandle, c
 
 	// Insert Record;
 	RID systemRid;
-	dbgn2("Record Being Inserted in Table Catalog: ", rbfm->printRecord(tableDescriptor, data));
+	dbgnRM("Record Being Inserted in Table Catalog: ", rbfm->printRecord(tableDescriptor, data));
 
 	rbfm->insertRecord(tableCatalogHandle,tableDescriptor,data,systemRid);
 
 	free(data);
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const string &tableType, INT32 numCols){
-	dbgn2("<----------------------------In Insert Entry For System Catalog------------------------->","");
+	dbgnRMFn();
 	INT32 l1 = strlen(tableName.c_str());
-	dbgn2("l1",l1);
+	dbgnRM("l1",l1);
 	INT32 l2 = strlen(tableType.c_str());
-	dbgn2("l2",l2);
+	dbgnRM("l2",l2);
 	INT32 dataLength = 12 + l1 + l2;
 	void* tempData = malloc(dataLength);
 	BYTE* systemData = (BYTE*)tempData;
@@ -413,21 +421,22 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 
 	// Insert Record;
 	RID systemRid;
-	dbgn2("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tempData));
+	dbgnRM("Record Being Inserted in System Catalog: ", rbfm->printRecord(systemDescriptor, tempData));
 	rbfm->insertRecord(systemHandle,systemDescriptor,tempData,systemRid);
 
 	free(tempData);
+	dbgnRMFnc();
 	return 0;
 }
 
 /*RC RelationManager::createRecordDescriptor(FileHandle &fileHandle, const string &tableName, const vector<Attribute> &recordDescriptor){
-	dbgn2("<----------------------------In Create Record Descriptor------------------------->","");
+	dbgnRM("<----------------------------In Create Record Descriptor------------------------->","");
 	if(descriptors.find(tableName)!=descriptors.end()){
-		dbgn2("Descriptor is already Created",", returning stored value");
+		dbgnRM("Descriptor is already Created",", returning stored value");
 		recordDescriptor = (FileHandle)descriptors[tableName];
 		return 0;
 	}
-	dbgn2("Descriptor is being Created","");
+	dbgnRM("Descriptor is being Created","");
 	// ELse create Record Descriptor for that table
 // ********************************************* Left to Implement ******************************
 	// Insert Record Descriptor in Map
@@ -437,10 +446,10 @@ RC RelationManager::insertEntryForSystemCatalog(const string &tableName, const s
 
 RC RelationManager::createTable(const string &tableName, const vector<Attribute> &attrs)
 {
-	dbgn2("<----------------------------In Create Table------------------------->","");
+	dbgnRMFn();
 	if(!FileExists(systemCatalog)){
 		// Create System Catalog if not created
-		dbgn2("System catalog does not exist",", Creating IT !");
+		dbgnRM("System catalog does not exist",", Creating IT !");
 		rbfm->createFile(systemCatalog.c_str());
 		rbfm->openFile(systemCatalog.c_str(),systemHandle);
 		insertEntryForSystemCatalog(systemCatalog, "System", 3);
@@ -452,7 +461,7 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 
 	// Create new file for the table
 	if(rbfm->createFile(tableName.c_str())==-1){
-		dbgn2("Create File Failed","(in createTable)");
+		dbgnRM("Create File Failed","(in createTable)");
 		return -1;
 	}
 
@@ -460,16 +469,16 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 	char * tableCatalogName =(char *)malloc(strlen(tableName.c_str())+5);
 	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
 	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
-	dbgn2("table Catalog Name: ",tableCatalogName);
-	dbgn2("table Catalog concat: ",tableCatalogConcat);
+	dbgnRM("table Catalog Name: ",tableCatalogName);
+	dbgnRM("table Catalog concat: ",tableCatalogConcat);
 
 	if(rbfm->createFile(tableCatalogName)==-1){
-		dbgn2("Create Table Catalog Failed","");
+		dbgnRM("Create Table Catalog Failed","");
 		return -1;
 	}
 	FileHandle tableCatalogHandle;
 	if(rbfm->openFile(tableCatalogName,tableCatalogHandle)==-1){
-		dbgn2("Open Table Catalog Failed","");
+		dbgnRM("Open Table Catalog Failed","");
 		return -1;
 	}
 
@@ -482,23 +491,24 @@ RC RelationManager::createTable(const string &tableName, const vector<Attribute>
 		insertEntryForTableCatalog(tableCatalogHandle, tableName, tableAttr.name, tableAttr.type, i, tableAttr.length,false);
 	}
 	if(rbfm->closeFile(tableCatalogHandle)==-1){
-		dbgn2("Close Table Catalog Failed","");
+		dbgnRM("Close Table Catalog Failed","");
 		return -1;
 	}
 	free(tableCatalogName);
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::deleteTable(const string &tableName)
 {
-	dbgn2("<----------------------------In Destroy Table------------------------->","");
+	dbgnRMFn();
 	RBFM_ScanIterator rbfmsi;
 
 	// Make Application Layer Entry for tableName to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
 	INT32 length = strlen(tableName.c_str());
 	void * tempData = malloc(4+length);
 	BYTE* data = (BYTE*)tempData;
-	dbgn2("length of table search string", length+4);
+	dbgnRM("length of table search string", length+4);
 
 	memcpy(data,&length,4);
 	data = data + 4;
@@ -515,17 +525,17 @@ RC RelationManager::deleteTable(const string &tableName)
 		cout<<*((char*)tempData+i);
 	}
 
-	dbgn2("Searching In System Catalog","");
-	dbgn2("Searching Query Created",string((char*)tempData));
+	dbgnRM("Searching In System Catalog","");
+	dbgnRM("Searching Query Created",string((char*)tempData));
 	if(rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, tempData, dummy, rbfmsi)==-1)return -1;
 	if(rbfmsi.getNextRecord(deleteRid, tempData)==RBFM_EOF){
-		dbgn2("Record not found by scan iterator: ",tableName);
+		dbgnRM("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
 
 	vector<Attribute> dummy2;
 	if(rbfm->deleteRecord(systemHandle, dummy2, deleteRid)==-1){
-		dbgn2("Could not delete","record for table in system catalog");
+		dbgnRM("Could not delete","record for table in system catalog");
 		return -1;
 	}
 	rbfmsi.close();
@@ -536,9 +546,9 @@ RC RelationManager::deleteTable(const string &tableName)
 	tableCatalogName=strcpy(tableCatalogName,tableCatalogConcat);
 	tableCatalogName=strcat(tableCatalogName,tableName.c_str());
 
-	dbgn2("table Catalog Name: ",tableCatalogName);
+	dbgnRM("table Catalog Name: ",tableCatalogName);
 	length = strlen(tableCatalogName);
-	dbgn2("length of table catalog search string: ", length+4);
+	dbgnRM("length of table catalog search string: ", length+4);
 	tempData = malloc(4+length);
 	data = (BYTE*)tempData;
 	memcpy(data,&length,4);
@@ -549,39 +559,40 @@ RC RelationManager::deleteTable(const string &tableName)
 		*(data+i) = *(copyPointer+i);
 	}
 
-	dbgn2("Searching In: System Catalog","");
-	dbgn2("Searching For: ", tableCatalogName);
+	dbgnRM("Searching In: System Catalog","");
+	dbgnRM("Searching For: ", tableCatalogName);
 	rbfm->scan(systemHandle, systemDescriptor, conditionAttr, EQ_OP, tempData, dummy, rbfmsi);
 
 
 	if(rbfmsi.getNextRecord(deleteRid, tempData)==RBFM_EOF){
-		dbgn2("Record not found by scan iterator: ",tableName);
+		dbgnRM("Record not found by scan iterator: ",tableName);
 		return -1;
 	}
 
 	if(rbfm->deleteRecord(systemHandle, dummy2, deleteRid)==-1){
-		dbgn2("Could not delete ","record for table CATALOG in system catalog");
+		dbgnRM("Could not delete ","record for table CATALOG in system catalog");
 		return -1;
 	}
 	rbfmsi.close();
 
 	if(rbfm->destroyFile(tableName)==-1){
-		dbgn2("Could not delete file for the table: ", tableName);
+		dbgnRM("Could not delete file for the table: ", tableName);
 		return -1;
 	}
 
 	if(rbfm->destroyFile(tableCatalogName)==-1){
-		dbgn2("Could not delete catalog file for the table: ", tableCatalogName);
+		dbgnRM("Could not delete catalog file for the table: ", tableCatalogName);
 		return -1;
 	}
 	free(tableCatalogName);
 	free(tempData);
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &attrs)
 {
-	dbgn2("<----------------------------getAttributes------------------------->","");
+	dbgnRMFn();
 	if(descriptors.find(tableName)!=descriptors.end()){
 		dbgnRM("Descriptor is already Created",", returning stored value");
 		attrs = (vector<Attribute>)descriptors[tableName];
@@ -660,6 +671,7 @@ RC RelationManager::getAttributes(const string &tableName, vector<Attribute> &at
 
 	free(tableCatalogName);
 	free(data);
+	dbgnRMFnc();
 	return 0;
 }
 
@@ -668,6 +680,7 @@ RC RelationManager::updateIndexIfRequired(const string &tableName,vector<Attribu
 {
 
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	dbgnRMFn();
 	BYTE* iterData = (BYTE *) data;
 	void* temp4=malloc(4),*temp;
 	char* idxName;
@@ -731,26 +744,27 @@ RC RelationManager::updateIndexIfRequired(const string &tableName,vector<Attribu
 		}
 	}
 	free(temp4);
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::insertTuple(const string &tableName, const void *data, RID &rid)
 {
-	dbgn2("<----------------------------In Insert Tuple (RM)------------------------->","");
+	dbgnRMFn();
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgn2("could not create Record descriptor","");
+		dbgnRM("could not create Record descriptor","");
 		return -1;
 	}
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
-		dbgn2("could not create Record descriptor","");
+		dbgnRM("could not create Record descriptor","");
 		return -1;
 	}
 	if(rbfm->insertRecord(tableHandle,recordDescriptor,data,rid)==-1){
-		dbgn2("could not insert the new record","");
+		dbgnRM("could not insert the new record","");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");
 			return -1;
 		}
 		return -1;
@@ -759,149 +773,173 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 	updateIndexIfRequired(tableName,recordDescriptor,data,rid,true);
 
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could close the file","");
+		dbgnRM("could close the file","");
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::deleteTuples(const string &tableName)
 {
-	dbgn2("<----------------------------In Delete Tuple's' (RM)------------------------->","");
+	dbgnRMFn();
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)return -1;
 	if(rbfm->deleteRecords(tableHandle)==-1)
 	{
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");
 			return -1;
 		}
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 {
-	dbgn2("<----------------------------In Delete Tuple (RM)------------------------->","");
+	dbgnRMFn();
 	FileHandle tableHandle;
 	vector<Attribute> dummy;
 	void* data=malloc(2000);
 	rc=readTuple(tableName,rid,data);
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1)
 	{
-		dbgn2("open file failed","ooops");
+		dbgnRM("open file failed","ooops");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	if(rbfm->deleteRecord(tableHandle,dummy,rid)==-1)
 	{
-		dbgn2("delete record file failed","ooops");
+		dbgnRM("delete record file failed","ooops");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could not close the file","");
+			dbgnRM("could not close the file","");
+			dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-			dbgn2("could not create Record descriptor","");
+			dbgnRM("could not create Record descriptor","");
+			dbgnRMFnc();
 			return -1;
 	}
 	updateIndexIfRequired(tableName,recordDescriptor,data,rid,false);
 	free(data);
 
 	if(rbfm->closeFile(tableHandle)==-1)return -1;
+	dbgnRMFnc();
 	return 0;
 
 }
 
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
-	dbgn2("<----------------------------In Update Tuple (RM)------------------------->","");
+	dbgnRMFn();
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgn2("could not create Record descriptor","");
+		dbgnRM("could not create Record descriptor","");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
-		dbgn2("could not create Record descriptor","");
+		dbgnRM("could not create Record descriptor","");
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->updateRecord(tableHandle,recordDescriptor,data,rid)==-1){
-		dbgn2("could not update the new record","");
+		dbgnRM("could not update the new record","");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could NOT close the file","");
+			dbgnRM("could NOT close the file","");
+			dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
-	dbgn2("In Process Of closing Filehandle in","RM UPDATE")
+	dbgnRM("In Process Of closing Filehandle in","RM UPDATE")
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could NOT close the file","");
+		dbgnRM("could NOT close the file","");
+		dbgnRMFnc();
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::readTuple(const string &tableName, const RID &rid, void *data)
 {
-	dbgn2("<----------------------------In Read Tuple (RM)------------------------->","");
+	dbgnRMFn();
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgn2("could not create Record descriptor","In Read Tuple (RM)");
+		dbgnRM("could not create Record descriptor","In Read Tuple (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
-		dbgn2("could not create Record descriptor","In Read Tuple (RM)");
+		dbgnRM("could not create Record descriptor","In Read Tuple (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->readRecord(tableHandle, recordDescriptor, rid, data)==-1){
-		dbgn2("could not read the new record","In Read Tuple (RM)");
+		dbgnRM("could not read the new record","In Read Tuple (RM)");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could close the file","In Read Tuple (RM)");
+		dbgnRM("could close the file","In Read Tuple (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager::readAttribute(const string &tableName, const RID &rid, const string &attributeName, void *data)
 {
-	dbgn2("<----------------------------In Read Attribute (RM)------------------------->","");
+	dbgnRMFn();
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgn2("could not create Record descriptor","In Read Attribute (RM))");
+		dbgnRM("could not create Record descriptor","In Read Attribute (RM))");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
-		dbgn2("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRM("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->readAttribute(tableHandle, recordDescriptor, rid, attributeName, data)==-1){
-		dbgn2("could not read the attribute","In Read Attribute (RM)");
+		dbgnRM("could not read the attribute","In Read Attribute (RM)");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");
+			dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could close the file","In Read Attribute (RM)");
+		dbgnRM("could close the file","In Read Attribute (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
@@ -909,47 +947,58 @@ RC RelationManager::reorganizePage(const string &tableName, const unsigned pageN
 {
 	vector<Attribute> dummyDescriptor;
 	FileHandle tableHandle;
+	dbgnRMFn();
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
-		dbgn2("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRM("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->reorganizePage(tableHandle, dummyDescriptor, pageNumber)==-1){
-		dbgn2("could not insert the new record","In Read Attribute (RM)");
+		dbgnRM("could not insert the new record","In Read Attribute (RM)");
 		if(rbfm->closeFile(tableHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");
+			dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
 	if(rbfm->closeFile(tableHandle)==-1){
-		dbgn2("could close the file","In Read Attribute (RM)");
+		dbgnRM("could close the file","In Read Attribute (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
 RC RelationManager :: scan(const string &tableName, const string &conditionAttribute, const CompOp compOp, const void *value, const vector<string> &attributeNames, RM_ScanIterator &rm_ScanIterator)
 {
-	dbgn2("<----------------------------In scan (RM)------------------------->","");
+	dbgnRMFn();
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgn2("could not create Record descriptor","In Read Attribute (RM))");
+		dbgnRM("could not create Record descriptor","In Read Attribute (RM))");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	if(rbfm->openFile(tableName.c_str(),rm_ScanIterator.fileHandle)==-1){
-		dbgn2("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRM("could not create Record descriptor","IIn Read Attribute (RM)");
+		dbgnRMFnc();
 		return -1;
 	}
 
 	if(rbfm->scan(rm_ScanIterator.fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames,*(rm_ScanIterator.rbfmsi)) == -1){
-		dbgn2("could not create rbfm scan iterator","In Read Attribute (RM)");
+		dbgnRM("could not create rbfm scan iterator","In Read Attribute (RM)");
 		if(rbfm->closeFile(rm_ScanIterator.fileHandle)==-1){
-			dbgn2("could close the file","");
+			dbgnRM("could close the file","");
+			dbgnRMFnc();
 			return -1;
 		}
+		dbgnRMFnc();
 		return -1;
 	}
+	dbgnRMFnc();
 	return 0;
 }
 
