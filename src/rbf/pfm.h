@@ -13,8 +13,8 @@
 #include<cstdlib>
 using namespace std;
 
-//#define debugAss 1
-//#define debugIX 1
+#define debugAss 1
+#define debugIX 1
 //#define debugIXU 1
 //#define debugFH 1
 //#define debugFHU 1
@@ -22,8 +22,8 @@ using namespace std;
 //#define debugPFMU 1
 //#define debugRBFM 1
 //#define debugRBFMU 1
-//#define debugRM 1
-//#define debugRMU 1
+#define debugRM 1
+#define debugRMU 1
 //#define debug1 1
 //#define debug2 1
 ////#define debug3 1
@@ -43,7 +43,7 @@ typedef float FLOAT;
 
 # ifdef debugRM
 # define dbgnRMFn() cout<<"<RM-------------------"<<__func__<<"-------------------RM>"<<endl;
-# define dbgnRMFnx() cout<<"</RM-------------------"<<__func__<<"-------------------RM>"<<endl;
+# define dbgnRMFnc() cout<<"</RM-------------------"<<__func__<<"-------------------RM>"<<endl;
 # else
 # define dbgnRMFn() (void)0;
 # define dbgnRMFnc() (void)0;

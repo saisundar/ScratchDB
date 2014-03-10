@@ -123,9 +123,8 @@ RC RelationManager::updateTableCatalogIndex(const string &tableName,INT32 hasInd
 
 		}
 	}
-	dbgnRM("breaking as the record has been updated.","now need to insert it";)
+	dbgnRM("breaking as the record has been updated.","now need to insert it");
 
-	dbgnRM("Length of recordDescriptor: ",columnPosition);
 	if(rbfm->updateRecord(tableCatalogHandle,tableDescriptor,data,dummyRid)==-1)
 	{
 		dbgnRM("oops unable to insert the new attrbute info into the table catalog","");
