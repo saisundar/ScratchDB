@@ -122,6 +122,9 @@ public:
 	RC deleteTuple(const string &tableName, const RID &rid);
 
 	// Assume the rid does not change after update
+	RC handleUpdateIndex(const string &tableName,vector<Attribute> recordDescriptor, //
+			const void *oldData,const void* newData,const RID rid);
+
 	RC updateTuple(const string &tableName, const void *data, const RID &rid);
 
 	RC readTuple(const string &tableName, const RID &rid, void *data);

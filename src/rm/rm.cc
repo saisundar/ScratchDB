@@ -284,7 +284,7 @@ RC RelationManager::destroyIndex(const string &tableName, const string &attribut
 	updateTableCatalogIndex(tableName,0,attributeName);
 
 	// Update record descriptor if it is in memory
-	attr.hasIndex = 0;
+	attr.hasIndex = false;
 	updateMemDescriptor(tableName,attr,loc);
 
 	free(indexName);
@@ -903,6 +903,7 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 	{
 		dbgnRM("open file failed","ooops");
 		dbgnRMFnc();
+		free(data);
 		return -1;
 	}
 
@@ -912,15 +913,18 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 		if(rbfm->closeFile(tableHandle)==-1){
 			dbgnRM("could not close the file","");
 			dbgnRMFnc();
+			free(data);
 			return -1;
 		}
 		dbgnRMFnc();
+		free(data);
 		return -1;
 	}
 	vector<Attribute> recordDescriptor;
 	if(getAttributes(tableName, recordDescriptor)==-1){
 		dbgnRM("could not create Record descriptor","");
 		dbgnRMFnc();
+		free(data);
 		return -1;
 	}
 	updateIndexIfRequired(tableName,recordDescriptor,data,rid,false);
@@ -932,6 +936,94 @@ RC RelationManager::deleteTuple(const string &tableName, const RID &rid)
 
 }
 
+RC RelationManager::handleUpdateIndex(const string &tableName,vector<Attribute> recordDescriptor, //
+		const void *oldData,const void* newData,const RID rid)
+{
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+		dbgnRMFn();
+		BYTE* iterDataO = (BYTE *)oldData;
+		BYTE* iterDataN = (BYTE *)newData;
+		void* temp4=malloc(4),*temp;
+		char* idxName;
+		INT32 len;
+		INT32 numO,numN;
+		FileHandle tempHandle;
+		RC rc;
+		for(;it != recordDescriptor.end();it++)
+		{
+			dbgnRBFMU("type",it->type);
+			switch(it->type){
+			case 0:
+			case 1:
+				if(it->hasIndex)
+				{
+					if(memcmp(iterDataO,iterDataN,4)!=0)
+					{
+						len=strlen(tableName.c_str())+4+strlen(it->name.c_str());
+						idxName=(char *)malloc(len+1);
+						getIndexName(tableName,it->name,idxName,len);
+						rc=im->openFile(idxName,tempHandle);
+
+						dbgnRM("Index modification happening for 4byte attribute",it->name);
+						memcpy(temp4,iterDataO,4);
+
+						if(rc==0)
+						{
+							im->deleteEntry(tempHandle,*it,temp4,rid);
+							memcpy(temp4,iterDataN,4);
+							im->insertEntry(tempHandle,*it,temp4,rid);
+						}
+						im->closeFile(tempHandle);
+						free(idxName);
+					}
+				}
+				iterDataO=iterDataO+4;
+				iterDataN=iterDataN+4;
+				break;
+			case 2:
+				numO= *((INT32 *)iterDataO);
+				numN= *((INT32 *)iterDataN);
+				if(it->hasIndex)
+				{
+
+					if(numO!=numN||memcmp(iterDataO+4,iterDataN+4,numO)!=0)
+					{
+						len=strlen(tableName.c_str())+4+strlen(it->name.c_str());
+						idxName=(char *)malloc(len+1);
+						getIndexName(tableName,it->name,idxName,len);
+
+						temp=malloc(numO+4);
+						dbgnRM("Index modification happening for string  attribute",it->name);
+						memcpy(temp,iterDataO,4+numO);
+
+						rc=im->openFile(idxName,tempHandle);
+						if(rc==0)
+						{
+							im->deleteEntry(tempHandle,*it,temp,rid);
+							free(temp);
+							temp=malloc(numN+4);
+							memcpy(temp,iterDataN,4+numN);
+							im->insertEntry(tempHandle,*it,temp4,rid);
+						}
+						im->closeFile(tempHandle);
+						free(idxName);
+						free(temp);
+					}
+				}
+				iterDataO=iterDataO+4+numO;
+				iterDataN=iterDataN+4+numN;
+				break;
+
+			default:
+				break;
+
+			}
+		}
+		free(temp4);
+		dbgnRMFnc();
+		return 0;
+}
+
 RC RelationManager::updateTuple(const string &tableName, const void *data, const RID &rid)
 {
 	dbgnRMFn();
@@ -941,11 +1033,20 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		dbgnRMFnc();
 		return -1;
 	}
+	void* oldData=malloc(2000);
+	if(readTuple(tableName,rid,oldData)==-1)
+	{
+		dbgnRM("record is not present... so no reading..","");
+		dbgnRMFnc();
+		free(oldData);
+		return -1;
+	}
 
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
 		dbgnRM("could not create Record descriptor","");
 		dbgnRMFnc();
+		free(oldData);
 		return -1;
 	}
 	if(rbfm->updateRecord(tableHandle,recordDescriptor,data,rid)==-1){
@@ -953,11 +1054,16 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		if(rbfm->closeFile(tableHandle)==-1){
 			dbgnRM("could NOT close the file","");
 			dbgnRMFnc();
+			free(oldData);
 			return -1;
 		}
+		free(oldData);
 		dbgnRMFnc();
 		return -1;
 	}
+
+	handleUpdateIndex(tableName,recordDescriptor, oldData, data, rid)  ;
+
 	dbgnRM("In Process Of closing Filehandle in","RM UPDATE")
 	if(rbfm->closeFile(tableHandle)==-1){
 		dbgnRM("could NOT close the file","");
@@ -965,6 +1071,7 @@ RC RelationManager::updateTuple(const string &tableName, const void *data, const
 		return -1;
 	}
 	dbgnRMFnc();
+	free(oldData);
 	return 0;
 }
 
