@@ -37,6 +37,13 @@ bool Filter::isValidAttr(){
 		r=cond.rhsValue.type;
 		rhs=true;
 		memcpy(valueP,cond.rhsValue.data,lLength);
+
+		if(type==2)
+		{
+			INT32 length = *((INT32*)cond.rhsValue.data);
+			*((BYTE*)valueP + length+4)=0;
+			dbgnQE("string value",valueP+4);
+		}
 	}
 	dbgnQEFnc();
 	dbgnQE("lhs",lhs);
@@ -86,7 +93,8 @@ bool Filter::evaluateCondition(void * temp)
 			diff=-1;
 		break;
 	case 2:
-		diff= strcmp((char *)temp+4,(char *)valueP+4);
+		INT32 num=*((INT32*)valueP);
+		diff= strncmp((char *)temp+4,(char *)valueP+4,num);
 		dbgnQE("Comparing the strings here !","");
 		dbgnQE((char*)temp+4,(char*)valueP+4);
 		break;

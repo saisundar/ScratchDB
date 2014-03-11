@@ -1601,27 +1601,27 @@ int main() {
 	// 	g_nUndergradPoint += 3;
 	// }
 
-	// // Create left/right large table, and populate the table
-	// if (createLeftVarCharTable() != success) {
-	// 	goto print_point;
-	// }
+	 // Create left/right large table, and populate the table
+	 if (createLeftVarCharTable() != success) {
+	 	goto print_point;
+	 }
 
-	// if (populateLeftVarCharTable() != success) {
-	// 	goto print_point;
-	// }
+	 if (populateLeftVarCharTable() != success) {
+	 	goto print_point;
+	 }
 
-	// if (createRightVarCharTable() != success) {
-	// 	goto print_point;
-	// }
+//	 if (createRightVarCharTable() != success) {
+//	 	goto print_point;
+//	 }
+//
+//	 if (populateRightVarCharTable() != success) {
+//	 	goto print_point;
+//	 }
 
-	// if (populateRightVarCharTable() != success) {
-	// 	goto print_point;
-	// }
-
-	// if (testCase_11() == success) {
-	// 	g_nGradPoint += 3;
-	// 	g_nUndergradPoint += 3;
-	// }
+	 if (testCase_11() == success) {
+	 	g_nGradPoint += 3;
+	 	g_nUndergradPoint += 3;
+	 }
 
 	// if (testCase_12() == success) {
 	// 	g_nGradPoint += 3;

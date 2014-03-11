@@ -236,11 +236,16 @@ class Filter : public Iterator {
         RC getNextTuple(void *data)
         {
         	dbgnQEFn();
+        	static int tupleCount=0;
         	if(!valid)return QE_EOF;
         	BYTE* lhs;
         	while(1)
         	{
-        		if(inp->getNextTuple(data)==QE_EOF)return QE_EOF;
+        		tupleCount++;
+        		if(inp->getNextTuple(data)==QE_EOF){
+        			dbgnQE("tuple count",tupleCount);
+        			return QE_EOF;
+        		}
         		lhs= getLHSAddr(data);
 
         		if(cond.bRhsIsAttr)
