@@ -32,6 +32,51 @@ const int varcharTupleCount = 1000;
 // Buffer size and character buffer size
 const unsigned bufSize = 200;
 
+char testLog[16];
+int testG=0;
+void incT()
+{
+	testG++;
+}
+void testInc()
+{
+	testLog[testG]='P';
+
+}
+#define TestSucc() {cout<<"****"<<__func__<<" passed!!!****"<<endl;testInc();}
+
+void testDisp()
+{
+
+for(int i=1;i<4 && i<=testG;i++)
+	cout<<"test number "<<i<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=4;i<6 && i<=testG;i++)
+	cout<<"test number 4"<<(i==4?"A":"B")<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=6;i<15 && i<=testG;i++)
+	cout<<"test number "<<i-1<<((testLog[i]=='P')?" passed":" failed")<<endl;
+}
+void signalHandler( int signum )
+ {
+    cout.flush();
+	cout << "Crash occurred while executing testcase "<<testG<<"leading to" << signum << "error..debug carefully....."<<endl;
+     // cleanup and close up stuff here
+     // terminate program
+     testDisp();
+
+    exit(signum);
+
+ }
+void testInit()
+{
+	signal (SIGINT, signalHandler);
+	signal (SIGABRT, signalHandler);
+	signal (SIGILL, signalHandler);
+	signal (SIGSEGV, signalHandler);
+	signal (SIGINT, signalHandler);
+	signal (SIGTERM, signalHandler);
+
+}
+
 int createLeftTable() {
 	// Functions Tested;
 	// 1. Create Table

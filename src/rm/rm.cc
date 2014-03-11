@@ -47,7 +47,7 @@ RC RelationManager::getIndexName(const string &tableName, const string &attribut
 	strcat(indexName,"_idx_");
 	strcat(indexName,attributeName.c_str());
 
-	indexName[len]=0;
+	indexName[len+1]=0;
 
 	return 0;
 	dbgnRMFnc();

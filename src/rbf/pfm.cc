@@ -384,6 +384,15 @@ INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 
 	dbgnFH("<FH----UpdFreeSpaceIH----FH>","");
 	dbgnFH("Updating FreeSpace for Page",pageNum);
+	PagedFileManager *pfm = PagedFileManager::instance();
+	if((pfm->files[fileName]<0 && !mode)||pageNum>=getNumberOfPages())
+		return -1;
+	INT32 actualPgNum=translatePageNum(pageNum);
+	dbgnFH("Virtual page no",pageNum);
+	dbgnFH("Actual page no",actualPgNum);
+	if(actualPgNum==-1)return -1;
+
+	// If write permissions not given, give write permissions
 
 	INT32 headerPageNumber = getHeaderPageNum(pageNum);
 	INT16 prevFreeSpace = 0;
@@ -394,7 +403,12 @@ INT16 FileHandle::updateFreeSpaceInHeader(PageNum pageNum, INT16 increaseBy){
 		dbgnFH("</FH---UpdFreeSpaceIH---FH/>","");
 		return prevFreeSpace;
 	}
-
+	if(!mode)
+	{
+			freopen(fileName.c_str(),"r+b",stream);
+			(pfm->files[fileName]) = -1*(pfm->files[fileName]);
+			mode=true;
+	}
 	dbgnFH("Old Free Space: ",prevFreeSpace);
 	dbgnFH("Increase by",increaseBy);
 

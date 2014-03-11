@@ -25,13 +25,23 @@ RC IndexManager::createFile(const string &fileName)
 	dbgnIXFn();
 	INT32 temp=-1;
 	PagedFileManager *pfm = PagedFileManager::instance();
-	if(pfm->createFile(fileName.c_str())==-1)return -1;
+	if(pfm->createFile(fileName.c_str())==-1)
+	{
+		dbgnIX("create file failed from pfm","");
+		return -1;
+	}
 	FileHandle fileHandle;
-	if(pfm->openFile(fileName.c_str(), fileHandle)==-1)return -1;
+	if(pfm->openFile(fileName.c_str(), fileHandle)==-1){
+		dbgnIX("open file failed from pfm","");
+		return -1;
+	}
 	void* data = malloc(PAGE_SIZE);
 	memcpy(data,&temp,4);
 	fileHandle.appendPage(data);
-	if(pfm->closeFile(fileHandle)==-1)return -1;
+	if(pfm->closeFile(fileHandle)==-1){
+		dbgnIX("close file failed from pfm","");
+		return -1;
+	}
 	free(data);
 	dbgnIXFnc();
 	return 0;
