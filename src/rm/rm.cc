@@ -602,6 +602,13 @@ RC RelationManager::deleteTable(const string &tableName)
 	dbgnRMFn();
 	RBFM_ScanIterator rbfmsi;
 
+	// Create Record Descriptor to be used for storing index information which will be used to delete index files
+	vector<Attribute> recordDescriptor;
+	if(getAttributes(tableName, recordDescriptor)==-1){
+		dbgnRM("could not create Record descriptor","In delete tuppleS (RM)");
+		return -1;
+	}
+
 	// Make Application Layer Entry for tableName to insert in "ConditionAttribute" field in scan function for searching it in SystemCatalog
 	INT32 length = strlen(tableName.c_str());
 	void * tempData = malloc(4+length);
@@ -684,6 +691,23 @@ RC RelationManager::deleteTable(const string &tableName)
 	}
 	free(tableCatalogName);
 	free(tempData);
+
+
+	// Delete all index files associated with this table
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	for(;it != recordDescriptor.end();it++){
+		if(it->hasIndex==true){
+			int len=strlen(tableName.c_str()) + 4 + strlen((it->name).c_str());
+			char* indexFileName = (char *)malloc(len+1);
+			getIndexName(tableName,(it->name),indexFileName,len);
+			if(im->destroyFile(indexFileName)==-1){
+				dbgnRM("could not destroy index file","In delete tuppleS (RM)");
+				dbgnRM("for index attribute:",it->name);
+				return -1;
+			}
+			free(indexFileName);
+		}
+	}
 	dbgnRMFnc();
 	return 0;
 }
@@ -886,6 +910,14 @@ RC RelationManager::insertTuple(const string &tableName, const void *data, RID &
 RC RelationManager::deleteTuples(const string &tableName)
 {
 	dbgnRMFn();
+
+	// Create Record Descriptor to be used for storing index information
+	vector<Attribute> recordDescriptor;
+	if(getAttributes(tableName, recordDescriptor)==-1){
+		dbgnRM("could not create Record descriptor","In delete tuppleS (RM)");
+		return -1;
+	}
+
 	FileHandle tableHandle;
 	if(rbfm->openFile(tableName.c_str(),tableHandle)==-1){
 		dbgnRM("could not open the file","In delete tuppleS (RM)");
@@ -904,13 +936,7 @@ RC RelationManager::deleteTuples(const string &tableName)
 		return -1;
 	}
 
-	// Create Record Descriptor
-	vector<Attribute> recordDescriptor;
-	if(getAttributes(tableName, recordDescriptor)==-1){
-		dbgnRM("could not create Record descriptor","In delete tuppleS (RM)");
-		return -1;
-	}
-
+	// Deleting index files here
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	for(;it != recordDescriptor.end();it++){
 		if(it->hasIndex==true){
