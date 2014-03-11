@@ -1,6 +1,10 @@
 #include <fstream>
 #include <iostream>
-
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <csignal>
 #include <vector>
 
 #include <cstdlib>
@@ -32,7 +36,7 @@ const int varcharTupleCount = 1000;
 // Buffer size and character buffer size
 const unsigned bufSize = 200;
 
-char testLog[16];
+char testLog[18];
 int testG=0;
 void incT()
 {
@@ -48,12 +52,14 @@ void testInc()
 void testDisp()
 {
 
-for(int i=1;i<4 && i<=testG;i++)
+for(int i=1;i<9 && i<=testG;i++)
 	cout<<"test number "<<i<<((testLog[i]=='P')?" passed":" failed")<<endl;
-for(int i=4;i<6 && i<=testG;i++)
-	cout<<"test number 4"<<(i==4?"A":"B")<<((testLog[i]=='P')?" passed":" failed")<<endl;
-for(int i=6;i<15 && i<=testG;i++)
+for(int i=9;i<11 && i<=testG;i++)
+	cout<<"test number 9"<<(i==9?"grad":"undergrad")<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=11;i<=13 && i<=testG;i++)
 	cout<<"test number "<<i-1<<((testLog[i]=='P')?" passed":" failed")<<endl;
+for(int i=14;i<=17 && i<=testG;i++)
+	cout<<"test number extraTestCase_"<<i-13<<((testLog[i]=='P')?" passed":" failed")<<endl;
 }
 void signalHandler( int signum )
  {
@@ -433,6 +439,7 @@ int createIndexforRightC() {
 
 int testCase_1() {
 	RC rc = success;
+	incT();
 	cout << "****In Test Case 1****" << endl;
 	rc = createIndexforLeftB();
 	if (rc != success) {
@@ -446,11 +453,14 @@ int testCase_1() {
 	if (rc != success) {
 		return rc;
 	}
+
+	TestSucc();
 	return rc;
 }
 
 int testCase_2() {
 	RC rc = success;
+	incT();
 	cout << "****In Test Case 2****" << endl;
 	rc = createIndexforRightB();
 	if (rc != success) {
@@ -464,6 +474,7 @@ int testCase_2() {
 	if (rc != success) {
 		return rc;
 	}
+	TestSucc();
 	return rc;
 }
 
@@ -471,6 +482,7 @@ int testCase_3() {
 	// Functions Tested;
 	// 1. Filter -- TableScan as input, on Integer Attribute
 	cout << "****In Test Case 3****" << endl;
+	incT();
 	RC rc = success;
 
 	TableScan *ts = new TableScan(*rm, "left");
@@ -528,6 +540,8 @@ clean_up:
 	delete ts;
 	free(value.data);
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -536,7 +550,7 @@ int testCase_4() {
 	// Functions Tested
 	// 1. Filter -- IndexScan as input, on TypeReal attribute
 	cout << "****In Test Case 3****" << endl;
-
+incT();
 	IndexScan *is = new IndexScan(*rm, "right", "C");
 	float compVal = 100.0;
 	float valueC = 0;
@@ -591,6 +605,8 @@ clean_up:
 	delete is;
 	free(value.data);
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -599,7 +615,7 @@ int testCase_5() {
 	// Functions Tested
 	// 1. Project -- TableScan as input
 	cout << "****In Test Case 5****" << endl;
-
+	incT();
 	TableScan *ts = new TableScan(*rm, "right");
 
 	vector<string> attrNames;
@@ -642,6 +658,8 @@ int testCase_5() {
 clean_up:
 	delete project;
 	delete ts;
+	if(rc==success)
+		TestSucc();
 	free(data);
 	return rc;
 }
@@ -651,7 +669,7 @@ int testCase_6() {
 	// Functions Tested
 	// 1. NLJoin -- on TypeInt Attribute
 	cout << "****In Test Case 6****" << endl;
-
+	incT();
 	// Prepare the iterator and condition
 	TableScan *leftIn = new TableScan(*rm, "left");
 	TableScan *rightIn = new TableScan(*rm, "right");
@@ -717,6 +735,8 @@ clean_up:
 	delete leftIn;
 	delete rightIn;
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -725,7 +745,7 @@ int testCase_7() {
 	// Functions Tested
 	// 1. INLJoin -- on TypeReal Attribute
 	cout << "****In Test Case 7****" << endl;
-
+	incT();
 	// Prepare the iterator and condition
 	TableScan *leftIn = new TableScan(*rm, "left");
 	IndexScan *rightIn = new IndexScan(*rm, "right", "C");
@@ -790,6 +810,8 @@ clean_up:
 	delete leftIn;
 	delete rightIn;
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -799,7 +821,7 @@ int testCase_8() {
 	// 1. NLJoin -- on TypeInt Attribute
 	// 2. Filter -- on TypeInt Attribute
 	cout << "****In Test Case 8****" << endl;
-
+	incT();
 	// Prepare the iterator and condition
 	TableScan *leftIn = new TableScan(*rm, "left");
 	TableScan *rightIn = new TableScan(*rm, "right");
@@ -882,6 +904,8 @@ clean_up:
 	delete rightIn;
 	free(value.data);
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -891,7 +915,7 @@ int testCase_9_Grad() {
 	// 1. Filter
 	// 2. Project
 	// 3. INLJoin(Grad)/NLJoin(Undergrad)
-
+	incT();
 	cout << "****In Test Case 9_Grad****" << endl;
 
 	// Create Filter
@@ -980,6 +1004,8 @@ clean_up:
 	delete leftIn;
 	free(value.data);
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -989,7 +1015,7 @@ int testCase_9_Undergrad() {
 	// 1. Filter
 	// 2. Project
 	// 3. INLJoin(Grad)/NLJoin(Undergrad)
-
+	incT();
 	cout << "****In Test Case 9_Undergrad****" << endl;
 
 	// Create Filter
@@ -1078,6 +1104,8 @@ clean_up:
 	delete leftIn;
 	free(value.data);
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -1086,7 +1114,7 @@ int testCase_10() {
 	// Functions Tested
 	// 1. NLJoin -- on TypeInt Attribute
 	cout << "****In Test Case 10****" << endl;
-
+	incT();
 	// Prepare the iterator and condition
 	TableScan *leftIn = new TableScan(*rm, "left");
 	TableScan *rightIn = new TableScan(*rm, "right");
@@ -1144,6 +1172,8 @@ int testCase_10() {
 	delete leftIn;
 	delete rightIn;
 	free(data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -1152,7 +1182,7 @@ int testCase_11() {
 	// Functions Tested
 	// 1. Filter -- on TypeVarChar Attribute
 	cout << "****In Test Case 11****" << endl;
-
+	incT();
 	TableScan *ts = new TableScan(*rm, "leftvarchar");
 
 	// Set up condition
@@ -1208,6 +1238,8 @@ int testCase_11() {
 	delete ts;
 	free(data);
 	free(value.data);
+	if(rc==success)
+		TestSucc();
 	return rc;
 }
 
@@ -1216,7 +1248,7 @@ int testCase_12() {
 	// Functions Tested
 	// 1. NLJoin -- on TypeVarChar Attribute
 	cout << "****In Test Case 12****" << endl;
-
+	incT();
 	// Prepare the iterator and condition
 	TableScan *leftIn = new TableScan(*rm, "leftvarchar");
 	TableScan *rightIn = new TableScan(*rm, "rightvarchar");
@@ -1280,6 +1312,8 @@ int testCase_12() {
 	delete nlJoin;
 	delete leftIn;
 	delete rightIn;
+	if(rc==success)
+		TestSucc();
 	free(data);
 	return rc;
 }
@@ -1292,7 +1326,7 @@ int extraTestCase_1()
     // 1. TableScan
     // 2. Aggregate -- MAX
     cout << "****In Extra Test Case 1****" << endl;
-
+    incT();
     // Create TableScan
     TableScan *input = new TableScan(*rm, "left");
 
@@ -1319,6 +1353,8 @@ int extraTestCase_1()
     delete agg;
     delete input;
     free(data);
+    if(rc==success)
+		TestSucc();
     return rc;
 }
 
@@ -1330,7 +1366,7 @@ int extraTestCase_2()
     // 1. TableScan
     // 2. Aggregate -- AVG
     cout << "****In Extra Test Case 2****" << endl;
-
+    incT();
     // Create TableScan
     TableScan *input = new TableScan(*rm, "right");
 
@@ -1357,6 +1393,8 @@ int extraTestCase_2()
     delete agg;
     delete input;
     free(data);
+    if(rc==success)
+		TestSucc();
     return rc;
 }
 
@@ -1367,7 +1405,7 @@ int extraTestCase_3()
     // 1. TableScan
     // 2. Aggregate -- MIN (with GroupBy)
     cout << "****In Extra Test Case 3****" << endl;
-
+	incT();
     // Create TableScan
     TableScan *input = new TableScan(*rm, "group");
 
@@ -1419,6 +1457,8 @@ clean_up:
 	delete agg;
 	delete input;
     free(data);
+    if(rc==success)
+		TestSucc();
     return rc;
 }
 
@@ -1430,7 +1470,7 @@ int extraTestCase_4()
     // 1. TableScan
     // 2. Aggregate -- SUM (with GroupBy)
     cout << "****In Extra Test Case 4****" << endl;
-
+    incT();
     // Create TableScan
     TableScan *input = new TableScan(*rm, "group");
 
@@ -1482,6 +1522,8 @@ clean_up:
 	delete agg;
 	delete input;
     free(data);
+    if(rc==success)
+		TestSucc();
     return rc;
 }
 
@@ -1492,7 +1534,7 @@ int main() {
 	int g_nGradExtraPoint = 0;
 	int g_nUndergradPoint = 0;
 	int g_nUndergradExtraPoint = 0;
-
+	testInit();
 	// Create the left table
 	if (createLeftTable() != success) {
 		goto print_point;
@@ -1618,7 +1660,7 @@ int main() {
 		g_nUndergradExtraPoint += 5;
     }
 
-
+    testDisp();
 	print_point: cout << "grad-point: " << g_nGradPoint
 			<< "\t grad-extra-point: " << g_nGradExtraPoint << endl;
 	cout << "undergrad-point: " << g_nUndergradPoint
