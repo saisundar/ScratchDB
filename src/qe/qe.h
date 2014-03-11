@@ -1,6 +1,7 @@
 #ifndef _qe_h_
 #define _qe_h_
 
+
 #include <vector>
 
 #include "../rbf/rbfm.h"
@@ -202,15 +203,65 @@ class IndexScan : public Iterator
 
 class Filter : public Iterator {
     // Filter operator
+	Iterator *inp;
+	Condition cond;
+	vector<Attribute> attrs;
+	void* valueP;
+	bool valid;
+	AttrType type;
     public:
-        Filter(Iterator *input,                         // Iterator of input R
-               const Condition &condition               // Selection condition
-        );
-        ~Filter(){};
+        Filter(Iterator *input,const Condition &condition)
+        {
+        	dbgnQEFn();
+        	inp=input;
+        	cond=condition;
+        	valueP=NULL;
+        	inp->getAttributes(attrs);
+        	valid=isValidAttr();
+        	dbgnQEFnc();
+        }
+        ~Filter(){
+        	dbgnQEFn();
+        	inp=NULL;
+        	if(valueP!=NULL)
+        		free(valueP);
+        	dbgnQEFnc();
+        };
+        bool evaluateCondition(void * temp);
+        bool returnRes(int diff);
+        RC getRHSAddr(void* data);
+        BYTE* getLHSAddr(void* data);
 
-        RC getNextTuple(void *data) {return QE_EOF;};
+
+        RC getNextTuple(void *data)
+        {
+        	dbgnQEFn();
+        	if(!valid)return QE_EOF;
+        	BYTE* lhs;
+        	while(1)
+        	{
+        		if(inp->getNextTuple(data)==QE_EOF)return QE_EOF;
+        		lhs= getLHSAddr(data);
+
+        		if(cond.bRhsIsAttr)
+        			getRHSAddr(data);
+
+        		if(evaluateCondition(lhs))
+        			return 0;
+        		dbgnQEFnc();
+        	}
+
+        };
+        bool isValidAttr();
+
+
+
         // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const{
+
+        	 attrs.clear();
+        	 attrs = this->attrs;
+        };
 };
 
 

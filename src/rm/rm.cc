@@ -26,7 +26,7 @@ RC RelationManager::getAttributeObj(const string &attributeName,vector<Attribute
 			attr.hasIndex=it->hasIndex;
 			attr.name=it->name;
 			attr.type=it->type;
-			attr.hasIndex=it->hasIndex;
+			attr.length=it->length;
 			break;
 		}
 		++it;
@@ -161,9 +161,21 @@ RC RelationManager::updateMemDescriptor(const string &tableName,Attribute attr,I
 	}
 
 	attrs=descriptors[tableName];
+	dbgnRM("the details of the attr before upudattion","");
+	dbgnRM("attr name", attrs[loc].name);
+	dbgnRM("attr type", attrs[loc].type);
+	dbgnRM("attr length", attrs[loc].length);
+	dbgnRM("attr hasIndex", attrs[loc].hasIndex);
 	attrs[loc]=attr;
 	descriptors[tableName]=attrs;
 	dbgnRM("updated the in memory record descriptor","");
+	dbgnRM("the details of the updated attr","");
+	dbgnRM("attr name",attr.name);
+	dbgnRM("attr type",attr.type);
+	dbgnRM("attr length",attr.length);
+	dbgnRM("attr hasIndex", attr.hasIndex);
+
+
 	dbgnRMFnc();
 	return 0;
 

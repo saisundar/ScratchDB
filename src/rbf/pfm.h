@@ -22,8 +22,10 @@ using namespace std;
 //#define debugPFMU 1
 //#define debugRBFM 1
 //#define debugRBFMU 1
-//#define debugRM 1
-//#define debugRMU 1
+#define debugRM 1
+#define debugRMU 1
+#define debugQE 1
+//#define debugQEU
 //#define debug1 1
 //#define debug2 1
 ////#define debug3 1
@@ -40,6 +42,16 @@ typedef float FLOAT;
 #define modlus(a)  (((a)>0)?(a):(-a))
 
 #define maxim(a,b) a>b?a:b
+
+# ifdef debugQE
+# define dbgnQEFn() cout<<"<QE-------------------"<<__func__<<"-------------------QE>"<<endl;
+# define dbgnQEFnc() cout<<"</QE-------------------"<<__func__<<"-------------------QE>"<<endl;
+# define dbgnQE(str1,str2) cout<<"\t\t\t\t"<<(str1)<<":\t\t\t"<< (str2)<<"\t\t\t\t\t\t"<<__func__<<":"<<__LINE__<<endl;
+# else
+# define dbgnQEFn() (void)0;
+# define dbgnQEFnc() (void)0;
+# define dbgnQE(str1,str2) (void)0;
+#endif
 
 # ifdef debugRM
 # define dbgnRMFn() cout<<"<RM-------------------"<<__func__<<"-------------------RM>"<<endl;
