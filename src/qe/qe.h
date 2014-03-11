@@ -46,7 +46,10 @@ class Iterator {
 
 class TableScan : public Iterator
 {
-    // A wrapper inheriting Iterator over RM_ScanIterator
+// A wrapper inheriting Iterator over RM_ScanIterator
+// Its an iterator which use the RM layer table iterator.
+//	It contains a resettable rm iterator object.
+//	always does a full table scan
     public:
         RelationManager &rm;
         RM_ScanIterator *iter;
@@ -112,6 +115,7 @@ class TableScan : public Iterator
         ~TableScan()
         {
         	iter->close();
+        	delete iter;
         };
 };
 
@@ -119,6 +123,9 @@ class TableScan : public Iterator
 class IndexScan : public Iterator
 {
     // A wrapper inheriting Iterator over IX_IndexScan
+	// Its an iterator which use the RM layer Index iterator.
+	//	It contains a resettable rmIndex iterator object.
+	//	May do a full table scan or a partial can based on setIterators condition.
     public:
         RelationManager &rm;
         RM_IndexScanIterator *iter;
@@ -188,6 +195,7 @@ class IndexScan : public Iterator
         ~IndexScan()
         {
             iter->close();
+            delete iter;
         };
 };
 

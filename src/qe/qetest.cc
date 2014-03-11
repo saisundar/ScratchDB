@@ -64,11 +64,10 @@ for(int i=14;i<=17 && i<=testG;i++)
 void signalHandler( int signum )
  {
     cout.flush();
-	cout << "Crash occurred while executing testcase "<<testG<<"leading to" << signum << "error..debug carefully....."<<endl;
+	cout << "Crash occurred while executing the  "<<testG<<" rd test case leading to " << signum << " error..debug carefully....."<<endl;
      // cleanup and close up stuff here
      // terminate program
      testDisp();
-
     exit(signum);
 
  }
