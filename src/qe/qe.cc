@@ -178,4 +178,287 @@ RC Filter::getRHSAddr(void* data)
 	 }
 	 return NULL;
 }
+
+bool Aggregate::isValidAttr()
+{
+	INT32 i;
+	dbgnQEFn();
+
+	for(i=0;i<attrs.size();i++)
+		{
+		dbgnQE("name of atribute",attrs[i].name);
+		dbgnQE("name of the aggregating attrute",attr.name);
+		dbgnQE("attribute length",attrs[i].length);
+		if(attrs[i].length!=0 && attrs[i].name.compare(attr.name)==0)
+		{
+			valueP=malloc(attrs[i].length+4);
+			dbgnQE("Aggregate attirbute found.number",i);
+			break;
+		}
+		}
+
+
+	dbgnQEFnc();
+	return(i<attrs.size());
+}
+
+RC Aggregate::getAttrAddr(void* data)
+{
+	BYTE * iterData=(BYTE *)data;
+	dbgnQEFn();
+
+	bool found=false;
+	std::vector<Attribute>::const_iterator it = attrs.begin();
+	INT32 num = 0;
+	for(;it != attrs.end() && !found;it++)
+	{
+		dbgnQE("type",it->type);
+		switch(it->type){
+		case 0:
+		case 1:
+			if((it->name).compare(attr.name)==0)
+			{
+				dbgnQE("found the ttribute",it->name);
+				memcpy(valueP,iterData,4);
+				found=true;
+			}
+			iterData=iterData+4;
+			break;
+		case 2:
+			num = *((INT32 *)iterData);
+			if((it->name).compare(attr.name)==0)
+			{
+				dbgnQE("found the ttribute",it->name);
+				memcpy(valueP,iterData,4+num);
+				*((BYTE*)valueP+4+num)=(BYTE)0;
+				found=true;
+			}
+			iterData=iterData+4+num;
+			break;
+		default:
+			break;
+		}
+	}
+	dbgnQEFnc();
+	if(!found)
+		return -1;
+	return 0;
+}
+
+
+//returns >0 if ans>valueP
+//		==0 if ans==valueP
+//		  <0 if ans<valueP
+float Aggregate::compareAttr()
+{
+	float diff;
+	dbgnQEFn();
+	dbgnQE("type of attribute to be compared",attr.type);
+	switch(attr.type)
+	{
+	case 0:
+		diff=int(ans.val)-intVal(valueP);
+		dbgnQE("Comparing the integers here !","");
+		dbgnQE("existing ans","new value from record");
+		dbgnQE(int(ans.val),intVal(valueP));
+		break;
+	case 1:
+		dbgnQE("Comparing the floats here !","");
+		dbgnQE("existing ans","new value from record");
+		dbgnQE(ans.val,(*((float *)valueP)));
+		diff=ans.val-*((float *)valueP);
+
+		if(modlus(diff)<0.000001)diff=0;
+		break;
+	case 2:
+		dbgnQE("oops hitting varchar in comparison..some error","");
+		break;
+	}
+
+	dbgnQE("result of comparison",diff);
+	dbgnQEFnc();
+	return(diff);
+}
+
+RC Aggregate::updateAns(float diff)
+{
+	dbgnQEFn();
+	ans.count++;
+	dbgnQE("items count",ans.count);
+	switch(opAg)
+	{
+	case 0:		//min
+
+		if(diff>0)
+		{
+			if(attr.type==0)
+			{
+				dbgnQE("older answer",ans.val);
+				INT32 temp;
+				memcpy(&temp,valueP,4);
+				dbgnQE("new value",temp);
+				dbgnQE("hence updatng","");
+				ans.val=(float)temp;
+			}
+			else if(attr.type==1)
+			{
+				dbgnQE("older answer",ans.val);
+				dbgnQE("new value",(*((float *)valueP)));
+				memcpy(&ans.val,valueP,4);
+			}
+		}
+		break;
+	case 1:		//max
+		if(diff<0)
+		{
+			if(attr.type==0)
+			{
+				dbgnQE("older answer",ans.val);
+				INT32 temp;
+				memcpy(&temp,valueP,4);
+				dbgnQE("new value",temp);
+				dbgnQE("hence updatng","");
+				ans.val=(float)temp;
+			}
+			else if(attr.type==1)
+			{
+				dbgnQE("older answer",ans.val);
+				dbgnQE("new value",(*((float *)valueP)));
+				memcpy(&ans.val,valueP,4);
+			}
+		}
+		break;
+	case 2:		//sum
+	case 3:		//avg
+		if(attr.type==0)
+		{
+			dbgnQE("older answer",ans.val);
+			INT32 temp;
+			memcpy(&temp,valueP,4);
+			dbgnQE("new value",temp);
+			dbgnQE("hence updating","");
+			ans.val+=(float)temp;
+		}
+		else if(attr.type==1)
+		{
+			dbgnQE("older answer",ans.val);
+			dbgnQE("new value",(*((float *)valueP)));
+			ans.val+=*((float *)valueP);
+		}
+		break;
+	default:
+		break;
+	}
+	dbgnQEFnc();
+	return 0;
+}
+
+void Aggregate::getAttributes(vector<Attribute> &attrs) const
+{
+	attrs.clear();
+	Attribute attr;
+	dbgnQEFn();
+	if(opAg==2)
+	{
+		attr.type=TypeReal;
+	}
+	else if(opAg==4)
+		attr.type=TypeInt;
+	else
+	{
+		attr.type=this->attr.type;
+	}
+	attr.length=4;
+
+	switch(opAg)
+	{
+	case 0:
+		{
+		string temp="MIN";
+
+		temp=temp+"(";
+		temp=temp+this->attr.name;
+		temp=temp+")";
+		attr.name=temp;
+		break;
+		}
+	case 1:
+		{string temp="MAX";
+		temp=temp+"(";
+		temp=temp+this->attr.name;
+		temp=temp+")";
+		attr.name=temp;
+		break;
+		}
+	case 2:
+		{string temp="AVG";
+		temp=temp+"(";
+		temp=temp+this->attr.name;
+		temp=temp+")";
+		attr.name=temp;
+		break;
+		}
+	case 3:
+		{string temp="SUM";
+		temp=temp+"(";
+		temp=temp+this->attr.name;
+		temp=temp+")";
+		attr.name=temp;
+		break;
+		}
+	case 4:
+		{string temp="COUNT";
+		temp=temp+"(";
+		temp=temp+this->attr.name;
+		temp=temp+")";
+		attr.name=temp;
+		break;
+		}
+	default:
+		break;
+	}
+	dbgnQE("attribute being pushed back",attr.name);
+	attrs.push_back(attr);
+	dbgnQEFnc();
+}
+
+RC Aggregate::copyFinalAns(void* data)
+{
+
+	dbgnQEFn();
+
+	switch(opAg)
+	{
+	case 0:
+	case 1:
+	case 2:
+		if(attr.type==0)
+		{
+			dbgnQE("max/min/sum value",ans.val);
+			INT32 temp=(INT32)ans.val;
+			memcpy(data,&temp,4);
+		}
+		else if(attr.type==1)
+		{
+			dbgnQE("max/min/sum value",ans.val);
+			memcpy(data,&ans.val,4);
+		}
+		break;
+	case 3:
+
+		ans.val=ans.val/ans.count;
+		dbgnQE("average",ans.val);
+		memcpy(data,&ans.val,4);
+		break;
+	case 4:
+		dbgnQE("count",ans.count);
+		memcpy(data,&ans.count,4);
+		break;
+	default:
+		break;
+	}
+	dbgnQEFnc();
+	return 0;
+}
+
 // ... the rest of your implementations go here

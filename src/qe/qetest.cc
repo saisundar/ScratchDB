@@ -1571,35 +1571,35 @@ int main() {
 		g_nUndergradPoint += 3;
 	}
 
-	// if (testCase_6() == success) {
-	// 	g_nGradPoint += 5;
-	// 	g_nUndergradPoint += 10;
-	// }
+	 if (testCase_6() == success) {
+	 	g_nGradPoint += 5;
+	 	g_nUndergradPoint += 10;
+	 }
 
-	// if (testCase_7() == success) {
-	// 	g_nGradPoint += 5;
-	// 	g_nUndergradExtraPoint += 3;
-	// }
+	 if (testCase_7() == success) {
+	 	g_nGradPoint += 5;
+	 	g_nUndergradExtraPoint += 3;
+	 }
 
-	// if (testCase_8() == success) {
-	// 	g_nGradPoint += 3;
-	// 	g_nUndergradPoint += 3;
-	// }
+	 if (testCase_8() == success) {
+	 	g_nGradPoint += 3;
+	 	g_nUndergradPoint += 3;
+	 }
 
-	// if (testCase_9_Grad() == success) {
-	// 	g_nGradPoint += 3;
-	// 	g_nUndergradExtraPoint += 2;
-	// }
+	 if (testCase_9_Grad() == success) {
+	 	g_nGradPoint += 3;
+	 	g_nUndergradExtraPoint += 2;
+	 }
 
-	// if (testCase_9_Undergrad() == success) {
-	// 	g_nGradPoint += 2;
-	// 	g_nUndergradPoint += 5;
-	// }
+	 if (testCase_9_Undergrad() == success) {
+	 	g_nGradPoint += 2;
+	 	g_nUndergradPoint += 5;
+	 }
 
-	// if (testCase_10() == success) {
-	// 	g_nGradPoint += 3;
-	// 	g_nUndergradPoint += 3;
-	// }
+	 if (testCase_10() == success) {
+	 	g_nGradPoint += 3;
+	 	g_nUndergradPoint += 3;
+	 }
 
 	 // Create left/right large table, and populate the table
 	 if (createLeftVarCharTable() != success) {
@@ -1610,35 +1610,35 @@ int main() {
 	 	goto print_point;
 	 }
 
-//	 if (createRightVarCharTable() != success) {
-//	 	goto print_point;
-//	 }
-//
-//	 if (populateRightVarCharTable() != success) {
-//	 	goto print_point;
-//	 }
+	 if (createRightVarCharTable() != success) {
+	 	goto print_point;
+	 }
+
+	 if (populateRightVarCharTable() != success) {
+	 	goto print_point;
+	 }
 
 	 if (testCase_11() == success) {
 	 	g_nGradPoint += 3;
 	 	g_nUndergradPoint += 3;
 	 }
 
-	// if (testCase_12() == success) {
-	// 	g_nGradPoint += 3;
-	// 	g_nUndergradPoint += 3;
-	// }
+	 if (testCase_12() == success) {
+	 	g_nGradPoint += 3;
+	 	g_nUndergradPoint += 3;
+	 }
 
- //    // Extra Credit
-	// // Aggregate
-	// if (extraTestCase_1() == success) {
-	// 	g_nGradExtraPoint += 3;
-	// 	g_nUndergradExtraPoint += 3;
-	// }
+     // Extra Credit
+	 // Aggregate
+	 if (extraTestCase_1() == success) {
+	 	g_nGradExtraPoint += 3;
+	 	g_nUndergradExtraPoint += 3;
+	 }
 
-	// if (extraTestCase_2() == success) {
-	// 	g_nGradExtraPoint += 2;
-	// 	g_nUndergradExtraPoint += 2;
-	// }
+	 if (extraTestCase_2() == success) {
+	 	g_nGradExtraPoint += 2;
+	 	g_nUndergradExtraPoint += 2;
+	 }
 
 	// if (createGroupTable() != success) {
 	// 	goto print_point;

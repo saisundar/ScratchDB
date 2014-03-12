@@ -1,7 +1,7 @@
 #ifndef _qe_h_
 #define _qe_h_
 
-
+#include <limits>
 #include <vector>
 
 #include "../rbf/rbfm.h"
@@ -9,6 +9,8 @@
 #include "../ix/ix.h"
 
 # define QE_EOF (-1)  // end of the index scan
+# define FLTMAX std::numeric_limits<float>::max();
+# define FLTMIN std::numeric_limits<float>::min();
 
 using namespace std;
 
@@ -209,6 +211,7 @@ class Filter : public Iterator {
 	void* valueP;
 	bool valid;
 	AttrType type;
+	float result;
     public:
         Filter(Iterator *input,const Condition &condition)
         {
@@ -315,14 +318,65 @@ class INLJoin : public Iterator {
         void getAttributes(vector<Attribute> &attrs) const{};
 };
 
+class Answer{
+public:
+    float val; // for holding min/max or sum
+	int count;	// for counting the tuples
+	Answer()
+	{
+
+		count=0;
+		val=0;
+	}
+};
 
 class Aggregate : public Iterator {
     // Aggregation operator
     public:
+		Iterator *inp;
+	    Attribute attr;
+	    AggregateOp opAg;
+	    bool valid;
+	    vector<Attribute> attrs;
+	    void* valueP;
+	    Answer ans;
+	    bool groupBy;
+	    bool done;
+
+	    bool isValidAttr();
+	    RC getAttrAddr(void* data);
+	    RC updateAns(float diff);
+	    float compareAttr();
+	    RC copyFinalAns(void* data);
+
         Aggregate(Iterator *input,                              // Iterator of input R
                   Attribute aggAttr,                            // The attribute over which we are computing an aggregate
                   AggregateOp op                                // Aggregate operation
-        ){};
+        ){
+        	dbgnQEFn();
+        	inp=input;
+        	attr=aggAttr;
+        	opAg=op;
+        	valid=false;
+        	valid=isValidAttr();
+        	done=false;
+        	inp->getAttributes(attrs);
+        	valid=isValidAttr();
+        	dbgnQE("valid",valid);
+        	groupBy=false;
+        	if(opAg==0)
+        		{
+        		ans.val=FLTMAX;
+        		dbgnQE("val initialised to max",ans.val);
+        		}
+        	else if(opAg==1)
+        		{
+        		ans.val=FLTMIN;
+        		dbgnQE("val initialised to min",ans.val);
+        		}
+
+            dbgnQEFnc();
+        };
 
         // Extra Credit
         Aggregate(Iterator *input,                              // Iterator of input R
@@ -331,13 +385,41 @@ class Aggregate : public Iterator {
                   AggregateOp op                                // Aggregate operation
         ){};
 
-        ~Aggregate(){};
+        ~Aggregate(){
+        dbgnQEFn();
+    	inp=NULL;
+    	if(valueP!=NULL)
+    		free(valueP);
+    	 dbgnQEFnc();
+        };
 
-        RC getNextTuple(void *data){return QE_EOF;};
+        RC getNextTuple(void *data){
+        	if(!valid||done)return QE_EOF;
+        	 dbgnQEFn();
+        	float diff;
+
+        	while(inp->getNextTuple(data)!=QE_EOF)
+        	{
+        		getAttrAddr(data);
+        		diff=compareAttr();
+        		updateAns(diff);
+        	}
+
+        	if(!groupBy)
+        	{
+        		copyFinalAns(data);
+        		dbgnQEFnc();
+        		done=true;
+        		return 0;
+        	}
+
+        	 dbgnQEFnc();
+        	 return 0;
+        };
         // Please name the output attribute as aggregateOp(aggAttr)
         // E.g. Relation=rel, attribute=attr, aggregateOp=MAX
         // output attrname = "MAX(rel.attr)"
-        void getAttributes(vector<Attribute> &attrs) const{};
+        void getAttributes(vector<Attribute> &attrs) const;
 };
 
 #endif
