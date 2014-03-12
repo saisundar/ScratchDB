@@ -274,15 +274,23 @@ class Filter : public Iterator {
 
 
 class Project : public Iterator {
-    // Projection operator
-    public:
-        Project(Iterator *input,                            // Iterator of input R
-                const vector<string> &attrNames){};           // vector containing attribute names
-        ~Project(){};
+	// Projection operator
+public:
 
-        RC getNextTuple(void *data) {return QE_EOF;};
-        // For attribute in vector<Attribute>, name it as rel.attr
-        void getAttributes(vector<Attribute> &attrs) const{};
+	vector<Attribute> lowerLevelDescriptor;
+	vector<Attribute> currentLevelDescriptor;
+	vector<string> attrNames;
+	Iterator *input;
+	BYTE* lowerLevelData;
+
+	Project(Iterator *input,                            // Iterator of input R
+			const vector<string> &attrNames);           // vector containing attribute names
+
+	RC getNextTuple(void *data);
+	void getAttributes(vector<Attribute> &attrs) const;
+
+	int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData);
+
 };
 
 
