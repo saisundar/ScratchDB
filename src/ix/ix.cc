@@ -1065,7 +1065,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		tempLowKey = malloc(searchKeyLength+5); // THIS IS FREED IN THIS FUNCTION ITSELF
 		BYTE* temp = (BYTE*)tempLowKey;
 		memcpy(temp,& newKeyLength, 4);
-		memcpy(temp + 4,lowKey,searchKeyLength);
+		memcpy(temp + 4,lowKey+4,searchKeyLength);
 		*((BYTE*)tempLowKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 	else if(lowKey!=NULL)
@@ -1082,7 +1082,7 @@ RC IndexManager::scan(FileHandle &fileHandle,
 		ix_ScanIterator.highKey = malloc(searchKeyLength+5); // THIS WILL BE FREED BY SCANITERATOR !
 		BYTE* temp = (BYTE*)ix_ScanIterator.highKey;
 		memcpy(temp,& newKeyLength, 4);
-		memcpy(temp + 4,highKey,searchKeyLength);
+		memcpy(temp + 4,highKey+4,searchKeyLength);
 		*((BYTE*)ix_ScanIterator.highKey + (searchKeyLength+4)) = (BYTE)0;
 	}
 	else if(highKey!=NULL)
