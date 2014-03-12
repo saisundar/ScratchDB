@@ -463,16 +463,11 @@ RC Aggregate::copyFinalAns(void* data)
 
 // ... the rest of your implementations go here
 
-Project :: ~Project()
-{
-	free(lowerLevelData);
-}
-
 int Project :: readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData){
 
 	INT32 type2Length = 0;
 	bool found=false;
-
+	dbgnQEFn();
 	std::vector<Attribute>::const_iterator it = lowerLevelDescriptor.begin();
 	while(it != lowerLevelDescriptor.end() && !found)
 	{
@@ -482,13 +477,16 @@ int Project :: readAttribute(const string &attributeName, BYTE * inputData, BYTE
 			switch(it->type){
 			case 0:
 				memcpy(outputData,inputData,4);
+				dbgnQEFnc();
 				return 4;
 			case 1:
 				memcpy(outputData,inputData,4);
+				dbgnQEFnc();
 				return 4;
 			case 2:
 				type2Length = *((INT32 *)inputData);
 				memcpy(outputData,inputData,4 + type2Length);
+				dbgnQEFnc();
 				return (4 + type2Length);
 			default:
 				break;
@@ -512,46 +510,69 @@ int Project :: readAttribute(const string &attributeName, BYTE * inputData, BYTE
 		}
 		++it;
 	}
+	dbgnQEFnc();
 	return -1;
 }
 
 RC Project :: getNextTuple(void *data) {
 	BYTE* outputData = (BYTE*) data;
-	if(input->getNextTuple(lowerLevelData)==QE_EOF)
+	dbgnQEFn();
+	if(!valid){
+		dbgnQE("invalid project attributes","");
 		return QE_EOF;
-	std::vector<Attribute>::const_iterator it = currentLevelDescriptor.begin();
-	for(unsigned int i=0; i<currentLevelDescriptor.size(); i++){
-		int offset = readAttribute(currentLevelDescriptor[i].name,lowerLevelData,outputData);
+	}
+	if(input->getNextTuple(lowerLevelData)==QE_EOF)
+	{
+		dbgnQEFnc();
+		return QE_EOF;
+	}
+	std::vector<Attribute>::const_iterator it = projAttrs.begin();
+	for(unsigned int i=0; i<projAttrs.size(); i++){
+		int offset = readAttribute(projAttrs[i].name,lowerLevelData,outputData);
 		outputData += offset;
 	}
+	dbgnQEFnc();
 	return 0;
 }
 
 
 Project :: Project(Iterator *input, const vector<string> &attrNames){
+	dbgnQEFn();
+	valid=true;
 	this->input = input;
 	this->attrNames = attrNames;
 	lowerLevelDescriptor.clear();
-	lowerLevelData = malloc(1024);
+	lowerLevelData = (BYTE*)malloc(1024);
 	input->getAttributes(this->lowerLevelDescriptor);
-	getAttributes(currentLevelDescriptor);
+	valid=isValidAttr();
+	dbgnQEFnc();
 }
 
 void Project :: getAttributes(vector<Attribute> &attrs) const{
 	attrs.clear();
-	std::vector<Attribute>::const_iterator it = lowerLevelDescriptor.begin();
-	for(unsigned int i=0; i<attrNames.size(); i++){
-		while(it != lowerLevelDescriptor.end())
-		{
-			if((it->name).compare(attrNames[i])==0)
-			{
-				attrs.push_back(*(it));
-			}
-			++it;
-		}
-		if(it == lowerLevelDescriptor.end()){
-			// Throw Error
-		}
-	}
+	dbgnQEFn();
+	attrs=projAttrs;
+	dbgnQEFnc();
 }
 
+bool Project::isValidAttr(){
+	valid = false;
+	std::vector<Attribute>::const_iterator it = lowerLevelDescriptor.begin();
+		for(unsigned int i=0; i<attrNames.size(); i++){
+			while(it != lowerLevelDescriptor.end())
+			{
+				if((it->name).compare(attrNames[i])==0)
+				{
+					projAttrs.push_back(*(it));
+					it = lowerLevelDescriptor.begin();
+					break;
+				}
+				++it;
+			}
+			if(it == lowerLevelDescriptor.end()){
+
+			 return false;
+			}
+	}
+	return true;
+}

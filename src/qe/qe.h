@@ -278,19 +278,25 @@ class Project : public Iterator {
 public:
 
 	vector<Attribute> lowerLevelDescriptor;
-	vector<Attribute> currentLevelDescriptor;
 	vector<string> attrNames;
 	Iterator *input;
 	BYTE* lowerLevelData;
-
+	bool valid ;
+	vector<Attribute> projAttrs;
+	bool isValidAttr();
 	Project(Iterator *input,                            // Iterator of input R
 			const vector<string> &attrNames);           // vector containing attribute names
+	~Project()
+	{
+		dbgnQEFn();
+		free(lowerLevelData);
+		dbgnQEFnc();
+	}
 
 	RC getNextTuple(void *data);
 	void getAttributes(vector<Attribute> &attrs) const;
-
 	int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData);
-
+	void setValidFalse();
 };
 
 
