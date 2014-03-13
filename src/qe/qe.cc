@@ -183,9 +183,10 @@ bool Aggregate::isValidAttr()
 {
 	INT32 i;
 	dbgnQEFn();
-
+	bool attrFound=false,groupFound=false;
+	dbgnQE("siez of attrs",attrs.size());
 	for(i=0;i<attrs.size();i++)
-		{
+	{
 		dbgnQE("name of atribute",attrs[i].name);
 		dbgnQE("name of the aggregating attrute",attr.name);
 		dbgnQE("attribute length",attrs[i].length);
@@ -193,11 +194,17 @@ bool Aggregate::isValidAttr()
 		{
 			valueP=malloc(attrs[i].length+4);
 			dbgnQE("Aggregate attirbute found.number",i);
-			break;
+			attrFound=true;
+			if(attrFound && groupFound)break;
 		}
+		if((groupBy && attrs[i].length!=0 && attrs[i].name.compare(groupAttr.name)==0)||(!groupBy))
+		{
+			groupFound=true;
+			groupP=malloc(attrs[i].length+4);
+			dbgnQE("group attribute found.number",i);
+			if(attrFound && groupFound)break;
 		}
-
-
+	}
 	dbgnQEFnc();
 	return(i<attrs.size());
 }
@@ -207,12 +214,14 @@ RC Aggregate::getAttrAddr(void* data)
 	BYTE * iterData=(BYTE *)data;
 	dbgnQEFn();
 
-	bool found=false;
+	bool attrFound=false,groupFound=false;
 	std::vector<Attribute>::const_iterator it = attrs.begin();
 	INT32 num = 0;
-	for(;it != attrs.end() && !found;it++)
+	dbgnQE("group attribyte",groupAttr.name);
+	for(;it != attrs.end() && !(attrFound && groupFound);it++)
 	{
 		dbgnQE("type",it->type);
+		dbgnQE("name",it->name);
 		switch(it->type){
 		case 0:
 		case 1:
@@ -220,7 +229,13 @@ RC Aggregate::getAttrAddr(void* data)
 			{
 				dbgnQE("found the ttribute",it->name);
 				memcpy(valueP,iterData,4);
-				found=true;
+				attrFound=true;
+			}
+			else if((it->name).compare(groupAttr.name)==0)
+			{
+	    		dbgnQE("found the group attribute",it->name);
+				memcpy(groupP,iterData,4);
+				groupFound=true;
 			}
 			iterData=iterData+4;
 			break;
@@ -231,7 +246,14 @@ RC Aggregate::getAttrAddr(void* data)
 				dbgnQE("found the ttribute",it->name);
 				memcpy(valueP,iterData,4+num);
 				*((BYTE*)valueP+4+num)=(BYTE)0;
-				found=true;
+				attrFound=true;
+			}
+			else if((it->name).compare(groupAttr.name)==0)
+			{
+				dbgnQE("found the group attribute",it->name);
+				memcpy(groupP,iterData,4+num);
+				*((BYTE*)groupP+4+num)=(BYTE)0;
+				groupFound=true;
 			}
 			iterData=iterData+4+num;
 			break;
@@ -240,7 +262,7 @@ RC Aggregate::getAttrAddr(void* data)
 		}
 	}
 	dbgnQEFnc();
-	if(!found)
+	if(!(attrFound && groupFound))
 		return -1;
 	return 0;
 }
@@ -249,7 +271,7 @@ RC Aggregate::getAttrAddr(void* data)
 //returns >0 if ans>valueP
 //		==0 if ans==valueP
 //		  <0 if ans<valueP
-float Aggregate::compareAttr()
+float Aggregate::compareAttr(Answer ans)
 {
 	float diff;
 	dbgnQEFn();
@@ -257,18 +279,23 @@ float Aggregate::compareAttr()
 	switch(attr.type)
 	{
 	case 0:
-		diff=int(ans.val)-intVal(valueP);
+		if(INT32(ans.val) > intVal(valueP))
+			diff =1;
+		else if(INT32(ans.val) < intVal(valueP))diff =-1;
+		else diff=0;
 		dbgnQE("Comparing the integers here !","");
 		dbgnQE("existing ans","new value from record");
-		dbgnQE(int(ans.val),intVal(valueP));
+		dbgnQE((INT32(ans.val)),intVal(valueP));
 		break;
 	case 1:
 		dbgnQE("Comparing the floats here !","");
 		dbgnQE("existing ans","new value from record");
 		dbgnQE(ans.val,(*((float *)valueP)));
-		diff=ans.val-*((float *)valueP);
-
-		if(modlus(diff)<0.000001)diff=0;
+		if(ans.val > *((float *)valueP))
+		diff=1;
+		else if(ans.val < *((float *)valueP))
+			diff=-1;
+		else diff=0;
 		break;
 	case 2:
 		dbgnQE("oops hitting varchar in comparison..some error","");
@@ -280,11 +307,59 @@ float Aggregate::compareAttr()
 	return(diff);
 }
 
-RC Aggregate::updateAns(float diff)
+Answer Aggregate::getGroupAns()
+{
+
+	string groupString((char*)groupP+4);
+	tempKey.attr=groupAttr;
+	switch(groupAttr.type)
+	{
+	case 0:
+		{INT32 temp;
+		memcpy(&temp,groupP,4);
+		dbgnQE("int group atribute value",temp);
+		tempKey.num=temp;
+		break;
+		}
+	case 1:
+		{float temp;
+		memcpy(&temp,groupP,4);
+		dbgnQE("float group atribute value",temp);
+		tempKey.num=temp;
+		break;
+		}
+	case 2:
+		{
+		INT32 temp;
+		memcpy(&temp,groupP,4);
+		string groupString((char*)groupP+4);
+		tempKey.name=groupString;
+		tempKey.num=temp;
+		dbgnQE("string group atribute value",temp);
+		break;
+		}
+	default:
+		break;
+	}
+
+	if(grouper.find(tempKey)!=grouper.end())
+	{
+		dbgnQE(" valuea lready in map..retrieiving it","");
+		return(grouper[tempKey]);
+	}
+	dbgnQE(" valuea not in map..making it","");
+
+	Answer ans;
+	setExtremeAns(ans);
+	return ans;
+}
+
+RC Aggregate::updateAns(Answer &ans,float diff)
 {
 	dbgnQEFn();
 	ans.count++;
 	dbgnQE("items count",ans.count);
+	dbgnQE("operation",opAg);
 	switch(opAg)
 	{
 	case 0:		//min
@@ -306,6 +381,8 @@ RC Aggregate::updateAns(float diff)
 				dbgnQE("new value",(*((float *)valueP)));
 				memcpy(&ans.val,valueP,4);
 			}
+			else
+				dbgnQE("0:attr tpye is actually equal to ",attr.type);
 		}
 		break;
 	case 1:		//max
@@ -326,6 +403,8 @@ RC Aggregate::updateAns(float diff)
 				dbgnQE("new value",(*((float *)valueP)));
 				memcpy(&ans.val,valueP,4);
 			}
+			else
+				dbgnQE("1:attr tpye is actually equal to ",attr.type);
 		}
 		break;
 	case 2:		//sum
@@ -345,6 +424,8 @@ RC Aggregate::updateAns(float diff)
 			dbgnQE("new value",(*((float *)valueP)));
 			ans.val+=*((float *)valueP);
 		}
+		else
+			dbgnQE("2,3:attr tpye is actually equal to ",attr.type);
 		break;
 	default:
 		break;
@@ -358,6 +439,9 @@ void Aggregate::getAttributes(vector<Attribute> &attrs) const
 	attrs.clear();
 	Attribute attr;
 	dbgnQEFn();
+	if(groupBy)
+		attrs.push_back(groupAttr);
+
 	if(opAg==2)
 	{
 		attr.type=TypeReal;
@@ -422,11 +506,38 @@ void Aggregate::getAttributes(vector<Attribute> &attrs) const
 	dbgnQEFnc();
 }
 
-RC Aggregate::copyFinalAns(void* data)
+RC Aggregate::copyFinalAns(void* data,Answer ans,mapKey tempKey)
 {
 
 	dbgnQEFn();
-
+	BYTE* iterData=(BYTE*)data;
+	INT32 len,i;
+	if(groupBy)
+	{
+		switch(groupAttr.type)
+		{
+		case 0:
+			memcpy(iterData,&tempKey.num,4);
+			dbgnQE("value copied into data",tempKey.num);
+			iterData+=4;
+			break;
+		case 1:
+			memcpy(iterData,&tempKey.val,4);
+			dbgnQE("float value copied",tempKey.val);
+			iterData+=4;
+			break;
+		case 2:
+			len=tempKey.num;
+			memcpy(iterData,&len,4);
+			iterData+=4;
+			for(i=0;i<len;i++,iterData++)
+				*iterData=tempKey.name[i];
+			dbgnQE("string value copied",tempKey.name);
+			break;
+		default:
+			break;
+		}
+	}
 	switch(opAg)
 	{
 	case 0:
@@ -436,23 +547,23 @@ RC Aggregate::copyFinalAns(void* data)
 		{
 			dbgnQE("max/min/sum value",ans.val);
 			INT32 temp=(INT32)ans.val;
-			memcpy(data,&temp,4);
+			memcpy(iterData,&temp,4);
 		}
 		else if(attr.type==1)
 		{
 			dbgnQE("max/min/sum value",ans.val);
-			memcpy(data,&ans.val,4);
+			memcpy(iterData,&ans.val,4);
 		}
 		break;
 	case 3:
 
 		ans.val=ans.val/ans.count;
 		dbgnQE("average",ans.val);
-		memcpy(data,&ans.val,4);
+		memcpy(iterData,&ans.val,4);
 		break;
 	case 4:
 		dbgnQE("count",ans.count);
-		memcpy(data,&ans.count,4);
+		memcpy(iterData,&ans.count,4);
 		break;
 	default:
 		break;
@@ -461,6 +572,36 @@ RC Aggregate::copyFinalAns(void* data)
 	return 0;
 }
 
+
+void Aggregate::setExtremeAns(Answer &ans)
+{
+
+	if(attr.type==1)
+	{if(opAg==0)
+	{
+		ans.val=FLTMAX;
+		dbgnQE("val initialised to max",ans.val);
+	}
+	else if(opAg==1)
+	{
+		ans.val=-FLTMAX;
+		dbgnQE("val initialised to min",ans.val);
+	}
+	}
+	else if(attr.type==0)
+	{if(opAg==0)
+	{
+		ans.val=INTMAX;
+		dbgnQE("val initialised to max",ans.val);
+	}
+	else if(opAg==1)
+	{
+		ans.val=-INTMAX;
+		dbgnQE("val initialised to min",ans.val);
+	}
+	}
+
+}
 // ... the rest of your implementations go here
 
 int Project :: readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData){

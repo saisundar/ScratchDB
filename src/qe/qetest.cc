@@ -1534,7 +1534,7 @@ int main() {
 	int g_nUndergradPoint = 0;
 	int g_nUndergradExtraPoint = 0;
 	testInit();
-	// Create the left table
+//	 Create the left table
 	if (createLeftTable() != success) {
 		goto print_point;
 	}
@@ -1545,7 +1545,7 @@ int main() {
 	g_nGradPoint += 5;
 	g_nUndergradPoint += 5;
 
-	// Create the right table
+//	 Create the right table
 	if (createRightTable() != success) {
 		goto print_point;
 	}
@@ -1640,24 +1640,24 @@ int main() {
 	 	g_nUndergradExtraPoint += 2;
 	 }
 
-	// if (createGroupTable() != success) {
-	// 	goto print_point;
-	// }
+	 if (createGroupTable() != success) {
+	 	goto print_point;
+	 }
 
-	// if (populateGroupTable() != success) {
-	// 	goto print_point;
-	// }
+	 if (populateGroupTable() != success) {
+	 	goto print_point;
+	 }
 
-	// // Aggregate with GroupBy
- //    if (extraTestCase_3() == success) {
-	// 	g_nGradExtraPoint += 5;
-	// 	g_nUndergradExtraPoint += 5;
- //    }
+	 // Aggregate with GroupBy
+     if (extraTestCase_3() == success) {
+	 	g_nGradExtraPoint += 5;
+	 	g_nUndergradExtraPoint += 5;
+     }
 
- //    if (extraTestCase_4() == success) {
-	// 	g_nGradExtraPoint += 5;
-	// 	g_nUndergradExtraPoint += 5;
- //    }
+     if (extraTestCase_4() == success) {
+	 	g_nGradExtraPoint += 5;
+	 	g_nUndergradExtraPoint += 5;
+     }
 
     testDisp();
 	print_point: cout << "grad-point: " << g_nGradPoint

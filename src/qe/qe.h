@@ -9,8 +9,10 @@
 #include "../ix/ix.h"
 
 # define QE_EOF (-1)  // end of the index scan
-# define FLTMAX std::numeric_limits<float>::max();
-# define FLTMIN std::numeric_limits<float>::min();
+# define FLTMAX (std::numeric_limits<float>::max());
+# define FLTMIN (std::numeric_limits<float>::min());
+# define INTMIN (std::numeric_limits<int>::min()+10000);
+# define INTMAX (std::numeric_limits<int>::max()-10000)
 
 using namespace std;
 
@@ -46,6 +48,69 @@ class Iterator {
         virtual ~Iterator() {};
 };
 
+
+class mapKey {
+
+public:
+
+	mapKey()
+	{
+		num=0;
+		val=0;
+		name="";
+	}
+	mapKey(Attribute attribute,INT32 value)
+	{
+		num=value;
+		attr=attribute;
+		val=0;
+		name="";
+	}
+
+	mapKey(Attribute attribute,float value)
+	{
+		num=0;
+		attr=attribute;
+		val=value;
+		name="";
+
+
+	}
+	mapKey(Attribute attribute,string value)
+	{
+		num=0;
+		attr=attribute;
+		val=0;
+		name=value;
+	}
+
+	Attribute attr;
+	INT32 num;
+	float val;
+	string name;
+
+	bool operator <(const mapKey& rhs) const
+	{
+		INT32 diff;
+		switch(attr.type)
+		{
+		case 0:
+			return num < rhs.num;
+			break;
+		case 1:
+			return val < rhs.val;
+			break;
+		case 2:
+			diff=strcmp(name.c_str(),rhs.name.c_str());
+			return (diff<0);
+			break;
+		default:
+			break;
+
+		}
+		return true;
+	}
+};
 
 class TableScan : public Iterator
 {
@@ -104,7 +169,7 @@ class TableScan : public Iterator
             attrs.clear();
             attrs = this->attrs;
             unsigned i;
-
+            dbgnQE("size of new attrs",attrs.size());
             // For attribute in vector<Attribute>, name it as rel.attr
             for(i = 0; i < attrs.size(); ++i)
             {
@@ -349,19 +414,26 @@ class Aggregate : public Iterator {
     public:
 		Iterator *inp;
 	    Attribute attr;
+	    Attribute groupAttr;
 	    AggregateOp opAg;
 	    bool valid;
 	    vector<Attribute> attrs;
-	    void* valueP;
-	    Answer ans;
 	    bool groupBy;
-	    bool done;
+	    void* valueP;
+	    void* groupP;
+
 
 	    bool isValidAttr();
 	    RC getAttrAddr(void* data);
-	    RC updateAns(float diff);
-	    float compareAttr();
-	    RC copyFinalAns(void* data);
+	    RC updateAns(Answer &ans,float diff);
+	    float compareAttr(Answer ans);
+	    RC copyFinalAns(void* data,Answer ans,mapKey tempKey);
+	    map<mapKey,Answer> grouper;
+	    map<mapKey,Answer>::iterator mapIter;
+	    mapKey tempKey;
+	    Answer getGroupAns();
+	    void setExtremeAns(Answer &ans);
+
 
         Aggregate(Iterator *input,                              // Iterator of input R
                   Attribute aggAttr,                            // The attribute over which we are computing an aggregate
@@ -371,23 +443,35 @@ class Aggregate : public Iterator {
         	inp=input;
         	attr=aggAttr;
         	opAg=op;
+        	Answer ans;
         	valid=false;
-        	valid=isValidAttr();
-        	done=false;
+        	groupBy=false;
         	inp->getAttributes(attrs);
         	valid=isValidAttr();
         	dbgnQE("valid",valid);
-        	groupBy=false;
-        	if(opAg==0)
+        	setExtremeAns(ans);
+
+        	if(valid)
+        	{
+        		void* data=malloc(1024);
+        		mapKey dummy(attr,"saisundar");
+        		float diff;
+        		dbgnQE("valid and no group by ..so iterating through every tuple","");
+        		while(inp->getNextTuple(data)!=QE_EOF)
         		{
-        		ans.val=FLTMAX;
-        		dbgnQE("val initialised to max",ans.val);
+        			getAttrAddr(data);
+        			diff=compareAttr(ans);
+        			updateAns(ans,diff);
+        			dbgnQE("ans count  updated ",ans.count);
+        		    dbgnQE("ans val upadted   ",ans.val);
         		}
-        	else if(opAg==1)
-        		{
-        		ans.val=FLTMIN;
-        		dbgnQE("val initialised to min",ans.val);
-        		}
+        		grouper[dummy]=ans;
+        		dbgnQE("final count  inserted ",ans.count);
+        		dbgnQE("final answer  inserted ",ans.val);
+        		mapIter=grouper.begin();
+        		free(data);
+        	}
+
 
             dbgnQEFnc();
         };
@@ -397,35 +481,65 @@ class Aggregate : public Iterator {
                   Attribute aggAttr,                            // The attribute over which we are computing an aggregate
                   Attribute gAttr,                              // The attribute over which we are grouping the tuples
                   AggregateOp op                                // Aggregate operation
-        ){};
+        ){
+        	dbgnQEFn();
+        	inp=input;
+        	attr=aggAttr;
+        	groupAttr=gAttr;
+        	opAg=op;
+        	valid=false;
+        	groupBy=true;
+        	inp->getAttributes(attrs);
+        	valid=isValidAttr();
+        	dbgnQE("valid",valid);
+
+            if(valid)
+        	{
+        		void* data=malloc(1024);
+        	    float diff;
+        		Answer ans;
+        		setExtremeAns(ans);
+        		dbgnQE("valid and group by ..so iterating through every tuple","");
+        		while(inp->getNextTuple(data)!=QE_EOF)
+        		{
+        			getAttrAddr(data);
+        			ans=getGroupAns();
+        			diff=compareAttr(ans);
+        			updateAns(ans,diff);
+        			grouper[tempKey]=ans;
+        		}
+
+        		dbgnQE("the new count inserted ",ans.count);
+        		dbgnQE("the new value inserted ",ans.val);
+        		mapIter=grouper.begin();
+        		free(data);
+        	}
+        	dbgnQEFnc();
+        };
 
         ~Aggregate(){
         dbgnQEFn();
     	inp=NULL;
     	if(valueP!=NULL)
     		free(valueP);
+    	if(groupP!=NULL)
+    		free(groupP);
+    	grouper.clear();
     	 dbgnQEFnc();
         };
 
         RC getNextTuple(void *data){
-        	if(!valid||done)return QE_EOF;
+        	if(!valid)return QE_EOF;
         	 dbgnQEFn();
-        	float diff;
 
-        	while(inp->getNextTuple(data)!=QE_EOF)
+        	if(mapIter!=grouper.end())
         	{
-        		getAttrAddr(data);
-        		diff=compareAttr();
-        		updateAns(diff);
+        		Answer ans=mapIter->second;
+        		copyFinalAns(data,ans,mapIter->first);
+        		 mapIter++;
         	}
-
-        	if(!groupBy)
-        	{
-        		copyFinalAns(data);
-        		dbgnQEFnc();
-        		done=true;
-        		return 0;
-        	}
+        	else
+        	   return QE_EOF;
 
         	 dbgnQEFnc();
         	 return 0;
