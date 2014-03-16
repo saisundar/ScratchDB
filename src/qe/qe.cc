@@ -10,7 +10,7 @@ bool Filter::isValidAttr(){
 	INT16 lLength;
 
 	for(i=0;i<attrs.size();i++)
-		{
+	{
 		dbgnQE("name of atribute",attrs[i].name);
 		dbgnQE("name of the lhs attrute",cond.lhsAttr);
 		dbgnQE("attribute length",attrs[i].length);
@@ -30,7 +30,7 @@ bool Filter::isValidAttr(){
 			rhs=true;
 			dbgnQE("RHS attirbute found.number",i);
 		}
-		}
+	}
 
 	if(!cond.bRhsIsAttr && lhs){
 
@@ -42,7 +42,7 @@ bool Filter::isValidAttr(){
 		{
 			INT32 length = *((INT32*)cond.rhsValue.data);
 			*((BYTE*)valueP + length+4)=0;
-			dbgnQE("string value",valueP+4);
+			dbgnQE("string value",(BYTE*)valueP+4);
 		}
 	}
 	dbgnQEFnc();
@@ -56,15 +56,15 @@ bool Filter::returnRes(int diff)
 {
 	dbgnQEFn();
 	if(diff==0)
-		{
+	{
 		dbgnQEFnc();
 		return((cond.op==EQ_OP)||(cond.op==LE_OP)||(cond.op==GE_OP));
-		}
+	}
 	if(diff<0)
-		{
+	{
 		dbgnQEFnc();
 		return((cond.op==LT_OP)||(cond.op==LE_OP)||(cond.op==NE_OP));
-		}
+	}
 	dbgnQEFnc();
 	return((cond.op==GT_OP)||(cond.op==GE_OP)||(cond.op==NE_OP));
 }
@@ -145,38 +145,38 @@ RC Filter::getRHSAddr(void* data)
 		return -1;
 	return 0;
 }
- BYTE* Filter::getLHSAddr(void* data){
-	 BYTE * iterData=(BYTE*)data;
-	 dbgnQEFn();
-	 INT32 num;
-	 std::vector<Attribute>::const_iterator it = attrs.begin();
-	  for(;it != attrs.end();it++)
-	 {
-		 dbgnQE("type",it->type);
-		 switch(it->type){
-		 case 0:
-		 case 1:
-			 if((it->name).compare(cond.lhsAttr)==0)
-			 {
-				 dbgnQE("found the ttribute",it->name);
+BYTE* Filter::getLHSAddr(void* data){
+	BYTE * iterData=(BYTE*)data;
+	dbgnQEFn();
+	INT32 num;
+	std::vector<Attribute>::const_iterator it = attrs.begin();
+	for(;it != attrs.end();it++)
+	{
+		dbgnQE("type",it->type);
+		switch(it->type){
+		case 0:
+		case 1:
+			if((it->name).compare(cond.lhsAttr)==0)
+			{
+				dbgnQE("found the ttribute",it->name);
 				return iterData;
-			 }
-			 iterData=iterData+4;
-			 break;
-		 case 2:
-			 num = *((INT32 *)iterData);
-			 if((it->name).compare(cond.lhsAttr)==0)
-			 {
-				 dbgnQE("found the ttribute",it->name);
-				 return iterData;
-			 }
-			 iterData=iterData+4+num;
-			 break;
-		 default:
-			 break;
-		 }
-	 }
-	 return NULL;
+			}
+			iterData=iterData+4;
+			break;
+		case 2:
+			num = *((INT32 *)iterData);
+			if((it->name).compare(cond.lhsAttr)==0)
+			{
+				dbgnQE("found the ttribute",it->name);
+				return iterData;
+			}
+			iterData=iterData+4+num;
+			break;
+		default:
+			break;
+		}
+	}
+	return NULL;
 }
 
 bool Aggregate::isValidAttr()
@@ -233,7 +233,7 @@ RC Aggregate::getAttrAddr(void* data)
 			}
 			else if((it->name).compare(groupAttr.name)==0)
 			{
-	    		dbgnQE("found the group attribute",it->name);
+				dbgnQE("found the group attribute",it->name);
 				memcpy(groupP,iterData,4);
 				groupFound=true;
 			}
@@ -292,7 +292,7 @@ float Aggregate::compareAttr(Answer ans)
 		dbgnQE("existing ans","new value from record");
 		dbgnQE(ans.val,(*((float *)valueP)));
 		if(ans.val > *((float *)valueP))
-		diff=1;
+			diff=1;
 		else if(ans.val < *((float *)valueP))
 			diff=-1;
 		else diff=0;
@@ -315,21 +315,21 @@ Answer Aggregate::getGroupAns()
 	switch(groupAttr.type)
 	{
 	case 0:
-		{INT32 temp;
-		memcpy(&temp,groupP,4);
-		dbgnQE("int group atribute value",temp);
-		tempKey.num=temp;
-		break;
-		}
+	{INT32 temp;
+	memcpy(&temp,groupP,4);
+	dbgnQE("int group atribute value",temp);
+	tempKey.num=temp;
+	break;
+	}
 	case 1:
-		{float temp;
-		memcpy(&temp,groupP,4);
-		dbgnQE("float group atribute value",temp);
-		tempKey.num=temp;
-		break;
-		}
+	{float temp;
+	memcpy(&temp,groupP,4);
+	dbgnQE("float group atribute value",temp);
+	tempKey.num=temp;
+	break;
+	}
 	case 2:
-		{
+	{
 		INT32 temp;
 		memcpy(&temp,groupP,4);
 		string groupString((char*)groupP+4);
@@ -337,7 +337,7 @@ Answer Aggregate::getGroupAns()
 		tempKey.num=temp;
 		dbgnQE("string group atribute value",temp);
 		break;
-		}
+	}
 	default:
 		break;
 	}
@@ -457,7 +457,7 @@ void Aggregate::getAttributes(vector<Attribute> &attrs) const
 	switch(opAg)
 	{
 	case 0:
-		{
+	{
 		string temp="MIN";
 
 		temp=temp+"(";
@@ -465,39 +465,39 @@ void Aggregate::getAttributes(vector<Attribute> &attrs) const
 		temp=temp+")";
 		attr.name=temp;
 		break;
-		}
+	}
 	case 1:
-		{string temp="MAX";
-		temp=temp+"(";
-		temp=temp+this->attr.name;
-		temp=temp+")";
-		attr.name=temp;
-		break;
-		}
+	{string temp="MAX";
+	temp=temp+"(";
+	temp=temp+this->attr.name;
+	temp=temp+")";
+	attr.name=temp;
+	break;
+	}
 	case 2:
-		{string temp="AVG";
-		temp=temp+"(";
-		temp=temp+this->attr.name;
-		temp=temp+")";
-		attr.name=temp;
-		break;
-		}
+	{string temp="AVG";
+	temp=temp+"(";
+	temp=temp+this->attr.name;
+	temp=temp+")";
+	attr.name=temp;
+	break;
+	}
 	case 3:
-		{string temp="SUM";
-		temp=temp+"(";
-		temp=temp+this->attr.name;
-		temp=temp+")";
-		attr.name=temp;
-		break;
-		}
+	{string temp="SUM";
+	temp=temp+"(";
+	temp=temp+this->attr.name;
+	temp=temp+")";
+	attr.name=temp;
+	break;
+	}
 	case 4:
-		{string temp="COUNT";
-		temp=temp+"(";
-		temp=temp+this->attr.name;
-		temp=temp+")";
-		attr.name=temp;
-		break;
-		}
+	{string temp="COUNT";
+	temp=temp+"(";
+	temp=temp+this->attr.name;
+	temp=temp+")";
+	attr.name=temp;
+	break;
+	}
 	default:
 		break;
 	}
@@ -699,21 +699,101 @@ void Project :: getAttributes(vector<Attribute> &attrs) const{
 bool Project::isValidAttr(){
 	valid = false;
 	std::vector<Attribute>::const_iterator it = lowerLevelDescriptor.begin();
-		for(unsigned int i=0; i<attrNames.size(); i++){
-			while(it != lowerLevelDescriptor.end())
+	for(unsigned int i=0; i<attrNames.size(); i++){
+		while(it != lowerLevelDescriptor.end())
+		{
+			if((it->name).compare(attrNames[i])==0)
 			{
-				if((it->name).compare(attrNames[i])==0)
-				{
-					projAttrs.push_back(*(it));
-					it = lowerLevelDescriptor.begin();
-					break;
-				}
-				++it;
+				projAttrs.push_back(*(it));
+				it = lowerLevelDescriptor.begin();
+				break;
 			}
-			if(it == lowerLevelDescriptor.end()){
+			++it;
+		}
+		if(it == lowerLevelDescriptor.end()){
 
-			 return false;
-			}
+			return false;
+		}
 	}
 	return true;
+}
+
+// UTILITY FUNCTIONS
+int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute> recordDescriptor){
+	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
+	INT32 type2Length;
+	int offset = 0;
+	while(it != recordDescriptor.end()){
+		switch(it->type){
+		case 0:
+			memcpy(outputData+offset,inputData+offset,4);
+			offset += 4;
+			break;
+		case 1:
+			memcpy(outputData+offset,inputData+offset,4);
+			offset += 4;
+			break;
+		case 2:
+			type2Length = *((INT32 *)inputData+offset);
+			memcpy(outputData+offset, inputData+offset, 4 + type2Length);
+			offset += (4+type2Length);
+			break;
+		default:
+			break;
+		}
+	}
+	return offset;
+}
+
+int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData, Iterator* someIn){
+
+	INT32 type2Length = 0;
+	bool found=false;
+	dbgnQEFn();
+	vector<Attribute> attrs;
+	someIn->getAttributes(attrs);
+	std::vector<Attribute>::const_iterator it = attrs.begin();
+	while(it != attrs.end() && !found)
+	{
+		if((it->name).compare(attributeName)==0)
+		{
+			found = true;
+			switch(it->type){
+			case 0:
+				memcpy(outputData,inputData,4);
+				dbgnQEFnc();
+				return 4;
+			case 1:
+				memcpy(outputData,inputData,4);
+				dbgnQEFnc();
+				return 4;
+			case 2:
+				type2Length = *((INT32 *)inputData);
+				memcpy(outputData,inputData,4 + type2Length);
+				dbgnQEFnc();
+				return (4 + type2Length);
+			default:
+				break;
+			}
+		}
+		else{
+			switch(it->type){
+			case 0:
+				inputData += 4;
+				break;
+			case 1:
+				inputData += 4;
+				break;
+			case 2:
+				type2Length = *((INT32 *)inputData);
+				inputData += ( 4 + type2Length);
+				break;
+			default:
+				break;
+			}
+		}
+		++it;
+	}
+	dbgnQEFnc();
+	return -1;
 }
