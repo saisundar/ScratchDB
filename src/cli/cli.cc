@@ -17,6 +17,7 @@
 #define DIVISOR "  |  "
 #define DIVISOR_LENGTH 5
 #define EXIT_CODE -99
+#define DATABASE_FOLDER ""
 
 CLI * CLI::_cli = 0;
 
