@@ -695,7 +695,7 @@ public:
 		this->rightIn = rightIn;
 		this->condition = condition;
 
-		leftData = malloc(1024);
+		leftData = NULL;
 		rightData = malloc(1024);
 		lhsValue = malloc(108);
 
@@ -726,6 +726,8 @@ public:
 		bool matched = false;
 		while(!matched){
 			if(leftData == NULL || rightIn->getNextTuple(rightData) == QE_EOF){
+				if(leftData==NULL)
+					leftData=malloc(1024);
 
 				if(leftIn->getNextTuple(leftData) == QE_EOF){
 					dbgnQEFnc();
