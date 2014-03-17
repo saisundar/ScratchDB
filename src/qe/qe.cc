@@ -719,11 +719,13 @@ bool Project::isValidAttr(){
 }
 
 // UTILITY FUNCTIONS
-int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute> recordDescriptor){
+int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute>& recordDescriptor){
+	dbgnQEFn();
 	std::vector<Attribute>::const_iterator it = recordDescriptor.begin();
 	INT32 type2Length;
 	int offset = 0;
 	while(it != recordDescriptor.end()){
+		dbgnQE("Type",it->type);
 		switch(it->type){
 		case 0:
 			memcpy(outputData+offset,inputData+offset,4);
@@ -734,15 +736,56 @@ int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute> recordDescrip
 			offset += 4;
 			break;
 		case 2:
-			type2Length = *((INT32 *)inputData+offset);
-			memcpy(outputData+offset, inputData+offset, 4 + type2Length);
+			type2Length = *((INT32 *)(inputData+offset));
+			dbgnQE("the length of string is ",type2Length);
+			memcpy(outputData+offset, inputData+offset, (4 + type2Length));
 			offset += (4+type2Length);
 			break;
 		default:
 			break;
 		}
+		it++;
 	}
+	dbgnQE("Offset",offset);
+	dbgnQEFnc();
 	return offset;
+}
+
+CompOp setCompOp(const Condition& condition){
+	CompOp op;
+	switch(condition.op){
+	case 0:
+		// condition.op is EQ_OP
+		op = EQ_OP;
+		break;
+	case 1:
+		// condition.op is LT_OP
+		op = GT_OP;
+		break;
+	case 2:
+		// condition.op is GT_OP
+		op = LT_OP;
+		break;
+	case 3:
+		// condition.op is LE_OP
+		op = GE_OP;
+		break;
+	case 4:
+		// condition.op is GE_OP
+		op = LE_OP;
+		break;
+	case 5:
+		// condition.op is NE_OP
+		op = NE_OP;
+		break;
+	case 6:
+		// condition.op is NO_OP
+		op = NO_OP ;
+		break;
+	default:
+		break;
+	}
+	return op;
 }
 
 int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData, Iterator* someIn){
@@ -761,15 +804,18 @@ int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputDat
 			switch(it->type){
 			case 0:
 				memcpy(outputData,inputData,4);
+				dbgnQE("value of LHS ",*(INT32 *)outputData);
 				dbgnQEFnc();
 				return 4;
 			case 1:
 				memcpy(outputData,inputData,4);
+				dbgnQE("value of LHS ",*(float *)outputData)
 				dbgnQEFnc();
 				return 4;
 			case 2:
 				type2Length = *((INT32 *)inputData);
 				memcpy(outputData,inputData,4 + type2Length);
+				dbgnQE("value of LHS ",(char*)outputData+4);
 				dbgnQEFnc();
 				return (4 + type2Length);
 			default:

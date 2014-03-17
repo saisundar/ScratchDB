@@ -17,9 +17,6 @@
 using namespace std;
 
 class Iterator;
-int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute> recordDescriptor);
-int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData, Iterator* someIn);
-
 typedef enum{ MIN = 0, MAX, SUM, AVG, COUNT } AggregateOp;
 
 
@@ -34,7 +31,6 @@ struct Value {
 	void     *data;         // value
 };
 
-
 struct Condition {
 	string lhsAttr;         // left-hand side attribute
 	CompOp  op;             // comparison operator
@@ -43,6 +39,9 @@ struct Condition {
 	Value   rhsValue;       // right-hand side value if bRhsIsAttr = FALSE
 };
 
+CompOp setCompOp(const Condition &condition);
+int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute>& recordDescriptor);
+int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData, Iterator* someIn);
 
 class Iterator {
 	// All the relational operators and access methods are iterators.
@@ -176,7 +175,11 @@ public:
 		iter->close();
 		delete iter;
 		iter = new RM_ScanIterator();
-		rm.scan(tableName, condnAttribute, op, lhsValue, attrNames, *iter);
+		int pos = condnAttribute.find_first_of(".",0);
+		int end = condnAttribute.length();
+		string condnAttr = condnAttribute.substr(pos+1,end);
+		dbgnQE("condnAttr", condnAttr);
+		rm.scan(tableName, condnAttr, op, lhsValue, attrNames, *iter);
 	};
 
 
@@ -544,12 +547,12 @@ public:
 	Iterator *leftIn;
 	IndexScan *rightIn;
 	Condition condition;
+	CompOp op;
 
 	void* leftData = NULL;
 	void* rightData = NULL;
 	void* lhsValue = NULL;
 	bool errorFlag;
-
 	INLJoin(Iterator *leftIn,                               // Iterator of input R
 			IndexScan *rightIn,                             // IndexScan Iterator of input S
 			const Condition &condition,                     // Join condition
@@ -560,7 +563,7 @@ public:
 		this->rightIn = rightIn;
 		this->condition = condition;
 
-		leftData = malloc(1024);
+		op = setCompOp(condition);
 		rightData = malloc(1024);
 		lhsValue = malloc(108);
 
@@ -584,7 +587,10 @@ public:
 		while(!matched){
 			if(leftData == NULL || rightIn->getNextTuple(rightData) == QE_EOF){
 
-				if(condition.op == NE_OP && rightInScans%2 == 1 && rightIn->getNextTuple(rightData) == QE_EOF){
+				if(leftData==NULL)
+					leftData=malloc(1024);
+
+				if(op == NE_OP && rightInScans%2 == 1 && leftData!=NULL){
 					rightIn->setIterator(lhsValue, NULL, false, true);
 					continue;
 				}
@@ -623,6 +629,7 @@ public:
 		std::vector<Attribute>::const_iterator it = attrsRightIn.begin();
 		while(it != attrsRightIn.end()){
 			attrs.push_back(*(it));
+			it++;
 		}
 
 	};
@@ -633,36 +640,37 @@ public:
 		void* lowKey = NULL;
 		void* highKey = NULL;
 
-		if(condition.op == EQ_OP){
+		if(op == EQ_OP){
 			lowKeyInclusive = true;
 			highKeyInclusive = true;
-			lowKey = highKey = lhsValue;
+			lowKey = lhsValue;
+			highKey = lhsValue;
 		}
 
-		if(condition.op == EQ_OP){
+		if(op == NE_OP){
 			lowKeyInclusive = true;
 			lowKey = NULL;
 			highKey = lhsValue;
 		}
 
-		if(condition.op == LE_OP){
+		if(op == LE_OP){
 			lowKeyInclusive = true;
 			highKeyInclusive = true;
 			highKey = lhsValue;
 		}
 
-		if(condition.op == GE_OP){
+		if(op == GE_OP){
 			lowKeyInclusive = true;
 			highKeyInclusive = true;
 			lowKey = lhsValue;
 		}
 
-		if(condition.op == GT_OP){
+		if(op == GT_OP){
 			highKeyInclusive = true;
 			lowKey = lhsValue;
 		}
 
-		if(condition.op == LT_OP){
+		if(op == LT_OP){
 			lowKeyInclusive = true;
 			highKey = lhsValue;
 		}
@@ -684,6 +692,7 @@ public:
 	void* lhsValue = NULL;
 
 	bool errorFlag;
+	CompOp op;
 
 	NLJoin(Iterator *leftIn,                             // Iterator of input R
 			TableScan *rightIn,                           // TableScan Iterator of input S
@@ -695,10 +704,12 @@ public:
 		this->rightIn = rightIn;
 		this->condition = condition;
 
-		leftData = NULL;
 		rightData = malloc(1024);
 		lhsValue = malloc(108);
 
+		op = setCompOp(condition);
+		dbgnQE("Input Comparison Operation: ",condition.op);
+		dbgnQE("Required Comparison Operation: ",op);
 		dbgnQE("condition.bRhsIsAttr: ",condition.bRhsIsAttr);
 
 		if(condition.bRhsIsAttr)
@@ -726,10 +737,13 @@ public:
 		bool matched = false;
 		while(!matched){
 			if(leftData == NULL || rightIn->getNextTuple(rightData) == QE_EOF){
-				if(leftData==NULL)
+				if(leftData==NULL){
 					leftData=malloc(1024);
+					dbgnQE("LeftData","Allocated");
+				}
 
 				if(leftIn->getNextTuple(leftData) == QE_EOF){
+					dbgnQE("End of","LeftIn");
 					dbgnQEFnc();
 					return QE_EOF;
 				}
@@ -738,7 +752,7 @@ public:
 					dbgnQE("Finished iteration for rightIn for one tuple of leftIn","");
 					int rc = readAttribute(condition.lhsAttr, (BYTE*)leftData, (BYTE*)lhsValue, leftIn);
 					assert(rc!=-1);
-					rightIn->setIterator(condition.rhsAttr,condition.op,lhsValue);
+					rightIn->setIterator(condition.rhsAttr,op,lhsValue);
 				}
 
 			}
@@ -746,11 +760,14 @@ public:
 				// Found a join here, output one tuple here
 				dbgnQE("Match Found","");
 				vector<Attribute> attrs;
+				attrs.clear();
 				leftIn->getAttributes(attrs);
+				dbgnQE("Left Relation Attribute Vector length", attrs.size());
 				int offset = copyTuple((BYTE*)data, (BYTE*)leftData, attrs);
 				assert(offset!=-1);
 				attrs.clear();
 				rightIn->getAttributes(attrs);
+				dbgnQE("Right Relation Attribute Vector length", attrs.size());
 				copyTuple((BYTE*)data+offset, (BYTE*)rightData, attrs);
 				matched = true;
 			}
@@ -769,6 +786,7 @@ public:
 		std::vector<Attribute>::const_iterator it = attrsRightIn.begin();
 		while(it != attrsRightIn.end()){
 			attrs.push_back(*(it));
+			it++;
 		}
 		dbgnQEFnc();
 	};
