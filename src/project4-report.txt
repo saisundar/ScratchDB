@@ -1,0 +1,156 @@
+There are a very few design decisions made by us in this layer. 
+All the filters work in the same fashion. allocate memory for adata to be read at that iterator layer.
+1. Read from lower layers
+2. Process the data as required.
+3. Pass it to above layers
+4. Free Memory when done scanning
+
+For aggregate function we run one scan through satisfying tuples
+For group by aggregate function we use a hashmap to store the data per group
+
+The signatures of the functions and are shown below. The names are self explanatory.
+
+
+CompOp setCompOp(const Condition &condition);
+int copyTuple(BYTE* outputData, BYTE* inputData, vector<Attribute>& recordDescriptor);
+int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData, Iterator* someIn);
+class mapKey {
+
+public:
+	Attribute attr;
+	INT32 num;
+	float val;
+	string name;
+	mapKey()
+	mapKey(Attribute attribute,INT32 value)
+	mapKey(Attribute attribute,float value)
+	mapKey(Attribute attribute,string value)
+	bool operator <(const mapKey& rhs) const
+};
+
+class TableScan : public Iterator
+{
+	void setIterator(string condnAttribute, CompOp op, void* lhsValue);
+};
+
+
+
+
+class Filter : public Iterator {
+	Iterator *inp;
+	Condition cond;
+	vector<Attribute> attrs;
+	void* valueP;
+	bool valid;
+	AttrType type;
+	float result;
+	Filter(Iterator *input,const Condition &condition)
+	~Filter()
+	bool evaluateCondition(void * temp);
+	bool returnRes(int diff);
+	RC getRHSAddr(void* data);
+	BYTE* getLHSAddr(void* data);
+	RC getNextTuple(void *data)
+	bool isValidAttr();
+	void getAttributes(vector<Attribute> &attrs) const
+};
+
+
+class Project : public Iterator {
+	vector<Attribute> lowerLevelDescriptor;
+	vector<string> attrNames;
+	Iterator *input;
+	BYTE* lowerLevelData;
+	bool valid ;
+	vector<Attribute> projAttrs;
+	bool isValidAttr();
+	Project(Iterator *input,                            // Iterator of input R
+			const vector<string> &attrNames);           // vector containing attribute names
+	~Project()
+	RC getNextTuple(void *data);
+	void getAttributes(vector<Attribute> &attrs) const;
+	int readAttribute(const string &attributeName, BYTE * inputData, BYTE* outputData);
+	void setValidFalse();
+};
+
+
+class Answer{
+public:
+	float val; // for holding min/max or sum
+	int count;	// for counting the tuples
+	Answer()
+};
+
+class Aggregate : public Iterator {
+	// Aggregation operator
+public:
+	Iterator *inp;
+	Attribute attr;
+	Attribute groupAttr;
+	AggregateOp opAg;
+	bool valid;
+	vector<Attribute> attrs;
+	bool groupBy;
+	void* valueP;
+	void* groupP;
+
+
+	bool isValidAttr();
+	RC getAttrAddr(void* data);
+	RC updateAns(Answer &ans,float diff);
+	float compareAttr(Answer ans);
+	RC copyFinalAns(void* data,Answer ans,mapKey tempKey);
+	map<mapKey,Answer> grouper;
+	map<mapKey,Answer>::iterator mapIter;
+	mapKey tempKey;
+	Answer getGroupAns();
+	void setExtremeAns(Answer &ans);
+	void getAttributes(vector<Attribute> &attrs) const;
+};
+
+class INLJoin : public Iterator {
+	// Index Nested-Loop join operator
+public:
+	Iterator *leftIn;
+	IndexScan *rightIn;
+	Condition condition;
+	CompOp op;
+
+	void* leftData = NULL;
+	void* rightData = NULL;
+	void* lhsValue = NULL;
+	bool errorFlag;
+	INLJoin(Iterator *leftIn,                               // Iterator of input R
+			IndexScan *rightIn,                             // IndexScan Iterator of input S
+			const Condition &condition,                     // Join condition
+			const unsigned numPages                         // Number of pages can be used to do join (decided by the optimizer)
+	)
+	~INLJoin()
+	RC getNextTuple(void *data)	void getAttributes(vector<Attribute> &attrs)
+};
+
+
+class NLJoin : public Iterator {
+	// Nested-Loop join operator
+public:
+
+	Iterator *leftIn;
+	TableScan *rightIn;
+	Condition condition;
+
+	void* leftData = NULL;
+	void* rightData = NULL;
+	void* lhsValue = NULL;
+
+	bool errorFlag;
+	CompOp op;
+
+	NLJoin(Iterator *leftIn,                             // Iterator of input R
+			TableScan *rightIn,                           // TableScan Iterator of input S
+			const Condition &condition,                   // Join condition
+			const unsigned numPages                       // Number of pages can be used to do join (decided by the optimizer)
+	)
+	~NLJoin()
+	RC getNextTuple(void *data)
+	void getAttributes(vector<Attribute> &attrs) const{
+};
