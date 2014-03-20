@@ -353,7 +353,7 @@ RC RelationManager::indexScan(const string &tableName,
 	}
 
 	// Scan starts here
-	if(im->scan(indexHandle,attr,lowKey,highKey,lowKeyInclusive,highKeyInclusive,*(rm_IndexScanIterator.ix_scaniterator))==-1){
+	if(im->scan(indexHandle,attr,lowKey,highKey,lowKeyInclusive,highKeyInclusive, rm_IndexScanIterator.ix_scaniterator)==-1){
 		dbgnRM("could not start scan","In index scan (RM)");
 		return -1;
 	}

@@ -50,19 +50,18 @@ public:
 
 class RM_IndexScanIterator {
 public:
-	IX_ScanIterator* ix_scaniterator = NULL;
+	IX_ScanIterator ix_scaniterator;
 
 	RM_IndexScanIterator() {
-		ix_scaniterator = new IX_ScanIterator();
+
 	};
 
 	~RM_IndexScanIterator() {
-		free(ix_scaniterator);
 	};
 
 	// "key" follows the same format as in IndexManager::insertEntry()
 	RC getNextEntry(RID &rid, void *key) {
-		if((ix_scaniterator->getNextEntry(rid, key)) == IX_EOF)return RM_EOF;
+		if((ix_scaniterator.getNextEntry(rid, key)) == IX_EOF)return RM_EOF;
 		return 0;
 	};
 
