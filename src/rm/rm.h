@@ -25,21 +25,17 @@ using namespace std;
 class RM_ScanIterator {
 
 public:
-	RBFM_ScanIterator* rbfmsi;
+	RBFM_ScanIterator rbfmsi;
 	FileHandle fileHandle;
 	RM_ScanIterator() {
-		rbfmsi = new RBFM_ScanIterator();
 	};
 	~RM_ScanIterator() {
-		if(rbfmsi != NULL)
-			free(rbfmsi);
-		rbfmsi = NULL;
 	};
 
 	// "data" follows the same format as RelationManager::insertTuple()
 	RC getNextTuple(RID &rid, void *data) {
 		dbgn2("get next tuple============","");
-		if(rbfmsi->getNextRecord(rid,data)==RBFM_EOF) return RM_EOF;
+		if(rbfmsi.getNextRecord(rid,data)==RBFM_EOF) return RM_EOF;
 		return 0;
 	};
 	RC close() {
@@ -47,9 +43,7 @@ public:
 			dbgn2("could not close the file","In close (RM Iterator)");
 			return -1;
 		}
-		if(rbfmsi->close()==-1)return -1;
-		free(rbfmsi);
-		rbfmsi = NULL;
+		if(rbfmsi.close()==-1)return -1;
 		return 0;
 	};
 };

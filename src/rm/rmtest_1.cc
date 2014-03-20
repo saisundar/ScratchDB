@@ -640,7 +640,7 @@ int main()
     // Create Table
     createTable("tbl_employee");
 
-    Tests();
+    //Tests();
 
     return 0;
 }

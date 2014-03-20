@@ -216,6 +216,9 @@ void createTable(const string &tableName)
     RC rc = rm->createTable(tableName, attrs);
     assert(rc == success);
     cout << "****Table Created: " << tableName << " ****" << endl << endl;
+
+    rc=rm->deleteTable(tableName);
+    cout << "****Table Deleted: " << tableName << "****" << endl << endl;
 }
 
 

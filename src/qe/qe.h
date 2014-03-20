@@ -56,6 +56,10 @@ class mapKey {
 
 public:
 
+	Attribute attr;
+	INT32 num;
+	float val;
+	string name;
 	mapKey()
 {
 		num=0;
@@ -87,10 +91,6 @@ public:
 		name=value;
 	}
 
-	Attribute attr;
-	INT32 num;
-	float val;
-	string name;
 
 	bool operator <(const mapKey& rhs) const
 	{

@@ -1270,7 +1270,7 @@ RC RelationManager :: scan(const string &tableName, const string &conditionAttri
 		return -1;
 	}
 
-	if(rbfm->scan(rm_ScanIterator.fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames,*(rm_ScanIterator.rbfmsi)) == -1){
+	if(rbfm->scan(rm_ScanIterator.fileHandle,recordDescriptor,conditionAttribute,compOp,value,attributeNames, rm_ScanIterator.rbfmsi) == -1){
 		dbgnRM("could not create rbfm scan iterator","In Read Attribute (RM)");
 		if(rbfm->closeFile(rm_ScanIterator.fileHandle)==-1){
 			dbgnRM("could close the file","");
