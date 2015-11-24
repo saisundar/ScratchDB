@@ -1,5 +1,5 @@
 # RDBMS-system-from-scratch--with-indexing--and-cli-
-A Top-to-Bottom Database system, with beta cli, with indexing support-No Libraries used
+A Top-to-Bottom Database system, with beta cli, with B-Tree indexing - all from scratch. (No external libraries)
 
 This database uses your disk as the datastore. 
 
