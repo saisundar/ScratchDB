@@ -1,4 +1,4 @@
-# RDBMS-system-from-scratch--with-indexing--and-cli-
+# ScratchDB
 A Top-to-Bottom Database system, with beta cli, with B-Tree indexing - all from scratch. (No external libraries)
 
 This database uses your disk as the datastore. 
