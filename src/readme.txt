@@ -13,22 +13,8 @@ The project consists of four layers
 
 The above was implemented for course CS222 , Winter 2014, UCI
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+How to get tests running:
+========================
 
 - Modify the "CODEROOT" variable in makefile.inc to point to the root
   of your code base
@@ -41,10 +27,3 @@ The above was implemented for course CS222 , Winter 2014, UCI
     make
     ./rbftest
 
-   The program should work.  But it does nothing.  You are supposed to
-   implement the API of the paged file manager defined in pfm.h and some
-   of the methods in rbfm.h as explained in the project description.
-
-- By default you should not change those functions of the PagedFileManager,
-  FileHandle, and RecordBasedFileManager classes defined in rbf/pfm.h and rbf/rbfm.h.
-  If you think some changes are really necessary, please contact us first.
